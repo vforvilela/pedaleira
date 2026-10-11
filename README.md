@@ -12,6 +12,15 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
 | Eco 8 | Boss DD-8 | Delay Web Audio, modos STD, ANLG e MOD, com trails |
 | Salão | TC Electronic Hall of Fame 2 | Reverb por convolução, 5 salas, com trails |
 
+**Para tocar ao vivo**
+
+- **Presets por música:** escreva o nome, clique em Salvar. ◀ ▶ (ou `[` `]`) trocam de preset.
+- **Tap tempo** no Eco 8 (botão TAP ou tecla `T`), de 20 ms a 2 s.
+- **Teclado como footswitch:** `1`–`9` ligam e desligam o pedal naquela posição.
+- **Controlador MIDI** (Chrome/Edge, não no iPhone): botão MIDI → toque no alvo (pedal, TAP, botão, ◀ ▶) →
+  pise no controlador. Program Change N escolhe o preset N+1 sem configurar nada. Footswitch que manda 127/0
+  (momentâneo) funciona a cada pisada; o tipo "trava" (latching) só dispara a cada duas.
+
 ## Rodar
 
 ```sh

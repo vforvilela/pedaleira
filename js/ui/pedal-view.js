@@ -22,7 +22,7 @@ const knobAngle = (c, v) =>
 
 function drawKnob(svg, c, x, y, r, ink) {
   const g = el('g', {
-    class: 'knob', tabindex: 0, role: 'slider', 'aria-label': c.label,
+    class: 'knob', tabindex: 0, role: 'slider', 'aria-label': c.label, 'data-param': c.id,
     'aria-valuemin': 0, 'aria-valuemax': c.type === 'select' ? c.options.length - 1 : 10,
   }, svg);
   text(g, x, y - r - 7, c.label, { class: 'klabel', fill: ink, 'font-size': r > 13 ? 8 : 6 });
@@ -159,6 +159,14 @@ export function pedalView(block, cb) {
     b.textContent = kind.toUpperCase();
     b.onclick = () => cb.file(kind, f.accept);
     tools.append(b);
+  }
+  if (def.tap) {
+    const tap = document.createElement('button');
+    tap.className = 'tap-btn';
+    tap.title = 'Tap tempo: toque no ritmo da música (atalho: T)';
+    tap.textContent = 'TAP';
+    tap.onclick = () => cb.tap();
+    tools.append(tap);
   }
   const rm = document.createElement('button');
   rm.className = 'remove';

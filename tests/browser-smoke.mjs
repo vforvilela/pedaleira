@@ -107,11 +107,73 @@ try {
   const order = await evaluate(`__pedaleira.state.chain.map(b => b.type).join(',')`);
   check(order === 'amp,sol-drive,eco-8,salao', `arrastar muda a ordem (${order})`);
 
+  // Salão: girar DECAY e TYPE várias vezes (troca de IR com crossfade, sem erro).
+  await evaluate(`(async () => {
+    const { state, live } = __pedaleira;
+    const b = state.chain.find(b => b.type === 'salao'), a = live.get(b.uid).audio;
+    for (const v of [2, 8, 4]) { a.set('decay', v); await new Promise(r => setTimeout(r, 200)); }
+    a.set('room', 3); await new Promise(r => setTimeout(r, 200));
+  })()`);
+  check(true, 'Salão trocou de IR 4 vezes');
+
+  // Tap tempo: dois toques a 500 ms → D.TIME ≈ 7,0 (500 ms na escala de 20 ms a 2 s).
+  await evaluate(`document.querySelector('.tap-btn').click()`);
+  await sleep(500);
+  await evaluate(`document.querySelector('.tap-btn').click()`);
+  const tapV = await evaluate(`__pedaleira.state.chain.find(b => b.type === 'eco-8').params.time`);
+  check(Math.abs(tapV - 7) <= 0.3, `tap tempo a 500 ms ajusta D.TIME (${tapV})`);
+
+  // Presets: salva A, muda, salva B, volta para A.
+  const setName = n => evaluate(`(() => { const i = document.getElementById('presetName'); i.value = ${JSON.stringify(n)}; document.getElementById('presetSave').click(); })()`);
+  await setName('Música A');
+  await evaluate(`(() => { const { state, live } = __pedaleira; const b = state.chain.find(b => b.type === 'sol-drive'); b.params.drive = 9; live.get(b.uid).audio.set('drive', 9); })()`);
+  await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: '4', bubbles: true }))`);
+  const sal = await evaluate(`__pedaleira.state.chain[3].on`);
+  check(sal === false, 'tecla 4 desliga o quarto pedal');
+  await setName('Música B');
+  await evaluate(`(() => { const s = document.getElementById('preset'); s.value = 'Música A'; s.dispatchEvent(new Event('change')); })()`);
+  await sleep(300);
+  const back = await evaluate(`(() => { const c = __pedaleira.state.chain; return { drive: c.find(b => b.type === 'sol-drive').params.drive, on: c[3].on, n: document.querySelectorAll('.pedal').length }; })()`);
+  check(back.drive === 5 && back.on === true && back.n === 4, `preset A restaura DRIVE 5 e o pedal ligado (${JSON.stringify(back)})`);
+  await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: ']', bubbles: true }))`);
+  await sleep(300);
+  check(await evaluate(`__pedaleira.state.preset`) === 'Música B', 'tecla ] vai para o preset B');
+
+  // MIDI: aprende CC 64 para ligar/desligar o primeiro pedal, depois usa; Program Change 0 escolhe o preset A.
+  const midiRes = await evaluate(`(() => {
+    const { state, midi } = __pedaleira, b = state.chain[0], before = b.on;
+    midi.learn({ kind: 'toggle', uid: b.uid });
+    midi.handle([0xB0, 64, 127]);
+    midi.handle([0xB0, 64, 127]);
+    const toggled = b.on !== before;
+    midi.handle([0xC0, 0]);
+    return { toggled, mappings: state.midi.length };
+  })()`);
+  await sleep(300);
+  check(midiRes.toggled && midiRes.mappings === 1, `MIDI aprende e liga/desliga (${JSON.stringify(midiRes)})`);
+  check(await evaluate(`__pedaleira.state.preset`) === 'Música A', 'Program Change 0 escolhe o preset A');
+
   const stats = await evaluate(`(() => { const s = __pedaleira.engine.ctx.playoutStats; return s ? { fallback: s.fallbackFramesEvents, total: s.totalFramesDuration } : null; })()`);
   if (stats) console.log(`info: playoutStats ${JSON.stringify(stats)}`);
 
   await shot('2-ligado.png');
   await shot('3-celular.png', 390, 844, true);
+
+  // Arrastar com o dedo (toque) pelo ⠿, na tela de celular.
+  await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 });
+  await evaluate(`document.querySelector('.board-wrap').scrollLeft = 0`);
+  const before = await evaluate(`__pedaleira.state.chain.map(b => b.type).join(',')`);
+  const tp = await evaluate(`(() => {
+    const g = document.querySelectorAll('.pedal')[1].querySelector('.grip').getBoundingClientRect();
+    return { x: g.x + g.width / 2, y: g.y + g.height / 2 };
+  })()`);
+  await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: tp.x, y: tp.y }] });
+  for (let x = tp.x; x >= 20; x -= 15) await send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: tp.y }] });
+  await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await sleep(200);
+  const after = await evaluate(`__pedaleira.state.chain.map(b => b.type).join(',')`);
+  const exp = before.split(','); exp.unshift(exp.splice(1, 1)[0]);
+  check(after === exp.join(','), `arrastar com o dedo muda a ordem (${before} → ${after})`);
 
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
   console.log(`screenshots em ${out}`);

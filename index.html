@@ -23,6 +23,16 @@
     <label class="master">Volume <input id="master" type="range" min="-40" max="6" step="0.5"> <output id="masterV"></output></label>
     <span class="lat" title="Latência informada pelo navegador (sem o atraso da interface)">Latência <b id="latency">—</b></span>
   </div>
+  <div class="presets">
+    <button id="presetPrev" aria-label="Preset anterior" title="Preset anterior (atalho: [)">◀</button>
+    <select id="preset" aria-label="Preset"></select>
+    <button id="presetNext" aria-label="Próximo preset" title="Próximo preset (atalho: ])">▶</button>
+    <input id="presetName" type="text" placeholder="Nome do preset (ex.: a música)" aria-label="Nome do preset" maxlength="40">
+    <button id="presetSave">Salvar</button>
+    <button id="presetDelete">Apagar</button>
+    <button id="midi" aria-pressed="false" title="Aprender botões de um controlador MIDI" hidden>MIDI</button>
+    <button id="midiClear" hidden>Apagar MIDI</button>
+  </div>
   <p id="status" class="status" role="status">Desligado. Conecte a interface e clique em Ligar.</p>
 </header>
 
@@ -36,6 +46,7 @@
     <h2>Adicionar pedal</h2>
     <div id="library" class="library"></div>
     <p class="hint">O sinal vai da esquerda para a direita. Arraste pelo ⠿ para mudar a ordem. Gire os botões arrastando para cima ou para baixo; dois cliques voltam ao padrão. Clique no pedal para ligar e desligar.</p>
+    <p class="hint">Atalhos: <kbd>1</kbd>–<kbd>9</kbd> ligam e desligam o pedal naquela posição, <kbd>T</kbd> é o tap tempo do delay, <kbd>[</kbd> e <kbd>]</kbd> trocam de preset. Um controlador MIDI pode fazer o mesmo pelo botão MIDI (no Chrome e no Edge).</p>
   </section>
 </main>
 

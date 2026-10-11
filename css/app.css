@@ -40,6 +40,18 @@ h1 span { color: var(--accent); }
 .master { display: flex; align-items: center; gap: 6px; }
 .master input { width: 110px; accent-color: var(--accent); }
 .master output, .lat b { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 500; }
+.presets { grid-column: 1 / -1; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.presets select { min-width: 140px; max-width: 220px; }
+.presets input {
+  flex: 1; min-width: 140px; max-width: 260px; background: var(--bg); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 10px;
+}
+.presets button { padding: 8px 10px; }
+#midi[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+body.midi-learn .footswitch, body.midi-learn .tap-btn, body.midi-learn .knob,
+body.midi-learn #presetPrev, body.midi-learn #presetNext { outline: 2px dashed rgba(240,162,59,.7); outline-offset: 2px; cursor: crosshair; }
+body.midi-learn .learn-target { outline: 3px solid var(--accent) !important; }
+kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; color: var(--text); }
 .status { grid-column: 1 / -1; margin: 0; font-size: 13px; color: var(--muted); }
 .status.err { color: var(--bad); }
 
@@ -104,6 +116,8 @@ main { padding: 16px 0 32px; }
 .tools button { padding: 4px 10px; font-size: 12px; border-radius: 6px; background: var(--panel); }
 .tools .grip { cursor: grab; touch-action: none; font-size: 15px; line-height: 1; padding: 4px 10px; }
 .tools .file-btn.has { border-color: var(--accent); color: var(--accent); }
+.tools .tap-btn { font-weight: 700; letter-spacing: .05em; }
+.tools .tap-btn:active { background: var(--accent); color: #1a1205; }
 .tools .remove:hover { border-color: var(--bad); color: var(--bad); }
 
 .empty { color: var(--muted); text-align: center; }

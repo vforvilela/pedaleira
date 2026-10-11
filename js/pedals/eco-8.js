@@ -21,6 +21,8 @@ export default {
     style: 'compact', body: '#f3f2ec', ink: '#2b2b2b', strip: '#151515', stripInk: '#f3f2ec',
     subtitle: 'Digital Delay', led: '#ff3b30',
   },
+  // Tap tempo: segundos entre toques → posição do D.TIME (20 ms a 2 s, escala log).
+  tap: { param: 'time', fromSeconds: s => (10 * Math.log(s / 0.02)) / Math.log(100) },
   controls: [
     { id: 'level', label: 'E.LEVEL', default: 4 },
     { id: 'feedback', label: 'F.BACK', default: 4 },
@@ -35,7 +37,7 @@ export default {
 
     const send = ctx.createGain();
     const sum = ctx.createGain();
-    const delay = ctx.createDelay(2);
+    const delay = ctx.createDelay(2.1);
     const hp = biquad(ctx, 'highpass', 40, 0.7);
     const lp = biquad(ctx, 'lowpass', 12000, 0.7);
     const clip = ctx.createWaveShaper();
@@ -58,7 +60,7 @@ export default {
     const p = { ...env.params };
     const apply = () => {
       const m = MODES[Object.keys(MODES)[p.mode]] || MODES.STD;
-      smooth(ctx, delay.delayTime, logMap(p.time, 0.02, 1.0), 0.06);
+      smooth(ctx, delay.delayTime, logMap(p.time, 0.02, 2.0), 0.06);
       smooth(ctx, fb.gain, Math.min(1.05, (p.feedback / 10) * 1.05));
       smooth(ctx, wet.gain, (p.level / 10) * 1.2);
       smooth(ctx, lp.frequency, m.lp);

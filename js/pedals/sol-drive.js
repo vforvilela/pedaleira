@@ -1,7 +1,7 @@
 // Overdrive amarelo inspirado no Boss SD-1.
 // Circuito: o drive só satura acima de ~720 Hz (o grave passa limpo), com clipagem assimétrica
 // (dois diodos de um lado, um do outro), seguido de tom e volume.
-import { Bypass, NamSlot, biquad, curve, dbToGain, logMap, namMakeupDb, smooth } from './common.js';
+import { Bypass, NamSlot, biquad, curve, dbToGain, namMakeupDb, smooth } from './common.js';
 
 // Lado positivo satura no dobro do negativo, como 2 diodos contra 1.
 const asymClip = curve(x => (x >= 0 ? Math.tanh(4 * x) / Math.tanh(4) : 0.5 * Math.tanh(8 * x) / Math.tanh(8)));
@@ -44,8 +44,9 @@ export default {
     let namMakeup = 0;
 
     const dcBlock = biquad(ctx, 'highpass', 25, 0.7);
-    const tone = biquad(ctx, 'lowpass', 3000, 0.6);
-    const hiCut = biquad(ctx, 'lowpass', 8000, 0.7);
+    // TONE ativo como no SD-1: abaixo do meio corta agudo, acima realça.
+    const tone = biquad(ctx, 'highshelf', 1800, 0.7, 0);
+    const hiCut = biquad(ctx, 'lowpass', 6500, 0.7);
     const level = ctx.createGain();
     dcBlock.connect(tone).connect(hiCut).connect(level).connect(bp.wet);
     mix.connect(dcBlock);
@@ -54,7 +55,7 @@ export default {
     const apply = () => {
       smooth(ctx, drive.gain, dbToGain(6 + p.drive * 4));
       smooth(ctx, namIn.gain, dbToGain(-12 + p.drive * 2.4));
-      smooth(ctx, tone.frequency, logMap(p.tone, 900, 9000));
+      smooth(ctx, tone.gain, -15 + p.tone * 2.3);
       smooth(ctx, level.gain, dbToGain(-34 + p.level * 4));
       smooth(ctx, namOut.gain, dbToGain(namMakeup + 14));
     };

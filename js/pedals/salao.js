@@ -26,12 +26,23 @@ export default {
     input.connect(output);
 
     const send = ctx.createGain();
-    const conv = ctx.createConvolver();
-    conv.normalize = false;
     const hp = biquad(ctx, 'highpass', 120, 0.7);
     const tone = biquad(ctx, 'lowpass', 6000, 0.5);
     const wet = ctx.createGain();
-    input.connect(send).connect(hp).connect(conv).connect(tone).connect(wet).connect(output);
+    input.connect(send).connect(hp);
+    tone.connect(wet).connect(output);
+
+    // Dois convolvers: a IR nova entra no que está mudo e os dois trocam com crossfade,
+    // senão a troca de buffer estala ao girar DECAY ou TYPE.
+    const slots = [0, 1].map(() => {
+      const conv = ctx.createConvolver();
+      conv.normalize = false;
+      const gain = ctx.createGain();
+      gain.gain.value = 0;
+      hp.connect(conv).connect(gain).connect(tone);
+      return { conv, gain };
+    });
+    let active = 1;
 
     const p = { ...env.params };
     let irKey = '', irTimer = 0;
@@ -42,7 +53,11 @@ export default {
       const ir = makeIR(ctx.sampleRate, ROOM_NAMES[p.room], p.decay);
       const buf = ctx.createBuffer(2, ir.length, ctx.sampleRate);
       ir.channels.forEach((c, i) => buf.copyToChannel(c, i));
-      conv.buffer = buf;
+      const next = slots[1 - active], prev = slots[active];
+      next.conv.buffer = buf;
+      smooth(ctx, next.gain.gain, 1, 0.08);
+      smooth(ctx, prev.gain.gain, 0, 0.08);
+      active = 1 - active;
     };
     const apply = () => {
       smooth(ctx, tone.frequency, logMap(p.tone, 1500, 14000));

@@ -3,6 +3,7 @@ import { Engine, loadWasmBytes } from './audio/engine.js';
 import { PEDALS, byType, DEFAULT_CHAIN, defaultParams } from './pedals/index.js';
 import { pedalView, installDefs } from './ui/pedal-view.js';
 import { loadState, saveState, putFile, getFile, deleteFile } from './store.js';
+import { Midi, midiSupported } from './midi.js';
 
 const $ = id => document.getElementById(id);
 const engine = new Engine();
@@ -15,15 +16,32 @@ function newBlock(type) {
   return { uid: uid(), type, on: true, params: defaultParams(def), files: {} };
 }
 
+// Completa um bloco salvo com os padrões do pedal (o pedal pode ter ganhado controles novos).
+const normalizeBlock = b => ({
+  uid: b.uid, type: b.type, on: b.on !== false,
+  params: { ...defaultParams(byType[b.type]), ...b.params },
+  files: Object.fromEntries(Object.entries(b.files || {}).map(([k, f]) => [k, { ...f, key: f.key || `${b.uid}:${k}` }])),
+});
+const normalizeChain = chain => chain.filter(b => byType[b.type]).map(normalizeBlock);
+
 const saved = loadState();
 const state = {
   master: saved?.master ?? -6,
   deviceId: saved?.deviceId ?? '',
-  chain: (saved?.chain || DEFAULT_CHAIN.map(newBlock))
-    .filter(b => byType[b.type])
-    .map(b => ({ ...b, params: { ...defaultParams(byType[b.type]), ...b.params }, files: b.files || {} })),
+  chain: normalizeChain(saved?.chain || DEFAULT_CHAIN.map(newBlock)),
+  presets: (saved?.presets || []).map(p => ({ name: p.name, chain: normalizeChain(p.chain) })),
+  preset: saved?.preset ?? null,
+  midi: saved?.midi || [],
 };
 const save = () => saveState(state);
+const snapshot = chain => JSON.parse(JSON.stringify(chain));
+
+// Um arquivo (.nam, IR) só sai do IndexedDB quando nem a pedaleira nem algum preset usa mais.
+function releaseFile(key) {
+  const used = [state.chain, ...state.presets.map(p => p.chain)]
+    .some(chain => chain.some(b => Object.values(b.files).some(f => f.key === key)));
+  if (!used) deleteFile(key);
+}
 
 // Partes que não vão para o armazenamento: definição, áudio e vista de cada bloco.
 const live = new Map(); // uid → { def, audio, view }
@@ -43,7 +61,7 @@ function reconnect() {
 
 async function applyStoredFiles(block) {
   for (const kind of Object.keys(block.files)) {
-    const data = await getFile(`${block.uid}:${kind}`);
+    const data = await getFile(block.files[kind].key);
     if (data === undefined) { delete block.files[kind]; continue; }
     await loadIntoAudio(block, kind, data, block.files[kind].name);
   }
@@ -61,8 +79,9 @@ async function loadIntoAudio(block, kind, data, name) {
     else status(`${name} carregado${engineName}.`);
   } catch (err) {
     status(`Não consegui carregar ${name}: ${err.message}`, true);
+    const key = block.files[kind]?.key;
     delete block.files[kind];
-    deleteFile(`${block.uid}:${kind}`);
+    if (key) releaseFile(key);
     save();
   }
 }
@@ -92,10 +111,12 @@ function ensureView(block) {
   l.view = pedalView({ ...block, def: l.def, get on() { return block.on; }, params: block.params, get files() { return block.files; } }, {
     change(id, v) { block.params[id] = v; l.audio?.set(id, v); save(); },
     toggle() { block.on = !block.on; l.audio?.setOn(block.on); save(); },
+    tap: () => tapTempo(block),
     file: (kind, accept) => pickFile(block, kind, accept),
     clearFile(kind) {
+      const key = block.files[kind]?.key;
       delete block.files[kind];
-      deleteFile(`${block.uid}:${kind}`);
+      if (key) releaseFile(key);
       l.audio?.clearFile(kind);
       l.view.update();
       save();
@@ -135,7 +156,7 @@ function removeBlock(id) {
   reconnect();
   live.get(id)?.audio?.dispose();
   live.delete(id);
-  for (const kind of Object.keys(block.files)) deleteFile(`${id}:${kind}`);
+  for (const f of Object.values(block.files)) releaseFile(f.key);
   renderBoard();
   save();
 }
@@ -219,8 +240,12 @@ function pickFile(block, kind, accept) {
       status(`${f.name} não é um arquivo ${kind === 'nam' ? '.nam' : '.wav'} válido.`, true);
       return;
     }
-    block.files[kind] = { name: f.name.replace(/\.(nam|wav)$/i, '') };
-    await putFile(`${block.uid}:${kind}`, data);
+    const old = block.files[kind]?.key;
+    // Chave nova a cada arquivo: um preset salvo antes continua com o arquivo dele.
+    const key = `${block.uid}:${kind}:${Date.now().toString(36)}`;
+    await putFile(key, data);
+    block.files[kind] = { name: f.name.replace(/\.(nam|wav)$/i, ''), key };
+    if (old) releaseFile(old);
     save();
     if (engine.running) await loadIntoAudio(block, kind, data, f.name);
     else status(`${f.name} guardado. Ele toca quando você clicar em Ligar.`);
@@ -326,6 +351,251 @@ $('master').oninput = () => {
   save();
 };
 
+// ---------- Tap tempo ----------
+
+const taps = new Map(); // uid → tempos dos últimos toques (ms)
+function tapTempo(block) {
+  const def = byType[block.type];
+  if (!def.tap) return;
+  const now = performance.now();
+  const t = (taps.get(block.uid) || []).filter(x => now - x < 2500);
+  t.push(now);
+  taps.set(block.uid, t.slice(-4));
+  if (t.length < 2) { status(`${def.name}: toque mais uma vez no ritmo.`); return; }
+  const gaps = t.slice(1).map((x, i) => x - t[i]);
+  const sec = gaps.reduce((a, b) => a + b, 0) / gaps.length / 1000;
+  const v = Math.round(Math.max(0, Math.min(10, def.tap.fromSeconds(sec))) * 10) / 10;
+  setParam(block, def.tap.param, v);
+  status(`${def.name}: ${Math.round(sec * 1000)} ms (${Math.round(60 / sec)} BPM).`);
+}
+
+function setParam(block, id, v) {
+  block.params[id] = v;
+  const l = live.get(block.uid);
+  l?.audio?.set(id, v);
+  l?.view?.update();
+  save();
+}
+
+function toggleBlock(block) {
+  block.on = !block.on;
+  const l = live.get(block.uid);
+  l?.audio?.setOn(block.on);
+  l?.view?.update();
+  save();
+}
+
+// ---------- Presets ----------
+
+function renderPresets() {
+  const sel = $('preset');
+  sel.replaceChildren(new Option('— sem preset —', ''), ...state.presets.map(p => new Option(p.name, p.name)));
+  sel.value = state.preset ?? '';
+  $('presetName').value = state.preset ?? '';
+  $('presetDelete').disabled = !state.preset;
+}
+
+function savePreset() {
+  const name = $('presetName').value.trim();
+  if (!name) { status('Dê um nome ao preset (ex.: o nome da música).', true); $('presetName').focus(); return; }
+  const existing = state.presets.find(p => p.name === name);
+  const old = existing?.chain;
+  if (existing) existing.chain = snapshot(state.chain);
+  else state.presets.push({ name, chain: snapshot(state.chain) });
+  state.preset = name;
+  // Arquivos que só o preset antigo usava podem ser liberados.
+  for (const b of old || []) for (const f of Object.values(b.files)) releaseFile(f.key);
+  save();
+  renderPresets();
+  status(`Preset "${name}" salvo.`);
+}
+
+function deletePreset() {
+  const i = state.presets.findIndex(p => p.name === state.preset);
+  if (i < 0) return;
+  const [p] = state.presets.splice(i, 1);
+  for (const b of p.chain) for (const f of Object.values(b.files)) releaseFile(f.key);
+  status(`Preset "${p.name}" apagado.`);
+  state.preset = null;
+  save();
+  renderPresets();
+}
+
+// Troca a pedaleira pela do preset, reaproveitando o áudio dos pedais que continuam
+// (assim a troca é rápida e as capturas NAM não recarregam à toa).
+async function applyPreset(name) {
+  const preset = state.presets.find(p => p.name === name);
+  if (!preset) { state.preset = null; save(); renderPresets(); return; }
+  const current = new Map(state.chain.map(b => [b.uid, b]));
+  const next = snapshot(preset.chain).map(snap => {
+    const ex = current.get(snap.uid);
+    if (!ex || ex.type !== snap.type) return normalizeBlock(snap);
+    current.delete(snap.uid);
+    const l = live.get(ex.uid);
+    for (const [id, v] of Object.entries(snap.params)) if (ex.params[id] !== v) { ex.params[id] = v; l?.audio?.set(id, v); }
+    if (ex.on !== snap.on) { ex.on = snap.on; l?.audio?.setOn(ex.on); }
+    const reload = [];
+    for (const kind of new Set([...Object.keys(ex.files), ...Object.keys(snap.files)])) {
+      if (ex.files[kind]?.key === snap.files[kind]?.key) continue;
+      if (!snap.files[kind]) l?.audio?.clearFile(kind);
+      else reload.push(kind);
+    }
+    ex.files = snap.files;
+    ex.reload = reload;
+    return ex;
+  });
+  for (const gone of current.values()) { live.get(gone.uid)?.audio?.dispose(); live.delete(gone.uid); }
+  state.chain = next;
+  state.preset = name;
+  for (const b of next) ensureView(b);
+  if (engine.running) {
+    for (const b of next) {
+      const l = live.get(b.uid);
+      if (!l.audio) { createAudio(b); b.reload = Object.keys(b.files); }
+    }
+    reconnect();
+    await Promise.all(next.map(async b => {
+      for (const kind of b.reload || []) {
+        const data = await getFile(b.files[kind].key);
+        if (data !== undefined) await loadIntoAudio(b, kind, data, b.files[kind].name);
+      }
+    }));
+  }
+  for (const b of next) { delete b.reload; live.get(b.uid).view.update(); }
+  renderBoard();
+  save();
+  renderPresets();
+  status(`Preset: ${name}`);
+}
+
+function stepPreset(dir) {
+  if (!state.presets.length) { status('Nenhum preset salvo ainda.'); return; }
+  const i = state.presets.findIndex(p => p.name === state.preset);
+  const n = state.presets.length;
+  applyPreset(state.presets[(i < 0 ? (dir > 0 ? 0 : n - 1) : (i + dir + n) % n)].name);
+}
+
+$('preset').onchange = () => applyPreset($('preset').value);
+$('presetSave').onclick = savePreset;
+$('presetName').onkeydown = e => { if (e.key === 'Enter') savePreset(); };
+$('presetDelete').onclick = deletePreset;
+$('presetPrev').onclick = () => stepPreset(-1);
+$('presetNext').onclick = () => stepPreset(1);
+
+// ---------- Controle: MIDI e teclado ----------
+
+function blockByUid(id) { return state.chain.find(b => b.uid === id); }
+// O alvo de um evento pode ser o próprio document (sem closest).
+const closest = (e, sel) => (e.target instanceof Element ? e.target.closest(sel) : null);
+
+function runAction(target, msg) {
+  if (target.kind === 'program') {
+    const p = state.presets[msg.program];
+    if (p) applyPreset(p.name);
+    return;
+  }
+  if (target.kind === 'preset') { if (!msg || msg.press) stepPreset(target.dir); return; }
+  const block = blockByUid(target.uid);
+  if (!block) return;
+  if (target.kind === 'knob') {
+    const c = byType[block.type].controls.find(c => c.id === target.param);
+    if (!c) return;
+    const max = c.type === 'select' ? c.options.length - 1 : 10;
+    const v = c.type === 'select' ? Math.round((msg.value / 127) * max) : Math.round((msg.value / 127) * 100) / 10;
+    setParam(block, c.id, v);
+  } else if (!msg || msg.press) {
+    if (target.kind === 'toggle') toggleBlock(block);
+    else if (target.kind === 'tap') tapTempo(block);
+  }
+}
+
+function describeTarget(t) {
+  if (t.kind === 'preset') return t.dir > 0 ? 'próximo preset' : 'preset anterior';
+  const b = blockByUid(t.uid), name = b ? byType[b.type].name : 'pedal';
+  if (t.kind === 'toggle') return `${name} (liga/desliga)`;
+  if (t.kind === 'tap') return `${name} (TAP)`;
+  return `${name} → ${t.param.toUpperCase()}`;
+}
+
+const midi = new Midi(state.midi, {
+  onAction: runAction,
+  onChange: save,
+  onLearned(target, msg) { status(`MIDI: ${msg.label} → ${describeTarget(target)}. Escolha outro alvo ou clique em MIDI para sair.`); },
+});
+
+let learning = false;
+function setLearning(on) {
+  learning = on;
+  document.body.classList.toggle('midi-learn', on);
+  $('midi').setAttribute('aria-pressed', on);
+  $('midiClear').hidden = !on;
+  midi.learn(null);
+  if (!on) document.querySelectorAll('.learn-target').forEach(x => x.classList.remove('learn-target'));
+}
+
+if (midiSupported()) {
+  $('midi').hidden = false;
+  $('midi').onclick = async () => {
+    if (learning) { setLearning(false); status('MIDI pronto.'); return; }
+    try {
+      await midi.enable();
+    } catch {
+      status('O navegador não deu acesso ao MIDI.', true);
+      return;
+    }
+    setLearning(true);
+    const names = midi.inputNames();
+    status(`${names.length ? `Controlador: ${names.join(', ')}.` : 'Nenhum controlador MIDI conectado.'} Toque no que quer controlar (pedal, TAP, botão, ◀ ▶) e depois pise no controlador.`);
+  };
+  $('midiClear').onclick = () => {
+    state.midi.splice(0);
+    save();
+    status('Todos os mapeamentos MIDI foram apagados.');
+  };
+  // Liga o MIDI sozinho se já houver mapeamentos (o navegador lembra a permissão).
+  if (state.midi.length) midi.enable().catch(() => {});
+}
+
+// No modo de aprendizado, um toque escolhe o alvo em vez de agir.
+document.addEventListener('pointerdown', e => {
+  if (!learning) return;
+  const el = closest(e, '.footswitch, .tap-btn, .knob, #presetPrev, #presetNext');
+  if (!el) return;
+  e.preventDefault();
+  e.stopPropagation();
+  let target;
+  if (el.id === 'presetPrev' || el.id === 'presetNext') target = { kind: 'preset', dir: el.id === 'presetNext' ? 1 : -1 };
+  else {
+    const id = el.closest('.pedal')?.dataset.uid;
+    if (!id) return;
+    if (el.classList.contains('footswitch')) target = { kind: 'toggle', uid: id };
+    else if (el.classList.contains('tap-btn')) target = { kind: 'tap', uid: id };
+    else target = { kind: 'knob', uid: id, param: el.dataset.param };
+  }
+  document.querySelectorAll('.learn-target').forEach(x => x.classList.remove('learn-target'));
+  el.classList.add('learn-target');
+  midi.learn(target);
+  status(`Agora pise no botão do controlador para: ${describeTarget(target)}.`);
+}, true);
+document.addEventListener('click', e => {
+  if (learning && closest(e, '.footswitch, .tap-btn, .knob, #presetPrev, #presetNext')) { e.preventDefault(); e.stopPropagation(); }
+}, true);
+
+// Teclado do computador como footswitch: 1–9 liga/desliga o pedal na posição, T = tap, [ ] = presets.
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || closest(e, 'input, select, textarea, .knob')) return;
+  if (/^[1-9]$/.test(e.key)) {
+    const b = state.chain[+e.key - 1];
+    if (b) { toggleBlock(b); status(`${byType[b.type].name}: ${b.on ? 'ligado' : 'desligado'}`); }
+  } else if (e.key === 't' || e.key === 'T') {
+    const b = state.chain.find(b => byType[b.type].tap);
+    if (b) tapTempo(b);
+  } else if (e.key === '[') stepPreset(-1);
+  else if (e.key === ']') stepPreset(1);
+  else return;
+  e.preventDefault();
+});
+
 // ---------- Biblioteca ----------
 
 $('library').replaceChildren(...PEDALS.map(def => {
@@ -342,8 +612,9 @@ $('library').replaceChildren(...PEDALS.map(def => {
 
 installDefs();
 renderBoard();
+renderPresets();
 // Acesso para depuração pelo console e para os testes no navegador.
-window.__pedaleira = { engine, state, live };
+window.__pedaleira = { engine, state, live, midi };
 loadWasmBytes();
 if ('serviceWorker' in navigator && location.protocol !== 'file:')
   navigator.serviceWorker.register('sw.js').catch(() => {});
