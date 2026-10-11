@@ -1,5 +1,12 @@
 // Footswitch MIDI: aprende um botão do controlador para cada ação e dispara as ações.
 // Program Change escolhe o preset pelo número, sem precisar aprender.
+//
+// Funciona com os dois tipos de footswitch sem configurar nada:
+// - momentâneo: manda 127 ao pisar e 0 ao soltar → dispara no 127, ignora o 0 que vem logo depois;
+// - de trava (latching): manda 127 numa pisada e 0 na seguinte → dispara nos dois.
+// A diferença é o tempo: um 0 que chega mais de LATCH_MS depois do último 127 é outra pisada.
+
+export const LATCH_MS = 1000;
 
 export const midiSupported = () => typeof navigator !== 'undefined' && !!navigator.requestMIDIAccess;
 
@@ -14,7 +21,9 @@ export function parseMidi([status, d1, d2 = 0]) {
 
 export class Midi {
   // mappings: [{ key, label, target }] (persistido pelo app). onAction(target, msg).
-  constructor(mappings, { onAction, onLearned, onChange }) {
+  constructor(mappings, { onAction, onLearned, onChange, now = () => Date.now() }) {
+    this.now = now;
+    this.lastPress = {};
     this.mappings = mappings;
     this.onAction = onAction;
     this.onLearned = onLearned;
@@ -41,9 +50,12 @@ export class Midi {
   handle(data) {
     const msg = parseMidi(data);
     if (!msg) return;
+    const now = this.now();
     if (this.learnTarget && msg.key.startsWith('pc:') === false) {
       const target = this.learnTarget;
       this.learnTarget = null;
+      // A pisada que ensinou conta como pisada: o 0 do "soltar" logo depois não dispara nada.
+      this.lastPress[msg.key] = now;
       // Um botão do controlador faz uma coisa só; um alvo recebe um botão só.
       this.mappings.splice(0, this.mappings.length,
         ...this.mappings.filter(m => m.key !== msg.key && JSON.stringify(m.target) !== JSON.stringify(target)),
@@ -53,6 +65,13 @@ export class Midi {
       return;
     }
     if (msg.program !== undefined) { this.onAction({ kind: 'program' }, msg); return; }
-    for (const m of this.mappings) if (m.key === msg.key) this.onAction(m.target, msg);
+    msg.trigger = true;
+    if (msg.key.startsWith('cc:')) {
+      if (msg.press) this.lastPress[msg.key] = now;
+      else msg.trigger = now - (this.lastPress[msg.key] ?? -Infinity) > LATCH_MS;
+    }
+    // Botões contínuos recebem todo valor; pedais, TAP e presets só as pisadas que contam.
+    for (const m of this.mappings)
+      if (m.key === msg.key && (msg.trigger || m.target.kind === 'knob')) this.onAction(m.target, msg);
   }
 }

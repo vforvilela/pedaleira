@@ -47,6 +47,8 @@ h1 span { color: var(--accent); }
   border-radius: 8px; padding: 8px 10px;
 }
 .presets button { padding: 8px 10px; }
+#presetSave.attention { border-color: var(--accent); color: var(--accent); }
+#presetSave.attention::after { content: " *"; }
 #midi[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 body.midi-learn .footswitch, body.midi-learn .tap-btn, body.midi-learn .knob,
 body.midi-learn #presetPrev, body.midi-learn #presetNext { outline: 2px dashed rgba(240,162,59,.7); outline-offset: 2px; cursor: crosshair; }
@@ -108,6 +110,19 @@ main { padding: 16px 0 32px; }
 .pedal-name.script { font-family: "Brush Script MT", "Segoe Script", cursive; font-style: italic; font-weight: 700; }
 .amp-logo { font-family: "Brush Script MT", "Segoe Script", cursive; font-style: italic; }
 
+.pedal { position: relative; }
+.pedal .num {
+  position: absolute; top: -12px; left: 50%; transform: translateX(-50%); z-index: 1;
+  font: 700 11px/18px ui-monospace, monospace; min-width: 18px; text-align: center;
+  color: var(--muted); background: var(--bg); border: 1px solid var(--line); border-radius: 5px;
+}
+.tuner-display .seg { fill: #2a0f0d; }
+.tuner-display .seg.mid { fill: #0e2a14; }
+.tuner-display.active .seg.lit { fill: #ff3b30; filter: drop-shadow(0 0 2px #ff3b30); }
+.tuner-display.active .seg.mid.lit { fill: #3dff6e; filter: drop-shadow(0 0 3px #3dff6e); }
+.tuner-note { font-family: ui-monospace, "DejaVu Sans Mono", monospace; font-weight: 700; fill: #ff4a3a; }
+.tuner-note.ok { fill: #3dff6e; }
+.tuner-cents { font-family: ui-monospace, monospace; fill: #c9d2cc; }
 .caption { display: grid; justify-items: center; font-size: 12px; color: var(--muted); max-width: 180px; text-align: center; min-height: 34px; }
 .caption .pname { color: var(--text); font-weight: 600; font-size: 13px; }
 .caption .files { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 2px; }

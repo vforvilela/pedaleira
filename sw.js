@@ -1,10 +1,10 @@
 // Service worker: rede primeiro (assim você sempre recebe a versão nova), cache quando estiver offline.
-const CACHE = 'pedaleira-v2';
+const CACHE = 'pedaleira-v3';
 const SHELL = [
   './', 'index.html', 'css/app.css', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png',
-  'js/app.js', 'js/store.js', 'js/midi.js', 'js/audio/engine.js', 'js/audio/reverb-ir.js', 'js/ui/pedal-view.js',
+  'js/app.js', 'js/store.js', 'js/midi.js', 'js/audio/engine.js', 'js/audio/reverb-ir.js', 'js/audio/pitch.js', 'js/ui/pedal-view.js',
   'js/pedals/index.js', 'js/pedals/common.js', 'js/pedals/sol-drive.js', 'js/pedals/eco-8.js',
-  'js/pedals/salao.js', 'js/pedals/amp.js',
+  'js/pedals/salao.js', 'js/pedals/amp.js', 'js/pedals/afinador.js',
   'js/nam/nam-core.js', 'js/nam/nam-engine.js', 'js/nam/nam-worklet.js', 'js/nam/nam.wasm',
 ];
 

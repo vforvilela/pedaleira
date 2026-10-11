@@ -60,7 +60,7 @@ try {
   await send('Page.navigate', { url: `http://127.0.0.1:${PORT}/` });
   await sleep(1500);
 
-  check(await evaluate(`document.querySelectorAll('.pedal').length`) === 4, 'pedaleira padrão com 4 pedais');
+  check(await evaluate(`document.querySelectorAll('.pedal').length`) === 5, 'pedaleira padrão com 5 pedais (afinador primeiro)');
   await shot('1-desligado.png');
 
   await evaluate(`document.getElementById('power').click()`);
@@ -89,15 +89,15 @@ try {
   check(p2 > 0.001, `sinal na saída com NAM (pico ${p2.toFixed(4)})`);
 
   // Liga/desliga o delay e gira um botão pelo teclado.
-  await evaluate(`document.querySelectorAll('.pedal')[2].querySelector('.footswitch').dispatchEvent(new MouseEvent('click', { bubbles: true }))`);
-  check(await evaluate(`__pedaleira.state.chain[2].on === false`), 'footswitch desliga o Eco 8');
-  await evaluate(`(() => { const k = document.querySelectorAll('.pedal')[0].querySelector('.knob'); k.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', shiftKey: true, bubbles: true })); })()`);
-  check(await evaluate(`__pedaleira.state.chain[0].params.level`) === 6, 'seta para cima gira o LEVEL do Sol Drive de 5 para 6');
+  await evaluate(`document.querySelectorAll('.pedal')[3].querySelector('.footswitch').dispatchEvent(new MouseEvent('click', { bubbles: true }))`);
+  check(await evaluate(`__pedaleira.state.chain[3].on === false`), 'footswitch desliga o Eco 8');
+  await evaluate(`(() => { const k = document.querySelectorAll('.pedal')[1].querySelector('.knob'); k.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', shiftKey: true, bubbles: true })); })()`);
+  check(await evaluate(`__pedaleira.state.chain[1].params.level`) === 6, 'seta para cima gira o LEVEL do Sol Drive de 5 para 6');
 
   // Arrasta o Sol Drive pelo ⠿ até depois do Amp.
   const pos = await evaluate(`(() => {
-    const g = document.querySelectorAll('.pedal')[0].querySelector('.grip').getBoundingClientRect();
-    const a = document.querySelectorAll('.pedal')[1].getBoundingClientRect();
+    const g = document.querySelectorAll('.pedal')[1].querySelector('.grip').getBoundingClientRect();
+    const a = document.querySelectorAll('.pedal')[2].getBoundingClientRect();
     return { x: g.x + g.width / 2, y: g.y + g.height / 2, to: a.right - 10 };
   })()`);
   await send('Input.dispatchMouseEvent', { type: 'mousePressed', x: pos.x, y: pos.y, button: 'left', clickCount: 1 });
@@ -105,7 +105,7 @@ try {
   await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: pos.to, y: pos.y, button: 'left', clickCount: 1 });
   await sleep(200);
   const order = await evaluate(`__pedaleira.state.chain.map(b => b.type).join(',')`);
-  check(order === 'amp,sol-drive,eco-8,salao', `arrastar muda a ordem (${order})`);
+  check(order === 'afinador,amp,sol-drive,eco-8,salao', `arrastar muda a ordem (${order})`);
 
   // Salão: girar DECAY e TYPE várias vezes (troca de IR com crossfade, sem erro).
   await evaluate(`(async () => {
@@ -127,21 +127,21 @@ try {
   const setName = n => evaluate(`(() => { const i = document.getElementById('presetName'); i.value = ${JSON.stringify(n)}; document.getElementById('presetSave').click(); })()`);
   await setName('Música A');
   await evaluate(`(() => { const { state, live } = __pedaleira; const b = state.chain.find(b => b.type === 'sol-drive'); b.params.drive = 9; live.get(b.uid).audio.set('drive', 9); })()`);
-  await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: '4', bubbles: true }))`);
-  const sal = await evaluate(`__pedaleira.state.chain[3].on`);
-  check(sal === false, 'tecla 4 desliga o quarto pedal');
+  await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: '5', bubbles: true }))`);
+  const sal = await evaluate(`__pedaleira.state.chain[4].on`);
+  check(sal === false, 'tecla 5 desliga o quinto pedal');
   await setName('Música B');
   await evaluate(`(() => { const s = document.getElementById('preset'); s.value = 'Música A'; s.dispatchEvent(new Event('change')); })()`);
   await sleep(300);
-  const back = await evaluate(`(() => { const c = __pedaleira.state.chain; return { drive: c.find(b => b.type === 'sol-drive').params.drive, on: c[3].on, n: document.querySelectorAll('.pedal').length }; })()`);
-  check(back.drive === 5 && back.on === true && back.n === 4, `preset A restaura DRIVE 5 e o pedal ligado (${JSON.stringify(back)})`);
+  const back = await evaluate(`(() => { const c = __pedaleira.state.chain; return { drive: c.find(b => b.type === 'sol-drive').params.drive, on: c[4].on, n: document.querySelectorAll('.pedal').length }; })()`);
+  check(back.drive === 5 && back.on === true && back.n === 5, `preset A restaura DRIVE 5 e o pedal ligado (${JSON.stringify(back)})`);
   await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: ']', bubbles: true }))`);
   await sleep(300);
   check(await evaluate(`__pedaleira.state.preset`) === 'Música B', 'tecla ] vai para o preset B');
 
   // MIDI: aprende CC 64 para ligar/desligar o primeiro pedal, depois usa; Program Change 0 escolhe o preset A.
   const midiRes = await evaluate(`(() => {
-    const { state, midi } = __pedaleira, b = state.chain[0], before = b.on;
+    const { state, midi } = __pedaleira, b = state.chain[1], before = b.on;
     midi.learn({ kind: 'toggle', uid: b.uid });
     midi.handle([0xB0, 64, 127]);
     midi.handle([0xB0, 64, 127]);
@@ -152,6 +152,54 @@ try {
   await sleep(300);
   check(midiRes.toggled && midiRes.mappings === 1, `MIDI aprende e liga/desliga (${JSON.stringify(midiRes)})`);
   check(await evaluate(`__pedaleira.state.preset`) === 'Música A', 'Program Change 0 escolhe o preset A');
+
+  // Rascunho: mudar o preset A marca *, trocar e voltar mantém a mudança, Reverter desfaz.
+  await evaluate(`(() => { const b = __pedaleira.state.chain.find(b => b.type === 'sol-drive'); const k = document.querySelector('.pedal[data-uid="' + b.uid + '"] .knob[data-param="drive"]'); k.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', shiftKey: true, bubbles: true })); })()`);
+  const star = await evaluate(`document.getElementById('preset').selectedOptions[0].textContent`);
+  check(star === 'Música A *', `preset alterado mostra * (${star})`);
+  await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: ']', bubbles: true }))`);
+  await sleep(300);
+  await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: '[', bubbles: true }))`);
+  await sleep(300);
+  const kept = await evaluate(`__pedaleira.state.chain.find(b => b.type === 'sol-drive').params.drive`);
+  check(kept === 6, `trocar de preset e voltar mantém a mudança não salva (DRIVE ${kept})`);
+  await evaluate(`document.getElementById('presetRevert').click()`);
+  await sleep(300);
+  const rev = await evaluate(`[__pedaleira.state.chain.find(b => b.type === 'sol-drive').params.drive, document.getElementById('preset').selectedOptions[0].textContent]`);
+  check(rev[0] === 5 && rev[1] === 'Música A', `Reverter volta para a versão salva (${rev})`);
+
+  // Exportar e importar: o mesmo arquivo não duplica; com nome novo, entra.
+  const imp = await evaluate(`(async () => {
+    const p = __pedaleira, doc = await p.buildExport(), before = p.state.presets.length;
+    await p.importPresets(new File([JSON.stringify(doc)], 'a.json'));
+    const same = p.state.presets.length;
+    doc.presets.forEach(x => x.name += ' (celular)');
+    doc.files['teste:ir:1'] = { type: 'base64', data: 'AAEC' };
+    await p.importPresets(new File([JSON.stringify(doc)], 'b.json'));
+    const ir = await p.getFile('teste:ir:1');
+    return { before, same, after: p.state.presets.length, irBytes: ir?.byteLength };
+  })()`);
+  check(imp.same === imp.before && imp.after === imp.before * 2 && imp.irBytes === 3, `exportar/importar presets e arquivos (${JSON.stringify(imp)})`);
+
+  // Afinador: o microfone falso não tem nota (é quase DC com cliques), então troca a entrada
+  // do afinador por um oscilador de 110 Hz (Lá 2) e espera o visor mostrar A2; MUTE corta a saída.
+  await evaluate(`document.querySelector('.pedal').querySelector('.footswitch').dispatchEvent(new MouseEvent('click', { bubbles: true }))`);
+  await evaluate(`(() => {
+    const p = __pedaleira, e = p.engine, t = p.live.get(p.state.chain[0].uid).audio;
+    e.input.disconnect(t.input);
+    const osc = e.ctx.createOscillator(), g = e.ctx.createGain();
+    osc.type = 'sawtooth'; osc.frequency.value = 110; g.gain.value = 0.2;
+    osc.connect(g).connect(t.input); osc.start();
+  })()`);
+  let note = '';
+  for (let i = 0; i < 40 && note !== 'A2'; i++) { await sleep(100); note = await evaluate(`document.querySelector('.tuner-note').textContent`); }
+  const cents = await evaluate(`document.querySelector('.tuner-cents').textContent`);
+  check(note === 'A2', `afinador lê 110 Hz como A2 (${note} ${cents})`);
+  // Mede na saída do próprio afinador: as caudas do delay e do reverb depois dele continuam soando, como no pedal real.
+  const muted = await evaluate(`__pedaleira.live.get(__pedaleira.state.chain[0].uid).audio.output.gain.value`);
+  check(muted < 0.01, `afinador ligado em MUTE corta o sinal (ganho ${muted.toFixed(4)})`);
+  await shot('4-afinador.png');
+  await evaluate(`document.querySelector('.pedal').querySelector('.footswitch').dispatchEvent(new MouseEvent('click', { bubbles: true }))`);
 
   const stats = await evaluate(`(() => { const s = __pedaleira.engine.ctx.playoutStats; return s ? { fallback: s.fallbackFramesEvents, total: s.totalFramesDuration } : null; })()`);
   if (stats) console.log(`info: playoutStats ${JSON.stringify(stats)}`);

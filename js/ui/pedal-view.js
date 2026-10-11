@@ -94,18 +94,27 @@ function drawPedal(def) {
   el('rect', { x: 2, y: 2, width: W - 4, height: H - 4, rx: look.style === 'stomp' ? 14 : 9, fill: look.body, stroke: 'rgba(0,0,0,.45)', 'stroke-width': 2 }, svg);
   el('rect', { x: 2, y: 2, width: W - 4, height: H - 4, rx: look.style === 'stomp' ? 14 : 9, fill: 'url(#metalGrad)', opacity: look.style === 'stomp' ? 0.9 : 0.35 }, svg);
 
-  const n = def.controls.length;
-  const r = n > 3 ? 12 : 14.5;
-  // Margem nas bordas para os rótulos não encostarem no canto do pedal.
-  const pad = n > 3 ? 8 : 4;
-  def.controls.forEach((c, i) => {
-    knobs[c.id] = drawKnob(svg, c, pad + ((W - 2 * pad) * (i + 0.5)) / n, 46, c.type === 'select' ? r - 2 : r, look.ink);
-  });
+  let display = null;
+  if (look.display === 'tuner') {
+    // Afinador: visor no alto, chaves pequenas nos cantos de baixo.
+    display = drawTunerDisplay(svg, W);
+    def.controls.forEach((c, i) => {
+      knobs[c.id] = drawKnob(svg, c, i === 0 ? 26 : W - 26, 73, 6.5, look.ink);
+    });
+  } else {
+    const n = def.controls.length;
+    const r = n > 3 ? 12 : 14.5;
+    // Margem nas bordas para os rótulos não encostarem no canto do pedal.
+    const pad = n > 3 ? 8 : 4;
+    def.controls.forEach((c, i) => {
+      knobs[c.id] = drawKnob(svg, c, pad + ((W - 2 * pad) * (i + 0.5)) / n, 46, c.type === 'select' ? r - 2 : r, look.ink);
+    });
+  }
 
   if (look.style === 'compact') {
     // Pedal articulado estilo Boss: a placa inteira é o footswitch.
     led = el('circle', { cx: W / 2, cy: 12, r: 3.6, class: 'led', stroke: 'rgba(0,0,0,.5)' }, svg);
-    text(svg, W / 2 + 14, 14, 'CHECK', { 'font-size': 5, fill: look.ink, opacity: 0.7 });
+    if (!display) text(svg, W / 2 + 14, 14, 'CHECK', { 'font-size': 5, fill: look.ink, opacity: 0.7 });
     foot = el('g', { class: 'footswitch', role: 'button', tabindex: 0, 'aria-label': 'Ligar ou desligar' }, svg);
     el('rect', { x: 7, y: 92, width: W - 14, height: 151, rx: 6, fill: 'rgba(0,0,0,.07)', stroke: 'rgba(0,0,0,.25)' }, foot);
     el('rect', { x: 18, y: 100, width: W - 36, height: 70, rx: 4, fill: '#1c1c1c' }, foot);
@@ -123,7 +132,31 @@ function drawPedal(def) {
     el('circle', { cx: W / 2, cy: 210, r: 17, fill: '#6d7075', stroke: '#3b3d40', 'stroke-width': 2 }, foot);
     el('circle', { cx: W / 2, cy: 210, r: 12, fill: 'url(#footGrad)', stroke: '#55585c' }, foot);
   }
-  return { svg, knobs, led, foot, W, H };
+  return { svg, knobs, led, foot, display, W, H };
+}
+
+// Visor do afinador: 11 LEDs (centro verde = afinado) e o nome da nota.
+function drawTunerDisplay(svg, W) {
+  const g = el('g', { class: 'tuner-display', 'aria-live': 'polite' }, svg);
+  el('rect', { x: 14, y: 19, width: W - 28, height: 37, rx: 3, fill: '#0a0d0b', stroke: 'rgba(0,0,0,.6)' }, g);
+  const segs = [];
+  const sw = 7, gap = 2.2, total = 11 * sw + 10 * gap, x0 = W / 2 - total / 2;
+  for (let i = 0; i < 11; i++)
+    segs.push(el('rect', { x: x0 + i * (sw + gap), y: 24, width: sw, height: 7, rx: 1, class: i === 5 ? 'seg mid' : 'seg' }, g));
+  const note = text(g, W / 2, 51, '', { class: 'tuner-note', 'font-size': 15 });
+  const cents = text(g, W - 19, 51, '', { class: 'tuner-cents', 'text-anchor': 'end', 'font-size': 6.5 });
+  return {
+    // r: { note, octave, cents } ou null (sem nota). active: afinador ligado.
+    set(r, active) {
+      g.classList.toggle('active', active);
+      const idx = r ? Math.max(0, Math.min(10, Math.round(r.cents / 10) + 5)) : -1;
+      const inTune = r && Math.abs(r.cents) < 3;
+      segs.forEach((sEl, i) => sEl.classList.toggle('lit', active && (i === idx || (inTune && i === 5))));
+      note.textContent = active ? (r ? `${r.note}${r.octave}` : '–') : '';
+      note.classList.toggle('ok', !!inTune);
+      cents.textContent = active && r ? `${r.cents > 0 ? '+' : ''}${Math.round(r.cents)}¢` : '';
+    },
+  };
 }
 
 // Monta o elemento de um pedal na pedaleira.
@@ -133,7 +166,7 @@ export function pedalView(block, cb) {
   const root = document.createElement('div');
   root.className = `pedal ${def.look.style}`;
   root.dataset.uid = block.uid;
-  const { svg, knobs, led, foot } = drawPedal(def);
+  const { svg, knobs, led, foot, display } = drawPedal(def);
   root.append(svg);
 
   const caption = document.createElement('div');
@@ -251,5 +284,13 @@ export function pedalView(block, cb) {
   }
 
   update();
-  return { root, grip, update };
+  const num = document.createElement('span');
+  num.className = 'num';
+  num.title = 'Tecla do teclado que liga e desliga este pedal';
+  root.prepend(num);
+  return {
+    root, grip, update,
+    setDisplay: (r, active) => display?.set(r, active),
+    setNumber(n) { num.textContent = n ? String(n) : ''; num.hidden = !n; },
+  };
 }

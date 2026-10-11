@@ -1,6 +1,7 @@
 // Pedaleira: monta a cadeia de pedais, liga ao áudio e salva o estado.
 import { Engine, loadWasmBytes } from './audio/engine.js';
 import { PEDALS, byType, DEFAULT_CHAIN, defaultParams } from './pedals/index.js';
+import { noteOf } from './audio/pitch.js';
 import { pedalView, installDefs } from './ui/pedal-view.js';
 import { loadState, saveState, putFile, getFile, deleteFile } from './store.js';
 import { Midi, midiSupported } from './midi.js';
@@ -13,7 +14,7 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 
 function newBlock(type) {
   const def = byType[type];
-  return { uid: uid(), type, on: true, params: defaultParams(def), files: {} };
+  return { uid: uid(), type, on: def.defaultOn !== false, params: defaultParams(def), files: {} };
 }
 
 // Completa um bloco salvo com os padrões do pedal (o pedal pode ter ganhado controles novos).
@@ -31,14 +32,16 @@ const state = {
   chain: normalizeChain(saved?.chain || DEFAULT_CHAIN.map(newBlock)),
   presets: (saved?.presets || []).map(p => ({ name: p.name, chain: normalizeChain(p.chain) })),
   preset: saved?.preset ?? null,
+  // Rascunhos: mudanças não salvas por preset ('' = sem preset).
+  drafts: Object.fromEntries(Object.entries(saved?.drafts || {}).map(([k, c]) => [k, normalizeChain(c)])),
   midi: saved?.midi || [],
 };
-const save = () => saveState(state);
+const save = () => { saveState(state); refreshDirty(); };
 const snapshot = chain => JSON.parse(JSON.stringify(chain));
 
 // Um arquivo (.nam, IR) só sai do IndexedDB quando nem a pedaleira nem algum preset usa mais.
 function releaseFile(key) {
-  const used = [state.chain, ...state.presets.map(p => p.chain)]
+  const used = [state.chain, ...state.presets.map(p => p.chain), ...Object.values(state.drafts)]
     .some(chain => chain.some(b => Object.values(b.files).some(f => f.key === key)));
   if (!used) deleteFile(key);
 }
@@ -129,7 +132,11 @@ function ensureView(block) {
 
 function renderBoard() {
   const nodes = [jack('Guitarra', '🎸')];
-  for (const b of state.chain) nodes.push(cable(), ensureView(b).root);
+  state.chain.forEach((b, i) => {
+    const v = ensureView(b);
+    v.setNumber(i < 9 ? i + 1 : 0); // número = tecla que liga e desliga
+    nodes.push(cable(), v.root);
+  });
   nodes.push(cable(), jack('Saída', '🎧'));
   board.replaceChildren(...nodes);
   $('empty').hidden = state.chain.length > 0;
@@ -137,9 +144,10 @@ function renderBoard() {
 
 function addBlock(type) {
   const block = newBlock(type);
-  // Drives entram antes do amp; o resto vai para o fim.
+  // Afinador entra no começo, drives antes do amp, o resto no fim.
   const ampAt = state.chain.findIndex(b => byType[b.type].category === 'amp');
-  const at = byType[type].category === 'drive' && ampAt >= 0 ? ampAt : state.chain.length;
+  const cat = byType[type].category;
+  const at = cat === 'tuner' ? 0 : cat === 'drive' && ampAt >= 0 ? ampAt : state.chain.length;
   state.chain.splice(at, 0, block);
   ensureView(block);
   if (engine.running) createAudio(block);
@@ -271,7 +279,18 @@ async function listDevices(selectedId) {
   sel.value = selectedId || (tank && tank.deviceId) || sel.value;
 }
 
-let meterRaf = 0, latencyTimer = 0;
+let meterRaf = 0, latencyTimer = 0, tunerTimer = 0;
+
+// Lê os afinadores ligados ~12 vezes por segundo; desligados, o visor apaga.
+function runTuners() {
+  for (const b of state.chain) {
+    const l = live.get(b.uid);
+    if (l?.def.category !== 'tuner' || !l.view) continue;
+    const active = b.on && !!l.audio;
+    const hz = active ? l.audio.read() : null;
+    l.view.setDisplay(hz ? noteOf(hz, l.audio.ref()) : null, active);
+  }
+}
 function runMeter() {
   const buf = new Float32Array(engine.analyser.fftSize);
   const meter = $('meter'), bar = meter.firstElementChild;
@@ -297,6 +316,7 @@ async function start() {
   engine.setMaster(state.master);
   await Promise.all(state.chain.map(applyStoredFiles));
   runMeter();
+  tunerTimer = setInterval(runTuners, 80);
   const showLat = () => { $('latency').textContent = `${engine.latencyMs().toFixed(1)} ms`; };
   showLat();
   latencyTimer = setInterval(showLat, 1000);
@@ -309,8 +329,10 @@ async function start() {
 async function stop() {
   cancelAnimationFrame(meterRaf);
   clearInterval(latencyTimer);
+  clearInterval(tunerTimer);
   await engine.stop();
   for (const l of live.values()) l.audio = null;
+  runTuners();
   $('meter').firstElementChild.style.width = '0';
   $('latency').textContent = '—';
   status('Desligado.');
@@ -386,25 +408,68 @@ function toggleBlock(block) {
 }
 
 // ---------- Presets ----------
+// Mudança não salva num preset vira rascunho: trocar de preset não perde nada
+// (nem quando a troca vem do pé, pelo MIDI ou pelo teclado). O * no nome indica rascunho.
+
+// Compara duas cadeias pelo que importa para o som (ignora a ordem das chaves).
+function sameChain(a, b) {
+  if (a.length !== b.length) return false;
+  return a.every((x, i) => {
+    const y = b[i];
+    if (x.uid !== y.uid || x.type !== y.type || x.on !== y.on) return false;
+    const pk = new Set([...Object.keys(x.params), ...Object.keys(y.params)]);
+    for (const k of pk) if (x.params[k] !== y.params[k]) return false;
+    const fk = new Set([...Object.keys(x.files), ...Object.keys(y.files)]);
+    for (const k of fk) if (x.files[k]?.key !== y.files[k]?.key) return false;
+    return true;
+  });
+}
+
+const presetByName = name => state.presets.find(p => p.name === name);
+const isDirty = () => {
+  const p = presetByName(state.preset);
+  return !!p && !sameChain(state.chain, p.chain);
+};
+const hasDraft = name => !!state.drafts[name] || (name === state.preset && isDirty());
 
 function renderPresets() {
   const sel = $('preset');
-  sel.replaceChildren(new Option('— sem preset —', ''), ...state.presets.map(p => new Option(p.name, p.name)));
+  sel.replaceChildren(
+    new Option('— sem preset —', ''),
+    ...state.presets.map(p => new Option(hasDraft(p.name) ? `${p.name} *` : p.name, p.name)),
+  );
   sel.value = state.preset ?? '';
-  $('presetName').value = state.preset ?? '';
+  if (document.activeElement !== $('presetName')) $('presetName').value = state.preset ?? '';
+  const dirty = isDirty();
   $('presetDelete').disabled = !state.preset;
+  $('presetRevert').hidden = !dirty;
+  $('presetSave').classList.toggle('attention', dirty);
+  $('presetSave').title = dirty ? 'Há mudanças não salvas neste preset' : 'Salvar preset';
+}
+
+// Chamado depois de cada mudança: atualiza o * sem refazer a lista inteira à toa.
+let lastDirty = null;
+function refreshDirty() {
+  const d = isDirty();
+  if (d === lastDirty) return;
+  lastDirty = d;
+  renderPresets();
 }
 
 function savePreset() {
   const name = $('presetName').value.trim();
   if (!name) { status('Dê um nome ao preset (ex.: o nome da música).', true); $('presetName').focus(); return; }
-  const existing = state.presets.find(p => p.name === name);
+  const existing = presetByName(name);
   const old = existing?.chain;
   if (existing) existing.chain = snapshot(state.chain);
   else state.presets.push({ name, chain: snapshot(state.chain) });
+  // Salvar a partir de outro preset deixa aquele como estava salvo.
+  if (state.preset !== name) delete state.drafts[state.preset ?? ''];
+  delete state.drafts[name];
   state.preset = name;
-  // Arquivos que só o preset antigo usava podem ser liberados.
+  // Arquivos que só a versão antiga usava podem ser liberados.
   for (const b of old || []) for (const f of Object.values(b.files)) releaseFile(f.key);
+  lastDirty = null;
   save();
   renderPresets();
   status(`Preset "${name}" salvo.`);
@@ -414,20 +479,40 @@ function deletePreset() {
   const i = state.presets.findIndex(p => p.name === state.preset);
   if (i < 0) return;
   const [p] = state.presets.splice(i, 1);
+  delete state.drafts[p.name];
   for (const b of p.chain) for (const f of Object.values(b.files)) releaseFile(f.key);
-  status(`Preset "${p.name}" apagado.`);
+  status(`Preset "${p.name}" apagado. A pedaleira continua como está.`);
   state.preset = null;
   save();
   renderPresets();
 }
 
-// Troca a pedaleira pela do preset, reaproveitando o áudio dos pedais que continuam
-// (assim a troca é rápida e as capturas NAM não recarregam à toa).
+// Volta o preset atual para a versão salva, descartando o rascunho.
+async function revertPreset() {
+  const name = state.preset;
+  if (!presetByName(name)) return;
+  delete state.drafts[name];
+  await loadChain(presetByName(name).chain, name);
+  status(`"${name}" voltou para a versão salva.`);
+}
+
+// Troca de preset. O ajuste não salvo do preset atual vira rascunho dele.
 async function applyPreset(name) {
-  const preset = state.presets.find(p => p.name === name);
-  if (!preset) { state.preset = null; save(); renderPresets(); return; }
+  const from = state.preset ?? '';
+  if (name === from) return;
+  if (from === '' || isDirty()) state.drafts[from] = snapshot(state.chain);
+  else delete state.drafts[from];
+  const target = name === '' ? state.drafts[''] : state.drafts[name] || presetByName(name)?.chain;
+  if (!target) { state.preset = name || null; save(); renderPresets(); return; }
+  await loadChain(target, name || null);
+  status(name ? `Preset: ${name}${state.drafts[name] ? ' (com mudanças não salvas)' : ''}` : 'Sem preset.');
+}
+
+// Carrega uma cadeia reaproveitando o áudio dos pedais que continuam
+// (assim a troca é rápida, o delay não corta e as capturas NAM não recarregam à toa).
+async function loadChain(chain, presetName) {
   const current = new Map(state.chain.map(b => [b.uid, b]));
-  const next = snapshot(preset.chain).map(snap => {
+  const next = snapshot(chain).map(snap => {
     const ex = current.get(snap.uid);
     if (!ex || ex.type !== snap.type) return normalizeBlock(snap);
     current.delete(snap.uid);
@@ -446,7 +531,8 @@ async function applyPreset(name) {
   });
   for (const gone of current.values()) { live.get(gone.uid)?.audio?.dispose(); live.delete(gone.uid); }
   state.chain = next;
-  state.preset = name;
+  state.preset = presetName;
+  if (presetName && state.drafts[presetName] && sameChain(next, presetByName(presetName).chain)) delete state.drafts[presetName];
   for (const b of next) ensureView(b);
   if (engine.running) {
     for (const b of next) {
@@ -463,9 +549,9 @@ async function applyPreset(name) {
   }
   for (const b of next) { delete b.reload; live.get(b.uid).view.update(); }
   renderBoard();
+  lastDirty = null;
   save();
   renderPresets();
-  status(`Preset: ${name}`);
 }
 
 function stepPreset(dir) {
@@ -479,8 +565,92 @@ $('preset').onchange = () => applyPreset($('preset').value);
 $('presetSave').onclick = savePreset;
 $('presetName').onkeydown = e => { if (e.key === 'Enter') savePreset(); };
 $('presetDelete').onclick = deletePreset;
+$('presetRevert').onclick = revertPreset;
 $('presetPrev').onclick = () => stepPreset(-1);
 $('presetNext').onclick = () => stepPreset(1);
+
+// ---------- Exportar e importar ----------
+// Um arquivo .json com os presets e as capturas/IRs que eles usam: serve de backup
+// e para levar os presets do PC para o celular.
+
+function toBase64(buf) {
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
+function fromBase64(b64) {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out.buffer;
+}
+
+async function buildExport() {
+  // Sem presets salvos, exporta a pedaleira atual como um preset.
+  const presets = state.presets.length ? state.presets : [{ name: 'Minha pedaleira', chain: state.chain }];
+  const files = {};
+  for (const p of presets)
+    for (const b of p.chain)
+      for (const f of Object.values(b.files)) {
+        if (files[f.key]) continue;
+        const data = await getFile(f.key);
+        if (data === undefined) continue;
+        files[f.key] = data instanceof ArrayBuffer ? { type: 'base64', data: toBase64(data) } : { type: 'json', data };
+      }
+  return { app: 'pedaleira', version: 1, exportedAt: new Date().toISOString(), presets: snapshot(presets), files };
+}
+
+async function exportPresets() {
+  const doc = await buildExport();
+  const presets = doc.presets;
+  const blob = new Blob([JSON.stringify(doc)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `pedaleira-presets-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  const unsaved = state.presets.some(p => hasDraft(p.name));
+  status(`${presets.length} preset(s) exportado(s)${unsaved ? '. Mudanças não salvas (*) não vão no arquivo' : ''}.`);
+}
+
+async function importPresets(file) {
+  let doc;
+  try {
+    doc = JSON.parse(await file.text());
+    if (doc?.app !== 'pedaleira' || !Array.isArray(doc.presets)) throw new Error();
+  } catch {
+    status(`${file.name} não é um arquivo de presets da Pedaleira.`, true);
+    return;
+  }
+  for (const [key, f] of Object.entries(doc.files || {}))
+    await putFile(key, f.type === 'base64' ? fromBase64(f.data) : f.data);
+  let added = 0, same = 0;
+  for (const p of doc.presets) {
+    const chain = normalizeChain(p.chain || []);
+    if (!chain.length) continue;
+    const existing = presetByName(p.name);
+    if (existing && sameChain(existing.chain, chain)) { same++; continue; }
+    let name = String(p.name || 'Preset').slice(0, 40);
+    for (let i = 2; presetByName(name); i++) name = `${String(p.name).slice(0, 34)} (${i})`;
+    state.presets.push({ name, chain });
+    added++;
+  }
+  save();
+  renderPresets();
+  status(`${added} preset(s) importado(s)${same ? `, ${same} já existia(m) igual` : ''}.`);
+}
+
+$('presetExport').onclick = () => exportPresets().catch(e => status(`Não consegui exportar: ${e.message}`, true));
+$('presetImport').onclick = () => {
+  fileInput.accept = '.json,application/json';
+  fileInput.value = '';
+  fileInput.onchange = () => fileInput.files[0] && importPresets(fileInput.files[0]);
+  fileInput.click();
+};
 
 // ---------- Controle: MIDI e teclado ----------
 
@@ -494,7 +664,9 @@ function runAction(target, msg) {
     if (p) applyPreset(p.name);
     return;
   }
-  if (target.kind === 'preset') { if (!msg || msg.press) stepPreset(target.dir); return; }
+  // msg.trigger: pisada que conta (ver midi.js). Teclado e cliques chegam sem msg.
+  const fires = !msg || msg.trigger !== false;
+  if (target.kind === 'preset') { if (fires) stepPreset(target.dir); return; }
   const block = blockByUid(target.uid);
   if (!block) return;
   if (target.kind === 'knob') {
@@ -503,7 +675,7 @@ function runAction(target, msg) {
     const max = c.type === 'select' ? c.options.length - 1 : 10;
     const v = c.type === 'select' ? Math.round((msg.value / 127) * max) : Math.round((msg.value / 127) * 100) / 10;
     setParam(block, c.id, v);
-  } else if (!msg || msg.press) {
+  } else if (fires) {
     if (target.kind === 'toggle') toggleBlock(block);
     else if (target.kind === 'tap') tapTempo(block);
   }
@@ -614,7 +786,7 @@ installDefs();
 renderBoard();
 renderPresets();
 // Acesso para depuração pelo console e para os testes no navegador.
-window.__pedaleira = { engine, state, live, midi };
+window.__pedaleira = { engine, get state() { return state; }, live, midi, buildExport, importPresets, getFile };
 loadWasmBytes();
 if ('serviceWorker' in navigator && location.protocol !== 'file:')
   navigator.serviceWorker.register('sw.js').catch(() => {});
