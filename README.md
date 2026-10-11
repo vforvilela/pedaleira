@@ -51,7 +51,7 @@ publicado (ex.: Vercel). No iPhone e no Android é preciso uma interface de áud
 
 ```sh
 # Unidade (afinador, MIDI): sem navegador
-node --test tests/
+node --test
 
 # Compara o NAM em JS e em wasm com o render oficial do NeuralAmpModelerCore
 node tests/nam-reference.mjs <caminho>/NeuralAmpModelerCore/build/tools/render tests/fixtures/wavenet_a1_standard.nam
