@@ -245,3 +245,11 @@ test('envelope sobe com a palhetada e cai no silêncio', () => {
   assert.ok(out[SR / 4 - 1] > 0.25, `aberto: ${out[SR / 4 - 1]}`);
   assert.ok(out[SR - 1] < 0.01, `fechado: ${out[SR - 1]}`);
 });
+
+test('css: nenhuma cor fixa fora das variáveis de :root', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const css = await readFile(new URL('../css/app.css', import.meta.url), 'utf8');
+  const outside = css.replace(/:root\s*\{[^}]*\}/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+  const hex = outside.match(/#[0-9a-fA-F]{3,8}\b/g) || [];
+  assert.deepEqual(hex, [], `cores fixas fora de :root: ${hex.join(', ')}`);
+});

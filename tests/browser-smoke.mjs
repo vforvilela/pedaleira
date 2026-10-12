@@ -607,6 +607,19 @@ try {
   check(uids.length >= 19 && sheetBad.length === 0,
     `painel de toque abre em todos os ${uids.length} pedais com controles de ≥ 44 px${sheetBad.length ? ': ' + sheetBad.join(' ') : ''}`);
 
+  // Toque: todo controle HTML visível (topo, presets, cenas, mapa, ⠿ ✕ NAM TAP…) com pelo menos 44×44 px.
+  const small = await evaluate(`(() => {
+    const out = [];
+    for (const e of document.querySelectorAll('button, select, input:not([type=file])')) {
+      if (e.closest('dialog:not([open]), #stage') ) continue;
+      const r = e.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      if (r.width < 44 || r.height < 44) out.push((e.id || e.className || e.textContent).toString().slice(0, 24) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height));
+    }
+    return { total: document.querySelectorAll('button, select, input').length, small: [...new Set(out)] };
+  })()`);
+  check(small.small.length === 0, `toque: todos os controles com ≥ 44 px (${small.small.length ? small.small.join(', ') : small.total + ' controles medidos'})`);
+
   // Fonte própria (Archivo) carregada do app e usada no título e nos rótulos dos botões.
   const font = await evaluate(`document.fonts.ready.then(() => {
     const faces = [...document.fonts].filter(f => f.family.replace(/"/g, '') === 'Archivo');
