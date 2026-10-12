@@ -1,6 +1,7 @@
 // Wah inspirado no Dunlop Cry Baby: um filtro ressonante que varre de ~400 Hz a ~2,2 kHz conforme o pedal.
 // Arraste o pedal para cima e para baixo, ou ligue um pedal de expressão MIDI (botão MIDI → toque no pedal).
-import { Bypass, biquad, dbToGain, logMap, smooth } from './common.js';
+// No modo AUTO (auto-wah, como um envelope filter), a força da palhetada abre o filtro e o pedal vira a sensibilidade.
+import { Bypass, biquad, dbToGain, logMap, monoWorklet, smooth } from './common.js';
 
 export default {
   type: 'ua',
@@ -12,6 +13,7 @@ export default {
   controls: [
     { id: 'pedal', label: 'PEDAL', default: 5 },
     { id: 'q', label: 'Q', default: 5 },
+    { id: 'mode', label: 'MODE', type: 'select', options: ['PEDAL', 'AUTO'], default: 0 },
   ],
 
   create(ctx, env) {
@@ -22,11 +24,22 @@ export default {
     low.gain.value = 0.2;
     bp.input.connect(band).connect(wet).connect(bp.wet);
     bp.input.connect(body).connect(low).connect(bp.wet);
+    // Auto-wah: o envelope (0..1) soma até ~1,8 kHz à frequência dos filtros.
+    const follow = monoWorklet(ctx, 'envelope');
+    const range = ctx.createGain(), rangeLow = ctx.createGain();
+    range.gain.value = 1800; rangeLow.gain.value = 1100;
+    bp.input.connect(follow);
+    follow.connect(range).connect(band.frequency);
+    follow.connect(rangeLow).connect(body.frequency);
     const p = { ...env.params };
     const apply = () => {
-      const f = logMap(p.pedal, 400, 2200);
+      const auto = p.mode === 1;
+      const f = auto ? 380 : logMap(p.pedal, 400, 2200);
       smooth(ctx, band.frequency, f, 0.01);
       smooth(ctx, body.frequency, f * 0.6, 0.01);
+      smooth(ctx, range.gain, auto ? 1800 : 0);
+      smooth(ctx, rangeLow.gain, auto ? 1100 : 0);
+      follow.port.postMessage({ sens: logMap(p.pedal, 1, 40) });
       const q = 2.5 + p.q * 0.6;
       smooth(ctx, band.Q, q);
       smooth(ctx, wet.gain, dbToGain(4 + q));
@@ -36,7 +49,7 @@ export default {
       input: bp.input, output: bp.output,
       set(id, v) { p[id] = v; apply(); },
       setOn: on => bp.set(on),
-      dispose() { bp.output.disconnect(); },
+      dispose() { bp.output.disconnect(); follow.disconnect(); },
     };
   },
 };

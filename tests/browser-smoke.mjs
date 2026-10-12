@@ -480,13 +480,13 @@ try {
   check(lat.ours === 0, `limitador de saída sem atraso (nosso ${lat.ours} ms; o do navegador atrasaria ${lat.native} ms)`);
 
   // Os outros pedais: todos entram, tocam e não dão erro.
-  const more = ['Uá', 'Turbo', 'Equalizador', 'Coro', 'Fase 90', 'Ondas', 'Volume', 'Laço'];
+  const more = ['Uá', 'Oitava', 'Turbo', 'Equalizador', 'Coro', 'Flange', 'Fase 90', 'Ondas', 'Volume', 'Laço'];
   for (const name of more)
     await evaluate(`[...document.querySelectorAll('#library .add')].find(b => b.querySelector('b').textContent === ${JSON.stringify(name)}).click()`);
   await sleep(600);
   const all = await evaluate(`__pedaleira.state.chain.map(b => b.type)`);
-  check(['ua', 'turbo', 'equalizador', 'coro', 'fase-90', 'ondas', 'volume', 'laco'].every(t => all.includes(t)) && all[all.length - 1] === 'laco',
-    `os 8 pedais novos entram, looper no fim (${all.join(',')})`);
+  check(['ua', 'oitava', 'turbo', 'equalizador', 'coro', 'flange', 'fase-90', 'ondas', 'volume', 'laco'].every(t => all.includes(t)) && all[all.length - 1] === 'laco',
+    `os pedais novos entram, looper no fim (${all.join(',')})`);
   // Liga todos os pedais, e desliga o afinador (que cortaria o som em MUTE).
   await evaluate(`__pedaleira.state.chain.forEach((b, i) => { if (b.on === (b.type === 'afinador')) document.querySelectorAll('.pedal')[i].querySelector('.footswitch').dispatchEvent(new MouseEvent('click', { bubbles: true })); })`);
   const p4 = await peakOver(1500);

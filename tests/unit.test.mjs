@@ -190,3 +190,40 @@ test('sem cabo, a medição avisa que o clique não voltou', () => {
   for (let f = 0; !p.done && f < 48000 * 6; f += 128) p.process(new Float32Array(128), out);
   assert.equal(p.resultMs(), null);
 });
+
+// ---------- Oitava, flanger, envelope ----------
+import { OctaveDown, Flanger, Envelope } from '../js/audio/modulation.js';
+
+// Frequência dominante por cruzamentos de zero (subindo) depois do transiente.
+function zeroCrossHz(b, sr, from) {
+  let n = 0, first = -1, last = -1;
+  for (let i = from + 1; i < b.length; i++)
+    if (b[i - 1] <= 0 && b[i] > 0) { if (first < 0) first = i; last = i; n++; }
+  return ((n - 1) * sr) / (last - first);
+}
+
+test('oitava: Lá de 110 Hz sai a 55 Hz (OCT 1) e 27,5 Hz (OCT 2)', () => {
+  const pluck = Float32Array.from({ length: SR }, (_, i) => 0.3 * (Math.sin((2 * Math.PI * 110 * i) / SR) + 0.5 * Math.sin((2 * Math.PI * 220 * i) / SR + 1)));
+  for (const [cfg, want] of [[{ oct1: 1, oct2: 0, direct: 0 }, 55], [{ oct1: 0, oct2: 1, direct: 0 }, 27.5]]) {
+    const o = new OctaveDown(SR);
+    o.set(cfg);
+    const out = run(o, pluck);
+    const hz = zeroCrossHz(out, SR, SR / 4);
+    assert.ok(Math.abs(hz - want) / want < 0.02, `${JSON.stringify(cfg)} → ${hz.toFixed(1)} Hz`);
+  }
+});
+
+test('flanger: estável com RES no máximo e soma um eco curto', () => {
+  const f = new Flanger(SR);
+  f.set({ manual: 0.5, depth: 1, rate: 1, res: 1 });
+  const out = run(f, sine(220, 0.5, SR));
+  assert.ok(out.every(Number.isFinite));
+  assert.ok(peakOf(out) < 2, `pico ${peakOf(out)}`);
+});
+
+test('envelope sobe com a palhetada e cai no silêncio', () => {
+  const e = new Envelope(SR);
+  const out = run(e, Float32Array.from({ length: SR }, (_, i) => (i < SR / 4 ? 0.5 * Math.sin(i / 10) : 0)));
+  assert.ok(out[SR / 4 - 1] > 0.25, `aberto: ${out[SR / 4 - 1]}`);
+  assert.ok(out[SR - 1] < 0.01, `fechado: ${out[SR - 1]}`);
+});
