@@ -69,8 +69,9 @@ publicado (ex.: Vercel). No iPhone e no Android é preciso uma interface de áud
 - `js/pedals/*.js`: um arquivo por pedal, com visual (`look`), controles e o circuito de áudio (`create`).
 - `js/ui/pedal-view.js`: desenha os pedais em SVG e trata botões, footswitch e arrastar.
 - `js/nam/`: capturas NAM. `nam-core.js` é a versão em JS (reserva e referência) e `nam.wasm` é a rápida,
-  compilada de `nam-wasm/` (Rust + SIMD). Suporta WaveNet A1 (standard, lite, feather, nano) e LSTM.
-  Capturas A2 ainda não.
+  compilada de `nam-wasm/` (Rust + SIMD). Suporta WaveNet A1 (standard, lite, feather, nano), WaveNet A2
+  (bottleneck, layer1x1/head1x1, convs em grupo, FiLM, gating/blending, kernel por camada, cabeça com kernel,
+  cabeça pós-pilha, condition DSP), LSTM e `SlimmableContainer`/WaveNet slimmable (usa o tamanho completo).
 - `js/audio/dynamics.js`: gate, compressor e limitador de saída, sem lookahead (o `DynamicsCompressorNode`
   do navegador atrasaria todo o som em 6 ms). Rodam no AudioWorklet `dsp-worklet.js`.
 - Estado salvo no `localStorage`; arquivos `.nam` e IR no IndexedDB.
@@ -82,7 +83,7 @@ publicado (ex.: Vercel). No iPhone e no Android é preciso uma interface de áud
 node --test
 
 # Compara o NAM em JS e em wasm com o render oficial do NeuralAmpModelerCore
-node tests/nam-reference.mjs <caminho>/NeuralAmpModelerCore/build/tools/render tests/fixtures/wavenet_a1_standard.nam
+node tests/nam-reference.mjs <caminho>/NeuralAmpModelerCore/build/tools/render tests/fixtures/*.nam
 
 # Teste de fumaça no Chrome headless com microfone falso (liga, carrega NAM, arrasta, screenshots)
 node tests/browser-smoke.mjs /tmp/pedaleira-shots
@@ -90,4 +91,5 @@ node tests/browser-smoke.mjs /tmp/pedaleira-shots
 
 Recompilar o wasm: `nam-wasm/build.sh` (requer `rustup target add wasm32-unknown-unknown`).
 
-`tests/fixtures/wavenet_a1_standard.nam` é o modelo de exemplo do NeuralAmpModelerCore (licença MIT).
+`tests/fixtures/` tem modelos de exemplo do NeuralAmpModelerCore (licença MIT): `wavenet_a1_standard.nam` (A1),
+`A2.nam` (A2 real, num `SlimmableContainer`) e `wavenet_a2_feature_test.nam` (todos os recursos A2 juntos).

@@ -86,6 +86,14 @@ try {
     return info;
   })()`);
   check(loadRes?.engine === 'wasm', `captura NAM carregada no amp (motor: ${loadRes?.engine})`);
+  // Captura A2 (formato novo, dentro de um SlimmableContainer) também roda no wasm.
+  const a2 = await evaluate(`(async () => {
+    const { state, live } = __pedaleira;
+    const amp = state.chain.find(b => b.type === 'amp');
+    const nam = await (await fetch('tests/fixtures/A2.nam')).json();
+    return live.get(amp.uid).audio.loadFile('nam', nam);
+  })()`);
+  check(a2?.engine === 'wasm', `captura NAM A2 carregada no amp (motor: ${a2?.engine})`);
   const p2 = await peakOver(1500);
   check(p2 > 0.001, `sinal na saída com NAM (pico ${p2.toFixed(4)})`);
 

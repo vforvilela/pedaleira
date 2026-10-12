@@ -1,9 +1,8 @@
-// Escolhe o motor da captura: WebAssembly SIMD para WaveNet (rápido), JS para LSTM e como reserva.
+// Escolhe o motor da captura: WebAssembly SIMD para WaveNet A1/A2 (rápido), JS para LSTM e como reserva.
 import { createModel, encodeForWasm, NamError } from './nam-core.js';
 
 class WasmWaveNet {
-  constructor(wasmModule, nam) {
-    const enc = encodeForWasm(nam);
+  constructor(wasmModule, enc) {
     const inst = new WebAssembly.Instance(wasmModule, {});
     const e = inst.exports;
     const cfgPtr = e.alloc(enc.cfg.byteLength);
@@ -11,7 +10,7 @@ class WasmWaveNet {
     const wPtr = e.alloc(enc.weights.byteLength);
     new Float32Array(e.memory.buffer, wPtr, enc.weights.length).set(enc.weights);
     if (e.init(cfgPtr, enc.cfg.length, wPtr, enc.weights.length) !== 0)
-      throw new NamError('Arquivo .nam com número de pesos diferente do esperado.');
+      throw new NamError('Arquivo .nam inconsistente (pesos ou configuração).');
     this.e = e;
     // A memória não cresce depois do init, então as vistas continuam válidas.
     this.inBuf = new Float32Array(e.memory.buffer, e.input_ptr(), 128);
@@ -30,11 +29,14 @@ class WasmWaveNet {
 }
 
 export function createEngine(nam, wasmModule) {
-  if (wasmModule && nam?.architecture === 'WaveNet') {
-    const m = new WasmWaveNet(wasmModule, nam);
-    m.sampleRate = nam.sample_rate || 48000;
-    m.loudness = nam.metadata?.loudness ?? null;
-    return m;
+  const enc = wasmModule ? encodeForWasm(nam) : null;
+  if (enc) {
+    try {
+      const m = new WasmWaveNet(wasmModule, enc);
+      m.sampleRate = enc.sampleRate;
+      m.loudness = enc.loudness;
+      return m;
+    } catch { /* cai para o motor JS, que dá o erro certo se o arquivo for inválido */ }
   }
   const m = createModel(nam);
   m.engine = 'js';

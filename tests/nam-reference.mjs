@@ -63,7 +63,8 @@ for (const m of models) {
 
   const nam = JSON.parse(readFileSync(m, 'utf8'));
   const engines = [['js', createModel(nam)]];
-  if (nam.architecture === 'WaveNet') engines.push(['wasm', createEngine(nam, wasmModule)]);
+  const wasm = createEngine(nam, wasmModule);
+  if (wasm.engine === 'wasm') engines.push(['wasm', wasm]);
   for (const [name, model] of engines) {
     const out = new Float32Array(input.length);
     // Blocos de 128, como no AudioWorklet.
