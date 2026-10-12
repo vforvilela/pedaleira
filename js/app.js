@@ -32,6 +32,10 @@ renderScenes();
 // Acesso para depuração pelo console e para os testes no navegador.
 window.__pedaleira = { engine, get state() { return state; }, live, midi, buildExport, importPresets, getFile, shareLink, openSharedLink };
 openSharedLink();
+$('moreBtn').onclick = () => {
+  const open = $('presetsRow').classList.toggle('show-more');
+  $('moreBtn').setAttribute('aria-expanded', open);
+};
 addEventListener('hashchange', openSharedLink);
 loadWasmBytes();
 if ('serviceWorker' in navigator && location.protocol !== 'file:')

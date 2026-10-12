@@ -58,8 +58,16 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
 .status { grid-column: 1 / -1; margin: 0; font-size: 13px; color: var(--muted); }
 .status.err { color: var(--bad); }
 
+.more-btn { display: none; }
 @media (max-width: 760px) {
-  .top { grid-template-columns: 1fr; position: static; }
+  .top { grid-template-columns: 1fr; position: static; padding: 10px 12px; gap: 8px; }
+  .more-btn { display: inline-block; }
+  .presets:not(.show-more) .more-item { display: none; }
+  .presets input { order: 5; flex-basis: 100%; max-width: none; }
+  .scenes { padding: 0 12px 8px; gap: 6px; flex-wrap: nowrap; }
+  .scenes-label { display: none; }
+  .scene-btn { min-width: 0; flex: 1; padding: 8px 0; }
+  #sceneRec { white-space: nowrap; }
   .levels { flex-wrap: wrap; }
 }
 

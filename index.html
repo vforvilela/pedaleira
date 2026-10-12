@@ -24,21 +24,22 @@
     <label class="master">Volume <input id="master" type="range" min="-40" max="6" step="0.5"> <output id="masterV"></output></label>
     <span class="lat" title="Latência informada pelo navegador (sem o atraso da interface)">Latência <b id="latency">—</b></span>
   </div>
-  <div class="presets">
+  <div class="presets" id="presetsRow">
     <button id="presetPrev" aria-label="Preset anterior" title="Preset anterior (atalho: [)">◀</button>
     <select id="preset" aria-label="Preset"></select>
     <button id="presetNext" aria-label="Próximo preset" title="Próximo preset (atalho: ])">▶</button>
     <input id="presetName" type="text" placeholder="Nome do preset (ex.: a música)" aria-label="Nome do preset" maxlength="40">
     <button id="presetSave">Salvar</button>
     <button id="presetRevert" title="Descartar as mudanças e voltar para a versão salva" hidden>Reverter</button>
-    <button id="presetDelete">Apagar</button>
-    <button id="presetOrganize" title="Ordem dos presets (setlist), nomes e apagar">Organizar</button>
-    <button id="presetShare" title="Copia um link com a pedaleira atual para mandar para alguém ou para o celular">Link</button>
-    <button id="presetExport" title="Baixar um arquivo com os presets e as capturas que eles usam">Exportar</button>
-    <button id="presetImport" title="Trazer presets de um arquivo exportado">Importar</button>
+    <button class="more-item" id="presetDelete">Apagar</button>
+    <button class="more-item" id="presetOrganize" title="Ordem dos presets (setlist), nomes e apagar">Organizar</button>
+    <button class="more-item" id="presetShare" title="Copia um link com a pedaleira atual para mandar para alguém ou para o celular">Link</button>
+    <button class="more-item" id="presetExport" title="Baixar um arquivo com os presets e as capturas que eles usam">Exportar</button>
+    <button class="more-item" id="presetImport" title="Trazer presets de um arquivo exportado">Importar</button>
+    <button id="moreBtn" class="more-btn" aria-expanded="false" aria-controls="presetsRow">⋯ Mais</button>
     <button id="stageBtn" class="stage-btn" title="Tela para tocar ao vivo: preset, cenas e pedais em botões grandes">Palco</button>
-    <button id="midi" aria-pressed="false" title="Aprender botões de um controlador MIDI" hidden>MIDI</button>
-    <button id="midiClear" hidden>Apagar MIDI</button>
+    <button class="more-item" id="midi" aria-pressed="false" title="Aprender botões de um controlador MIDI" hidden>MIDI</button>
+    <button class="more-item" id="midiClear" hidden>Apagar MIDI</button>
   </div>
   <p id="status" class="status" role="status">Desligado. Conecte a interface e clique em Ligar.</p>
 </header>
