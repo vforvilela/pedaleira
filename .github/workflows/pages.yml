@@ -27,6 +27,9 @@ jobs:
         run: node --test
       - name: Teste no Chrome headless
         run: node tests/browser-smoke.mjs /tmp/shots
+      # Só o app: sem testes, sem o código-fonte do wasm.
+      - run: mkdir _site && cp -r index.html manifest.webmanifest sw.js css js icons _site/
+      - uses: actions/upload-pages-artifact@v4
 
   deploy:
     needs: test
@@ -35,12 +38,5 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-        with:
-          enablement: true
-      # Só o app: sem testes, sem o código-fonte do wasm.
-      - run: mkdir _site && cp -r index.html manifest.webmanifest sw.js css js icons _site/
-      - uses: actions/upload-pages-artifact@v3
       - id: deployment
         uses: actions/deploy-pages@v4
