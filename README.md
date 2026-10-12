@@ -36,8 +36,10 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
   (com Desfazer).
 - **Link**: copia um link com a pedaleira atual (pedais, botões, cenas). Quem abre recebe como preset novo.
   Capturas e IRs carregados por link direto (GitHub, Dropbox) vão junto e são baixados por quem abre.
-- **Capturas grátis no Amp**: o botão NAM sugere três capturas de rig completo (JCM800 limpo, JCM800 + OD-1, 5150),
+- **Capturas e IRs grátis no Amp**: o botão NAM sugere três capturas de rig completo (JCM800 limpo, JCM800 + OD-1, 5150),
   de [Muhammed Yeter](https://github.com/muhammed-yeter/nam-profiles-colab) (licença MIT). Baixadas do GitHub do autor.
+  O botão IR sugere três IRs de caixa 4x12 do pack Dauntless, de Resington ("free to share"); ao escolher uma, o CAB vai
+  para IR. Carregar qualquer IR também liga o CAB em IR. Links do GitHub para arquivos no Git LFS funcionam.
   Capturas `.nam` e IRs não cabem no link: para elas, use Exportar.
 - **Exportar / Importar:** um arquivo `.json` com os presets e as capturas `.nam` e IRs que eles usam.
   Serve de backup e para levar os presets do PC para o celular.

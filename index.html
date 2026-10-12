@@ -111,9 +111,9 @@
   <div class="knob-sheet-head"><h2 id="fileSheetTitle"></h2><button id="fileSheetClose" aria-label="Fechar">✕</button></div>
   <button id="fileLocal" class="primary">Escolher arquivo do aparelho</button>
   <section id="fileSuggest" class="file-suggest" hidden>
-    <h3>Capturas grátis</h3>
+    <h3 id="fileSuggestTitle">Capturas grátis</h3>
     <div id="fileSuggestList" class="file-suggest-list"></div>
-    <p class="hint">Rig completo (amp, caixa e microfone): a caixa do amp vai para OFF. De <a id="fileCredit" target="_blank" rel="noopener"></a>, licença MIT.</p>
+    <p class="hint"><span id="fileSuggestHint"></span> De <a id="fileCredit" target="_blank" rel="noopener"></a>, <span id="fileLicense"></span>.</p>
   </section>
   <form id="fileUrlForm" class="file-url">
     <label for="fileUrl">Ou cole um link direto do arquivo (GitHub, Dropbox). Ele vai junto quando você compartilha o preset.</label>

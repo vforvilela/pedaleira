@@ -88,15 +88,24 @@ try {
   // chega inteiro, a mistura também, e o automático não escolhe (canais iguais).
   const chan = await evaluate(`(async () => {
     const e = __pedaleira.engine, b = new Float32Array(1024), wait = () => new Promise(r => setTimeout(r, 150));
-    const peak = async () => { let p = 0; for (let i = 0; i < 10; i++) { await wait(); p = Math.max(p, e.peak(b)); } return p; };
+    // Espera um bipe e mede a entrada junto com o canal cru: a razão é o ganho do caminho escolhido.
+    const peak = async () => {
+      await wait();
+      for (let i = 0; i < 60; i++) {
+        const raw = e.peak(b, e.chAnalyser[0]), inp = e.peak(b);
+        if (raw > 0.05) return inp / raw;
+        await new Promise(r => setTimeout(r, 50));
+      }
+      return 0;
+    };
     e.useChannel(1); const c2 = await peak();
     e.useChannel(0); const c1 = await peak();
     e.useChannel(null); const mix = await peak();
     return { c1, c2, mix, channels: e.channels, hidden: document.getElementById('channel').hidden,
       auto: document.getElementById('channel').options[0].textContent };
   })()`);
-  check(chan.c1 > 0.001 && Math.abs(chan.c2 - chan.c1) < chan.c1 * 0.5 && Math.abs(chan.mix - chan.c1) < chan.c1 * 0.5,
-    `canal escolhido: 1 = ${chan.c1.toFixed(4)}, 2 = ${chan.c2.toFixed(5)}, mistura = ${chan.mix.toFixed(4)}`);
+  check([chan.c1, chan.c2, chan.mix].every(g => Math.abs(g - 1) < 0.1),
+    `canal escolhido passa inteiro (ganho: canal 1 = ${chan.c1.toFixed(2)}, canal 2 = ${chan.c2.toFixed(2)}, mistura = ${chan.mix.toFixed(2)})`);
   check(chan.hidden === (chan.channels === 1), `seletor de canal some só com entrada mono (canais: ${chan.channels})`);
   check(chan.auto === 'Canal: auto', `automático não escolhe canal quando os dois são iguais ("${chan.auto}")`);
 
@@ -660,6 +669,39 @@ try {
     } finally { window.fetch = realFetch; }
   })()`);
   check(sug.n === 3 && sug.url && sug.cab === 'OFF' && sug.closed, `capturas grátis sugeridas no amp carregam e desligam a caixa (${JSON.stringify(sug)})`);
+
+  // IRs grátis no IR do amp: escolher uma liga o CAB em IR. Um link raw do GitHub de arquivo no Git LFS
+  // (o raw só tem o ponteiro) é seguido até o media.githubusercontent.com.
+  const irs = await evaluate(`(async () => {
+    const p = __pedaleira, wait = ms => new Promise(r => setTimeout(r, ms));
+    const realFetch = window.fetch, local = location.origin + '/tests/fixtures/cab-ir.wav', asked = [];
+    window.fetch = (u, ...rest) => {
+      u = String(u); asked.push(u.split('/')[2]);
+      if (u.startsWith('https://raw.githubusercontent.com/')) return Promise.resolve(new Response('version https://git-lfs.github.com/spec/v1\\noid sha256:0\\nsize 1\\n', { headers: { 'content-length': '60' } }));
+      return realFetch(u.startsWith('https://media.githubusercontent.com/') ? local : u, ...rest);
+    };
+    const amp = p.state.chain.find(b => b.type === 'amp');
+    const cabOf = () => p.live.get(amp.uid).def.controls.find(c => c.id === 'cab').options[amp.params.cab];
+    try {
+      document.querySelector('.pedal[data-uid="' + amp.uid + '"] .file-btn[data-kind="ir"]').click();
+      const title = document.getElementById('fileSuggestTitle').textContent;
+      const items = [...document.querySelectorAll('#fileSuggest:not([hidden]) .suggest')];
+      items[1].click();
+      for (let i = 0; i < 50 && !amp.files.ir?.url?.includes('SM48'); i++) await wait(100);
+      const sugg = { n: items.length, title, cab: cabOf(), name: amp.files.ir?.name, closed: !document.getElementById('fileSheet').open };
+      p.setParam?.(amp, 'cab', 0);
+      document.querySelector('.pedal[data-uid="' + amp.uid + '"] .file-btn[data-kind="ir"]').click();
+      document.getElementById('fileUrl').value = 'https://github.com/alguem/irs/blob/main/minha%20caixa.wav';
+      asked.length = 0;
+      document.getElementById('fileUrlForm').requestSubmit();
+      for (let i = 0; i < 50 && amp.files.ir?.name !== 'minha caixa'; i++) await wait(100);
+      return { ...sugg, lfs: asked.join(' '), lfsName: amp.files.ir?.name, lfsCab: cabOf() };
+    } finally { window.fetch = realFetch; }
+  })()`);
+  check(irs.n === 3 && irs.title === 'IRs grátis' && irs.cab === 'IR' && irs.closed && irs.name === 'Engl SM48',
+    `IRs grátis sugeridas no amp carregam e ligam o CAB em IR (${JSON.stringify(irs)})`);
+  check(irs.lfsName === 'minha caixa' && irs.lfs === 'raw.githubusercontent.com media.githubusercontent.com',
+    `link do GitHub de IR no Git LFS é seguido até o arquivo (${irs.lfs})`);
 
   // Spillover: trocar para um preset sem o delay não corta a cauda; ela some depois de alguns segundos.
   const spill = await evaluate(`(async () => {

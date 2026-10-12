@@ -3,7 +3,7 @@ import { $, applyStoredFiles, changeListeners, createAudio, setParam, engine, li
 import { ORDER, byType } from './pedals/index.js';
 import { putFile } from './store.js';
 import { pedalView } from './ui/pedal-view.js';
-import { AMP_CAPTURES, CAPTURE_CREDIT } from './suggestions.js';
+import { SUGGESTIONS } from './suggestions.js';
 
 // ---------- Pedaleira ----------
 
@@ -213,10 +213,17 @@ export async function storeFile(block, kind, data, fileName, url) {
   await putFile(key, data);
   block.files[kind] = { name: fileName.replace(/\.(nam|wav)$/i, ''), key, ...(url ? { url } : {}) };
   if (old) releaseFile(old);
+  // Carregou uma IR: o amp passa a usá-la (antes ficava na caixa interna até girar o CAB).
+  if (kind === 'ir') selectOption(block, 'cab', 'IR');
   save();
   if (engine.running) await loadIntoAudio(block, kind, data, fileName);
   else status(`${fileName} guardado. Ele toca quando você clicar em Ligar.`);
   live.get(block.uid)?.view.update();
+}
+
+function selectOption(block, id, option) {
+  const i = live.get(block.uid)?.def.controls.find(c => c.id === id)?.options?.indexOf(option);
+  if (i >= 0) setParam(block, id, i);
 }
 
 const parseFile = async (kind, read) => (kind === 'nam' ? JSON.parse(await read.text()) : await read.arrayBuffer());
@@ -256,6 +263,10 @@ export async function fetchFile(kind, url) {
     throw new Error('o site não deixa baixar daqui (use um link direto do GitHub ou do Dropbox)');
   }
   if (!res.ok) throw new Error(`o site respondeu ${res.status}`);
+  const lfs = new URL(url).hostname === 'raw.githubusercontent.com' && res.headers.get('content-length') < 1024
+    && (await res.clone().text()).startsWith('version https://git-lfs');
+  // Arquivo no Git LFS: o raw só tem um ponteiro; o conteúdo está no media.githubusercontent.com.
+  if (lfs) return fetchFile(kind, url.replace('https://raw.githubusercontent.com/', 'https://media.githubusercontent.com/media/'));
   try { return await parseFile(kind, res); } catch {
     throw new Error(`não é um arquivo ${kind === 'nam' ? '.nam' : '.wav'}`);
   }
@@ -281,23 +292,26 @@ export function pickFile(block, kind, accept) {
   const what = kind === 'nam' ? 'captura NAM (.nam)' : 'IR de caixa (.wav)';
   $('fileSheetTitle').textContent = `${live.get(block.uid).def.name}: ${what}`;
   $('fileUrl').value = '';
-  // Amp sem captura ainda: sugestões grátis, que já vêm com caixa (a do amp desliga).
-  const suggest = kind === 'nam' && block.type === 'amp';
-  $('fileSuggest').hidden = !suggest;
-  if (suggest) {
-    $('fileCredit').textContent = CAPTURE_CREDIT.who;
-    $('fileCredit').href = CAPTURE_CREDIT.page;
-    $('fileSuggestList').replaceChildren(...AMP_CAPTURES.map(c => {
+  // Sugestões grátis (só no amp por enquanto).
+  const sug = block.type === 'amp' && SUGGESTIONS[kind];
+  $('fileSuggest').hidden = !sug;
+  if (sug) {
+    $('fileSuggestTitle').textContent = sug.title;
+    $('fileSuggestHint').textContent = sug.hint;
+    $('fileCredit').textContent = sug.credit.who;
+    $('fileCredit').href = sug.credit.page;
+    $('fileLicense').textContent = sug.credit.license;
+    $('fileSuggestList').replaceChildren(...sug.items.map(c => {
       const b = document.createElement('button');
       b.className = 'suggest';
       b.innerHTML = '<b></b><small></small>';
       b.querySelector('b').textContent = c.name;
       b.querySelector('small').textContent = c.note;
-      b.setAttribute('aria-pressed', block.files.nam?.url === c.url);
+      b.setAttribute('aria-pressed', block.files[kind]?.url === c.url);
       b.onclick = async () => {
-        if (!(await loadFromUrl(block, 'nam', c.url, c.name))) return;
-        const off = live.get(block.uid).def.controls.find(x => x.id === 'cab')?.options.indexOf('OFF');
-        if (off >= 0) { setParam(block, 'cab', off); live.get(block.uid).view.update(); }
+        if (!(await loadFromUrl(block, kind, c.url, c.name))) return;
+        selectOption(block, 'cab', sug.cab);
+        live.get(block.uid).view.update();
         d.close();
       };
       return b;
