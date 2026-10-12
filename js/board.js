@@ -1,8 +1,9 @@
 // Pedaleira na tela: desenha a cadeia, adiciona, remove, arrasta e carrega arquivos nos pedais.
-import { $, applyStoredFiles, changeListeners, createAudio, engine, live, loadIntoAudio, newBlock, reconnect, releaseFile, save, state, status, tapTempo, toast, hideToast, toggleBlock } from './core.js';
+import { $, applyStoredFiles, changeListeners, createAudio, setParam, engine, live, loadIntoAudio, newBlock, reconnect, releaseFile, save, state, status, tapTempo, toast, hideToast, toggleBlock } from './core.js';
 import { ORDER, byType } from './pedals/index.js';
 import { putFile } from './store.js';
 import { pedalView } from './ui/pedal-view.js';
+import { AMP_CAPTURES, CAPTURE_CREDIT } from './suggestions.js';
 
 // ---------- Pedaleira ----------
 
@@ -260,10 +261,10 @@ export async function fetchFile(kind, url) {
   }
 }
 
-export async function loadFromUrl(block, kind, text) {
+export async function loadFromUrl(block, kind, text, label) {
   let url;
   try { url = directUrl(text); } catch { status('Isso não parece um link.', true); return false; }
-  const fileName = decodeURIComponent(new URL(url).pathname.split('/').pop() || kind);
+  const fileName = label || decodeURIComponent(new URL(url).pathname.split('/').pop() || kind);
   status(`Baixando ${fileName}…`);
   try {
     await storeFile(block, kind, await fetchFile(kind, url), fileName, url);
@@ -280,6 +281,28 @@ export function pickFile(block, kind, accept) {
   const what = kind === 'nam' ? 'captura NAM (.nam)' : 'IR de caixa (.wav)';
   $('fileSheetTitle').textContent = `${live.get(block.uid).def.name}: ${what}`;
   $('fileUrl').value = '';
+  // Amp sem captura ainda: sugestões grátis, que já vêm com caixa (a do amp desliga).
+  const suggest = kind === 'nam' && block.type === 'amp';
+  $('fileSuggest').hidden = !suggest;
+  if (suggest) {
+    $('fileCredit').textContent = CAPTURE_CREDIT.who;
+    $('fileCredit').href = CAPTURE_CREDIT.page;
+    $('fileSuggestList').replaceChildren(...AMP_CAPTURES.map(c => {
+      const b = document.createElement('button');
+      b.className = 'suggest';
+      b.innerHTML = '<b></b><small></small>';
+      b.querySelector('b').textContent = c.name;
+      b.querySelector('small').textContent = c.note;
+      b.setAttribute('aria-pressed', block.files.nam?.url === c.url);
+      b.onclick = async () => {
+        if (!(await loadFromUrl(block, 'nam', c.url, c.name))) return;
+        const off = live.get(block.uid).def.controls.find(x => x.id === 'cab')?.options.indexOf('OFF');
+        if (off >= 0) { setParam(block, 'cab', off); live.get(block.uid).view.update(); }
+        d.close();
+      };
+      return b;
+    }));
+  }
   $('fileLocal').onclick = () => { d.close(); pickLocal(block, kind, accept); };
   $('fileUrlForm').onsubmit = async e => {
     e.preventDefault();

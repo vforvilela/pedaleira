@@ -343,3 +343,10 @@ h2 { font-size: 20px; font-weight: 700; font-stretch: 112%; letter-spacing: -.01
   flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
 }
 @media (pointer: coarse) { .file-url input { min-height: var(--touch); } }
+.file-suggest h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; font-stretch: 80%; letter-spacing: .04em; color: var(--muted); }
+.file-suggest-list { display: grid; gap: 8px; }
+.suggest { display: grid; gap: 2px; text-align: left; padding: 10px 12px; background: var(--bg); }
+.suggest small { color: var(--muted); font-size: 12px; }
+.suggest[aria-pressed="true"] { border-color: var(--accent); }
+.file-suggest .hint { margin: 8px 0 0; font-size: 12px; }
+.file-suggest a { color: var(--accent); }

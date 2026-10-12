@@ -603,6 +603,25 @@ try {
     && viaLink.urls[1] === 'https://dl.dropboxusercontent.com/s/abc/x.nam',
     `captura por link vai junto no link de preset e chega baixada (${JSON.stringify(viaLink)})`);
 
+  // Sugestões grátis no NAM do amp: 3 capturas; escolher uma carrega por link e desliga a caixa do amp.
+  // O download é trocado pela captura de teste local (o CI não depende do GitHub).
+  const sug = await evaluate(`(async () => {
+    const p = __pedaleira, wait = ms => new Promise(r => setTimeout(r, ms));
+    const realFetch = window.fetch, local = location.origin + '/tests/fixtures/A2.nam';
+    window.fetch = (u, ...rest) => realFetch(String(u).includes('nam-profiles-colab') ? local : u, ...rest);
+    try {
+      const amp = p.state.chain.find(b => b.type === 'amp');
+      document.querySelector('.pedal[data-uid="' + amp.uid + '"] .file-btn[data-kind="nam"]').click();
+      const items = [...document.querySelectorAll('#fileSuggest:not([hidden]) .suggest')];
+      items[2].click();
+      for (let i = 0; i < 50 && !amp.files.nam?.url?.includes('5150'); i++) await wait(100);
+      const cab = p.live.get(amp.uid).def.controls.find(c => c.id === 'cab').options[amp.params.cab];
+      return { n: items.length, url: !!amp.files.nam?.url?.includes('nam-profiles-colab'), name: amp.files.nam?.name, cab,
+        closed: !document.getElementById('fileSheet').open };
+    } finally { window.fetch = realFetch; }
+  })()`);
+  check(sug.n === 3 && sug.url && sug.cab === 'OFF' && sug.closed, `capturas grátis sugeridas no amp carregam e desligam a caixa (${JSON.stringify(sug)})`);
+
   // Spillover: trocar para um preset sem o delay não corta a cauda; ela some depois de alguns segundos.
   const spill = await evaluate(`(async () => {
     const p = __pedaleira, e = p.engine, ctx = e.ctx, wait = ms => new Promise(r => setTimeout(r, ms));
