@@ -104,6 +104,18 @@ export class Engine {
     prev.connect(this.master);
   }
 
+  // Spillover: um delay ou reverb que sai da pedaleira (troca de preset) não recebe mais sinal, mas a cauda
+  // continua soando por `seconds` e some aos poucos no último 1,5 s, como numa pedaleira digital boa.
+  // Chamar depois de connectChain, que desliga as saídas da cadeia antiga.
+  spill(audio, seconds) {
+    const ctx = this.ctx, fade = ctx.createGain(), t = ctx.currentTime;
+    audio.output.disconnect();
+    audio.output.connect(fade).connect(this.master);
+    fade.gain.setValueAtTime(1, t + seconds - 1.5);
+    fade.gain.linearRampToValueAtTime(0, t + seconds);
+    setTimeout(() => { fade.disconnect(); audio.dispose(); }, seconds * 1000 + 100);
+  }
+
   peak(buf, analyser = this.analyser) {
     analyser.getFloatTimeDomainData(buf);
     let p = 0;

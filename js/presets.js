@@ -267,6 +267,9 @@ export async function applyPreset(name) {
 
 // Carrega uma cadeia reaproveitando o áudio dos pedais que continuam
 // (assim a troca é rápida, o delay não corta e as capturas NAM não recarregam à toa).
+// Quanto tempo a cauda de cada tipo continua depois da troca de preset.
+const SPILL_SECONDS = { time: 8 };
+
 export async function loadChain(chain, presetName) {
   const current = new Map(state.chain.map(b => [b.uid, b]));
   const next = snapshot(chain).map(snap => {
@@ -287,7 +290,14 @@ export async function loadChain(chain, presetName) {
     ex.reload = reload;
     return ex;
   });
-  for (const gone of current.values()) { live.get(gone.uid)?.audio?.dispose(); live.delete(gone.uid); }
+  // Delay e reverb ligados que saem continuam com a cauda (spillover); o resto sai na hora.
+  const spills = [];
+  for (const gone of current.values()) {
+    const l = live.get(gone.uid);
+    live.delete(gone.uid);
+    if (l?.audio && engine.running && gone.on && SPILL_SECONDS[l.def.category]) spills.push([l.audio, SPILL_SECONDS[l.def.category]]);
+    else l?.audio?.dispose();
+  }
   state.chain = next;
   state.preset = presetName;
   if (presetName && state.drafts[presetName] && sameChain(next, presetByName(presetName).chain)) delete state.drafts[presetName];
@@ -298,6 +308,7 @@ export async function loadChain(chain, presetName) {
       if (!l.audio) { createAudio(b); b.reload = Object.keys(b.files); }
     }
     reconnect();
+    for (const [audio, seconds] of spills) engine.spill(audio, seconds);
     await Promise.all(next.map(async b => {
       for (const kind of b.reload || []) {
         const data = await getFile(b.files[kind].key);

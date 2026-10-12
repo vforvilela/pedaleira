@@ -2,8 +2,8 @@
 import { loadWasmBytes } from './audio/engine.js';
 import { addBlock, renderBoard } from './board.js';
 import { midi } from './control.js';
-import { $, engine, live, save, state, status } from './core.js';
-import { buildExport, importPresets, openSharedLink, renderPresets, shareLink } from './presets.js';
+import { $, engine, live, save, snapshot, state, status } from './core.js';
+import { buildExport, importPresets, loadChain, openSharedLink, renderPresets, shareLink } from './presets.js';
 import { renderScenes } from './scenes.js';
 import { getFile, persist } from './store.js';
 import { installDefs } from './ui/pedal-view.js';
@@ -49,7 +49,7 @@ renderBoard();
 renderPresets();
 renderScenes();
 // Acesso para depuração pelo console e para os testes no navegador.
-window.__pedaleira = { engine, get state() { return state; }, live, midi, buildExport, importPresets, getFile, shareLink, openSharedLink };
+window.__pedaleira = { engine, get state() { return state; }, live, midi, buildExport, importPresets, getFile, shareLink, openSharedLink, loadChain, snapshot };
 openSharedLink();
 // Instalar como app: Chrome/Edge/Android oferecem o evento; no iPhone, o caminho é pelo menu Compartilhar.
 let installPrompt = null;

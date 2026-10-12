@@ -44,6 +44,7 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
   (ex.: A = base, B = solo com mais volume e delay).
   Ligue os pedais, clique em **Gravar cena** e depois na letra. Atalhos `A`–`D`; também por MIDI.
   Trocar de cena não marca o preset com `*`.
+- **Spillover**: ao trocar de preset, o delay e o reverb que saem continuam soando até a cauda acabar (até 8 s).
 - **Desfazer**: removeu um pedal sem querer? Clique em Desfazer (ou `Ctrl+Z`) em até 10 s.
 - **Ganho de entrada** para acertar o nível da interface (o medidor não deve ficar vermelho).
 - **Medir latência real**: com o áudio ligado, botão Medir ao lado da latência. Ligue um cabo da saída da

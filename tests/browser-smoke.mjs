@@ -573,6 +573,28 @@ try {
   await evaluate(`document.querySelector('.pedal[data-uid] .slider')?.closest('.pedal').scrollIntoView({ inline: 'center', block: 'nearest' }); scrollTo(0, 0)`);
   await shot('11-equalizador.png', 1600, 900);
 
+  // Spillover: trocar para um preset sem o delay não corta a cauda; ela some depois de alguns segundos.
+  const spill = await evaluate(`(async () => {
+    const p = __pedaleira, e = p.engine, ctx = e.ctx, wait = ms => new Promise(r => setTimeout(r, ms));
+    const an = ctx.createAnalyser(); an.fftSize = 2048; e.master.connect(an);
+    const buf = new Float32Array(an.fftSize), peak = () => { an.getFloatTimeDomainData(buf); return Math.max(...buf.map(Math.abs)); };
+    // Pedaleira só com o delay, ligado, realimentação alta e repetições curtas.
+    await p.loadChain([{ uid: 'spill-eco', type: 'eco-8', on: true, params: { level: 10, feedback: 8, time: 1, mode: 0 }, files: {}, scenes: [] }], null);
+    e.setInputGain(0);
+    await wait(1200);
+    e.setInputGain(-200);                // corta a guitarra: daqui em diante só a cauda soa
+    await wait(30);
+    const before = peak();
+    await p.loadChain([], null);         // preset sem o delay
+    await wait(400);
+    const tail = peak();
+    await wait(8500);
+    const after = peak();
+    e.master.disconnect(an); e.setInputGain(0);
+    return { before: +before.toFixed(4), tail: +tail.toFixed(4), after: +after.toFixed(5) };
+  })()`);
+  check(spill.tail > 0.005 && spill.after < 0.0005, `delay continua soando depois da troca de preset e some depois (${JSON.stringify(spill)})`);
+
   // Celular: em todos os pedais, um toque no primeiro botão abre o painel com um slider de ≥ 44 px por controle.
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 2400, deviceScaleFactor: 2, mobile: true });
   await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 });
