@@ -571,6 +571,50 @@ try {
   await evaluate(`document.querySelector('.pedal[data-uid] .slider')?.closest('.pedal').scrollIntoView({ inline: 'center', block: 'nearest' }); scrollTo(0, 0)`);
   await shot('11-equalizador.png', 1600, 900);
 
+  // Celular: em todos os pedais, um toque no primeiro botão abre o painel com um slider de ≥ 44 px por controle.
+  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 2400, deviceScaleFactor: 2, mobile: true });
+  await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 });
+  await sleep(300);
+  await evaluate(`(() => { // completa a pedaleira com os pedais que os testes anteriores tiraram
+    const on = new Set(__pedaleira.state.chain.map(b => __pedaleira.live.get(b.uid).def.name));
+    for (const b of document.querySelectorAll('#library .add')) if (!on.has(b.querySelector('b').textContent)) b.click();
+  })()`);
+  await sleep(500);
+  const uids = await evaluate(`[...document.querySelectorAll('#board .pedal')].map(p => p.dataset.uid)`);
+  const sheetBad = [];
+  for (const uid of uids) {
+    const kp = await evaluate(`(() => {
+      const wrap = document.querySelector('.board-wrap'), p = document.querySelector('.pedal[data-uid="${uid}"]');
+      wrap.scrollLeft += p.getBoundingClientRect().left - 60;
+      const r = p.querySelector('.knob').getBoundingClientRect();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    })()`);
+    await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [kp] });
+    await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await sleep(250);
+    const r = await evaluate(`(() => {
+      const d = document.querySelector('.knob-sheet'), b = __pedaleira.state.chain.find(b => b.uid === '${uid}');
+      const def = __pedaleira.live.get('${uid}').def;
+      const name = def.name;
+      if (!d?.open) return { name, open: false };
+      const hs = [...d.querySelectorAll('.knob-row input')].map(i => Math.round(i.getBoundingClientRect().height));
+      const res = { name, open: true, rows: hs.length, want: def.controls.length, minH: Math.min(...hs), fits: d.getBoundingClientRect().bottom <= innerHeight };
+      d.querySelector('button').click();
+      return res;
+    })()`);
+    if (!r.open || r.rows !== r.want || r.minH < 44 || !r.fits) sheetBad.push(JSON.stringify(r));
+  }
+  check(uids.length >= 19 && sheetBad.length === 0,
+    `painel de toque abre em todos os ${uids.length} pedais com controles de ≥ 44 px${sheetBad.length ? ': ' + sheetBad.join(' ') : ''}`);
+
+  // Fonte própria (Archivo) carregada do app e usada no título e nos rótulos dos botões.
+  const font = await evaluate(`document.fonts.ready.then(() => {
+    const faces = [...document.fonts].filter(f => f.family.replace(/"/g, '') === 'Archivo');
+    return { loaded: faces.some(f => f.status === 'loaded'), check: document.fonts.check('700 16px Archivo'),
+      h1: getComputedStyle(document.querySelector('h1')).fontFamily, klabel: getComputedStyle(document.querySelector('.klabel')).fontFamily };
+  })`);
+  check(font.loaded && font.check && font.h1.startsWith('Archivo') && font.klabel.startsWith('Archivo'), `fonte Archivo carregada e em uso (${JSON.stringify(font)})`);
+
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
   console.log(`screenshots em ${out}`);
   ws.close();

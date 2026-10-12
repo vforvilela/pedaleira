@@ -11,7 +11,9 @@
   --stage-bg: #0b0c0e; --toast-bg: #2b2e33; --chip-bg: #2b2410; --chip-line: #6b5420;
   /* LEDs dos pedais */
   --led-red: #ff3b30; --led-red-off: #3a1512; --led-green: #3dff6e; --led-amber: #ffc531;
-  --led-blue: #3aa0ff; --led-amp: #ff5a36;
+  --led-blue: #3aa0ff; --led-amp: #ff5a36; --led-green-off: #2a4a33;
+  /* Visor do afinador */
+  --seg-off: #2a0f0d; --seg-mid-off: #0e2a14; --tuner-red: #ff4a3a; --tuner-dim: #c9d2cc; --tuner-zone: #3a3f45;
   --font: Archivo, system-ui, -apple-system, "Segoe UI", sans-serif;
   --touch: 44px;
   color-scheme: dark;
@@ -167,13 +169,13 @@ main { padding: 16px 0 32px; }
   font: 700 11px/18px ui-monospace, monospace; min-width: 18px; text-align: center;
   color: var(--muted); background: var(--bg); border: 1px solid var(--line); border-radius: 5px;
 }
-.tuner-display .seg { fill: #2a0f0d; }
-.tuner-display .seg.mid { fill: #0e2a14; }
+.tuner-display .seg { fill: var(--seg-off); }
+.tuner-display .seg.mid { fill: var(--seg-mid-off); }
 .tuner-display.active .seg.lit { fill: var(--led-red); filter: drop-shadow(0 0 2px var(--led-red)); }
 .tuner-display.active .seg.mid.lit { fill: var(--led-green); filter: drop-shadow(0 0 3px var(--led-green)); }
-.tuner-note { font-family: ui-monospace, "DejaVu Sans Mono", monospace; font-weight: 700; fill: #ff4a3a; }
+.tuner-note { font-family: ui-monospace, "DejaVu Sans Mono", monospace; font-weight: 700; fill: var(--tuner-red); }
 .tuner-note.ok { fill: var(--led-green); }
-.tuner-cents { font-family: ui-monospace, monospace; fill: #c9d2cc; }
+.tuner-cents { font-family: ui-monospace, monospace; fill: var(--tuner-dim); }
 .caption { display: grid; justify-items: center; font-size: 12px; color: var(--muted); max-width: 180px; text-align: center; min-height: 34px; }
 .caption .pname { color: var(--text); font-weight: 600; font-size: 13px; }
 .caption .files { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 2px; }
@@ -190,7 +192,7 @@ main { padding: 16px 0 32px; }
 .pedal[data-state="rec"] .led { fill: var(--led-red); filter: drop-shadow(0 0 5px var(--led-red)); animation: blink .6s steps(2) infinite; }
 .pedal[data-state="play"] .led { fill: var(--led-green); filter: drop-shadow(0 0 5px var(--led-green)); }
 .pedal[data-state="dub"] .led { fill: var(--led-amber); filter: drop-shadow(0 0 5px var(--led-amber)); }
-.pedal[data-state="stop"] .led { fill: #2a4a33; filter: none; }
+.pedal[data-state="stop"] .led { fill: var(--led-green-off); filter: none; }
 .pedal[data-state="rec"] .inspired, .pedal[data-state="dub"] .inspired { color: var(--accent); font-weight: 600; }
 @keyframes blink { 50% { opacity: .35; } }
 .pedal.treadle .pedal-svg { width: 150px; }
@@ -212,7 +214,7 @@ body.stage { overflow: hidden; }
 .stage-title b { font-size: clamp(24px, 6vw, 56px); line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stage-title small { color: var(--muted); font-size: 14px; }
 .stage-tuner { display: grid; justify-items: center; gap: 2px; }
-.stage-tuner .bar { position: relative; width: min(520px, 90%); height: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--bad), #3a3f45 45% 55%, var(--bad)); }
+.stage-tuner .bar { position: relative; width: min(520px, 90%); height: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--bad), var(--tuner-zone) 45% 55%, var(--bad)); }
 .stage-tuner .bar::after { content: ""; position: absolute; left: 50%; top: -4px; bottom: -4px; width: 2px; background: var(--ok); }
 /* A agulha é uma faixa da largura da barra, movida com transform (ver setStageTuner). */
 .stage-tuner i { position: absolute; inset: -6px 0; transition: transform 80ms linear; }
