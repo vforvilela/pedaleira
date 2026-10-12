@@ -635,6 +635,17 @@ try {
     }
     return { total: document.querySelectorAll('button, select, input').length, small: [...new Set(out)] };
   })()`);
+  // Item 1 da auditoria, nos desenhos: footswitches (inclusive o ON do amp) e as chaves MODE/REF do afinador.
+  const svgSmall = await evaluate(`(() => {
+    const out = [], els = [...document.querySelectorAll('#board .footswitch')];
+    for (const p of document.querySelectorAll('#board .pedal')) if (p.querySelector('.tuner-display')) els.push(...p.querySelectorAll('.knob'));
+    for (const e of els) {
+      const r = e.getBoundingClientRect();
+      if (r.width < 44 || r.height < 44) out.push((e.getAttribute('aria-label') || '') + ' ' + Math.round(r.width) + 'x' + Math.round(r.height));
+    }
+    return { n: els.length, out };
+  })()`);
+  check(svgSmall.out.length === 0, `toque: footswitches e chaves do afinador com ≥ 44 px (${svgSmall.out.length ? svgSmall.out.join(', ') : svgSmall.n + ' medidos'})`);
   check(small.small.length === 0, `toque: todos os controles com ≥ 44 px (${small.small.length ? small.small.join(', ') : small.total + ' controles medidos'})`);
 
   // Mouse (tela de PC): ⠿ ✕ NAM IR TAP também com 44×44 px.

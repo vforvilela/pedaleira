@@ -144,7 +144,7 @@ function drawPedal(def) {
     led = el('circle', { cx: W - 48, cy: 214, r: 3.6, class: 'led', stroke: 'rgba(0,0,0,.5)' }, svg);
     text(svg, W / 2, 262, look.subtitle, { fill: look.ink, 'font-size': 8, 'letter-spacing': 1.5 });
     foot = el('g', footAttrs, svg);
-    el('circle', { cx: W - 26, cy: 228, r: 18, fill: 'transparent' }, foot);
+    el('circle', { cx: W - 26, cy: 228, r: 23, fill: 'transparent' }, foot); // área de toque de ~45 px
     el('circle', { cx: W - 26, cy: 228, r: 12, fill: '#6d7075', stroke: '#3b3d40', 'stroke-width': 2 }, foot);
     el('circle', { cx: W - 26, cy: 228, r: 8, fill: 'url(#footGrad)', stroke: '#55585c' }, foot);
     return { svg, knobs, led, foot, zone: drawZone(svg, look, W), W, H };
@@ -159,7 +159,7 @@ function drawPedal(def) {
     // Afinador: visor no alto, chaves pequenas nos cantos de baixo.
     display = drawTunerDisplay(svg, W);
     def.controls.forEach((c, i) => {
-      knobs[c.id] = drawKnob(svg, c, i === 0 ? 26 : W - 26, 73, 6.5, look.ink);
+      knobs[c.id] = drawKnob(svg, c, i === 0 ? 26 : W - 26, 73, 6.5, look.ink, 23); // chave pequena, toque de ~45 px
     });
   } else if (def.controls.every(c => c.type === 'slider')) {
     // Equalizador gráfico: uma fileira de faders.
