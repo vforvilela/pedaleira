@@ -74,12 +74,14 @@ export async function start() {
   latencyTimer = setInterval(showLat, 1000);
   if (!$('status').classList.contains('err')) status(`Tocando: ${track.label}`);
   $('measure').hidden = false;
+  $('record').hidden = false;
   $('power').textContent = 'Desligar';
   $('power').setAttribute('aria-pressed', 'true');
   save();
 }
 
 export async function stop() {
+  await stopRecording();
   wakeLock?.release().catch(() => {});
   wakeLock = null;
   cancelAnimationFrame(meterRaf);
@@ -93,6 +95,7 @@ export async function stop() {
   $('latency').textContent = '—';
   status('Desligado.');
   $('measure').hidden = true;
+  $('record').hidden = true;
   $('power').textContent = 'Ligar';
   $('power').setAttribute('aria-pressed', 'false');
 }
@@ -147,6 +150,44 @@ $('channel').onchange = () => {
   $('channel').options[0].textContent = 'Canal: auto';
   save();
   if (engine.running) setupChannel();
+};
+
+// ---------- Gravar o que sai ----------
+
+let finishRec = null, recTimer = 0;
+const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+
+async function stopRecording() {
+  if (!finishRec) return;
+  const finish = finishRec;
+  finishRec = null;
+  clearInterval(recTimer);
+  $('record').textContent = 'Gravar';
+  $('record').setAttribute('aria-pressed', 'false');
+  const blob = await finish();
+  const d = new Date(), p2 = n => String(n).padStart(2, '0');
+  const ext = blob.type.includes('mp4') ? 'm4a' : blob.type.includes('ogg') ? 'ogg' : 'webm';
+  const name = `brasa-${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}.${ext}`;
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: name });
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  status(`Gravação salva: ${name}`);
+}
+
+$('record').onclick = async () => {
+  if (finishRec) return stopRecording();
+  if (!engine.running) return;
+  try {
+    finishRec = engine.record();
+  } catch (e) {
+    status(`Este navegador não grava áudio: ${e.message}`, true);
+    return;
+  }
+  const t0 = Date.now();
+  $('record').setAttribute('aria-pressed', 'true');
+  const tick = () => { $('record').textContent = `● ${mmss((Date.now() - t0) / 1000)} Parar`; };
+  tick();
+  recTimer = setInterval(tick, 500);
 };
 
 // Medir a latência real: o usuário liga um cabo da saída na entrada; a pedaleira fica muda por ~3 s.

@@ -167,6 +167,25 @@ export class Engine {
     }
   }
 
+  // Grava o que sai para o fone (depois do limitador), comprimido pelo navegador: Opus no Chrome/Firefox,
+  // AAC no Safari. Devolve uma função que para e entrega o arquivo.
+  record() {
+    const dest = this.ctx.createMediaStreamDestination();
+    this.limiter.connect(dest);
+    const type = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/ogg;codecs=opus'].find(t => MediaRecorder.isTypeSupported(t));
+    const rec = new MediaRecorder(dest.stream, { mimeType: type, audioBitsPerSecond: 192000 });
+    const parts = [];
+    rec.ondataavailable = e => { if (e.data.size) parts.push(e.data); };
+    rec.start(1000);
+    return () => new Promise(resolve => {
+      rec.onstop = () => {
+        try { this.limiter.disconnect(dest); } catch { /* o áudio já foi desligado */ }
+        resolve(new Blob(parts, { type: rec.mimeType }));
+      };
+      rec.stop();
+    });
+  }
+
   latencyMs() {
     const c = this.ctx;
     return ((c.baseLatency || 0) + (c.outputLatency || 0)) * 1000;

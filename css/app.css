@@ -73,6 +73,7 @@ button.small { padding: 3px 8px; font-size: 12px; border-radius: 6px; }
 #presetSave.attention { border-color: var(--accent); color: var(--accent); }
 #presetSave.attention::after { content: " *"; }
 #midi[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+#record[aria-pressed="true"] { border-color: var(--bad); color: var(--bad); font-variant-numeric: tabular-nums; }
 body.midi-learn .footswitch, body.midi-learn .tap-btn, body.midi-learn .knob,
 body.midi-learn #presetPrev, body.midi-learn #presetNext { outline: 2px dashed rgba(240,162,59,.7); outline-offset: 2px; cursor: crosshair; }
 body.midi-learn .learn-target { outline: 3px solid var(--accent) !important; }

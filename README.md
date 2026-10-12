@@ -52,6 +52,8 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
 - **Canal da interface**: em interfaces de 2 entradas, o app descobre na primeira palhetada em qual a guitarra
   está e usa só ela (sem perder 6 dB nem somar o chiado da outra). Dá para fixar Canal 1 ou 2.
 - **Ganho de entrada** para acertar o nível da interface (o medidor não deve ficar vermelho).
+- **Gravar**: com o áudio ligado, grava o que sai da pedaleira (com todos os efeitos) e baixa o arquivo ao parar
+  (`.webm` no Chrome, `.m4a` no Safari).
 - **Medir latência real**: com o áudio ligado, botão Medir ao lado da latência. Ligue um cabo da saída da
   interface na entrada; o app toca 6 cliques e mede quanto tempo eles levam para voltar.
 - **Tap tempo** no Eco 8 (botão TAP ou tecla `T`), de 20 ms a 2 s.

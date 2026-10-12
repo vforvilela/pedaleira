@@ -100,6 +100,29 @@ try {
   check(chan.hidden === (chan.channels === 1), `seletor de canal some só com entrada mono (canais: ${chan.channels})`);
   check(chan.auto === 'Canal: auto', `automático não escolhe canal quando os dois são iguais ("${chan.auto}")`);
 
+  // Gravar: o arquivo baixado tem o som da pedaleira.
+  const rec = await evaluate(`(async () => {
+    let blob = null, name = '';
+    const orig = URL.createObjectURL, click = HTMLAnchorElement.prototype.click;
+    URL.createObjectURL = b => { blob = b; return orig(b); };
+    HTMLAnchorElement.prototype.click = function () { name = this.download; };
+    const btn = document.getElementById('record');
+    const shown = !btn.hidden;
+    btn.click();
+    await new Promise(r => setTimeout(r, 2500));
+    const label = btn.textContent;
+    btn.click();
+    for (let i = 0; i < 40 && !blob; i++) await new Promise(r => setTimeout(r, 100));
+    URL.createObjectURL = orig; HTMLAnchorElement.prototype.click = click;
+    if (!blob) return { shown, label };
+    const buf = await new OfflineAudioContext(1, 1, 48000).decodeAudioData(await blob.arrayBuffer());
+    const d = buf.getChannelData(0);
+    let p = 0; for (const x of d) p = Math.max(p, Math.abs(x));
+    return { shown, label, name, type: blob.type, secs: buf.duration, peak: p };
+  })()`);
+  check(rec.shown && /Parar/.test(rec.label) && rec.secs > 1.5 && rec.peak > 0.001 && /^brasa-.*\.(webm|m4a|ogg)$/.test(rec.name),
+    `Gravar baixa o som tocado (${rec.name}, ${rec.type}, ${rec.secs?.toFixed(1)} s, pico ${rec.peak?.toFixed(3)}, botão "${rec.label}")`);
+
   // Carrega uma captura NAM no amp.
   const loadRes = await evaluate(`(async () => {
     const { state, live } = __pedaleira;
