@@ -17,7 +17,9 @@ const chrome = spawn('google-chrome', [
   '--headless=new', `--remote-debugging-port=${DBG}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), 'chr-'))}`,
   '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--autoplay-policy=no-user-gesture-required',
   // --mute-audio: o teste mede a saída dentro da página; nada toca nos alto-falantes de quem roda.
-  '--mute-audio', '--window-size=1280,900', '--no-first-run', 'about:blank',
+  '--mute-audio', '--window-size=1280,900', '--no-first-run',
+  // CI (GitHub Actions): o Ubuntu novo restringe os namespaces que a sandbox do Chrome usa.
+  ...(process.env.CI ? ['--no-sandbox'] : []), 'about:blank',
 ], { stdio: 'ignore' });
 
 let failed = false;
@@ -25,8 +27,8 @@ const check = (ok, msg) => { console.log(`${ok ? 'OK  ' : 'FAIL'} ${msg}`); if (
 
 try {
   let ws;
-  // O runner do CI às vezes leva mais de 10 s para subir o Chrome.
-  for (let i = 0; i < 150 && !ws; i++) {
+  // O runner do CI às vezes leva dezenas de segundos para subir o Chrome.
+  for (let i = 0; i < 300 && !ws; i++) {
     await sleep(200);
     try {
       const tabs = await (await fetch(`http://127.0.0.1:${DBG}/json`)).json();
@@ -34,7 +36,7 @@ try {
       if (page) ws = new WebSocket(page.webSocketDebuggerUrl);
     } catch { /* ainda subindo */ }
   }
-  if (!ws) throw new Error('Chrome não abriu a porta de depuração em 30 s');
+  if (!ws) throw new Error('Chrome não abriu a porta de depuração em 60 s');
   await new Promise(r => ws.addEventListener('open', r, { once: true }));
   let id = 0;
   const pending = new Map();
