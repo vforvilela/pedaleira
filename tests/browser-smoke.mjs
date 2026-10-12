@@ -25,7 +25,8 @@ const check = (ok, msg) => { console.log(`${ok ? 'OK  ' : 'FAIL'} ${msg}`); if (
 
 try {
   let ws;
-  for (let i = 0; i < 50 && !ws; i++) {
+  // O runner do CI às vezes leva mais de 10 s para subir o Chrome.
+  for (let i = 0; i < 150 && !ws; i++) {
     await sleep(200);
     try {
       const tabs = await (await fetch(`http://127.0.0.1:${DBG}/json`)).json();
@@ -33,6 +34,7 @@ try {
       if (page) ws = new WebSocket(page.webSocketDebuggerUrl);
     } catch { /* ainda subindo */ }
   }
+  if (!ws) throw new Error('Chrome não abriu a porta de depuração em 30 s');
   await new Promise(r => ws.addEventListener('open', r, { once: true }));
   let id = 0;
   const pending = new Map();
