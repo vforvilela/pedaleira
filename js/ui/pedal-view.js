@@ -32,15 +32,16 @@ function drawKnob(svg, c, x, y, r, ink, hit = Math.max(r + 6, 20)) {
   el('circle', { cx: x, cy: y, r, fill: 'url(#knobGrad)' }, g);
   const ptr = el('g', {}, g);
   el('line', { x1: x, y1: y - r * 0.2, x2: x, y2: y - r + 2, stroke: '#f5f5f5', 'stroke-width': 2.2, 'stroke-linecap': 'round' }, ptr);
-  const val = c.type === 'select' ? text(g, x, y + r + 11, '', { class: 'kval', fill: ink, 'font-size': 8 }) : null;
+  const val = c.type === 'select' || c.show ? text(g, x, y + r + 11, '', { class: 'kval', fill: ink, 'font-size': 8 }) : null;
   el('circle', { cx: x, cy: y, r: hit, fill: 'transparent' }, g); // área de toque maior que o botão
   return {
     g,
     render(v) {
       ptr.setAttribute('transform', `rotate(${knobAngle(c, v)} ${x} ${y})`);
       g.setAttribute('aria-valuenow', v);
-      g.setAttribute('aria-valuetext', c.type === 'select' ? c.options[v] : v.toFixed(1));
-      if (val) val.textContent = c.options[v];
+      const shown = c.type === 'select' ? c.options[v] : c.show ? c.show(v) : v.toFixed(1);
+      g.setAttribute('aria-valuetext', shown);
+      if (val) val.textContent = shown;
     },
   };
 }
@@ -433,7 +434,10 @@ function openKnobSheet(def, block, setters, focusId) {
     input.step = c.type === 'select' ? 1 : 0.1;
     input.value = block.params[c.id];
     input.dataset.param = c.id;
-    const show = () => { out.textContent = c.type === 'select' ? c.options[+input.value] : (+input.value).toFixed(1); };
+    const show = () => {
+      const v = +input.value;
+      out.textContent = c.type === 'select' ? c.options[v] : c.show ? c.show(v) : v.toFixed(1);
+    };
     show();
     input.oninput = () => { setters[c.id](+input.value); show(); };
     return label;

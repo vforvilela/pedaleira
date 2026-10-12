@@ -5,6 +5,7 @@ import { Looper } from './looper.js';
 import { LatencyProbe } from './latency.js';
 import { OctaveDown, Flanger, Envelope, PitchShifter } from './modulation.js';
 import { FuzzBias } from './fuzz.js';
+import { Metronome } from './metro.js';
 
 class DspProcessor extends AudioWorkletProcessor {
   constructor(make) {
@@ -89,6 +90,17 @@ registerProcessor('pitch', class extends DspProcessor {
 registerProcessor('fuzzbias', class extends DspProcessor {
   constructor() { super(() => new FuzzBias(sampleRate)); }
   configure({ drive }) { this.dsp.drive = drive; }
+});
+
+registerProcessor('metro', class extends DspProcessor {
+  constructor() { super(() => new Metronome(sampleRate)); }
+  configure(p) { this.dsp.set(p); }
+  // Gera o clique sem depender de entrada.
+  process(inputs, outputs) {
+    const out = outputs[0]?.[0];
+    if (out) this.dsp.process(null, out);
+    return true;
+  }
 });
 
 registerProcessor('limiter', class extends DspProcessor {

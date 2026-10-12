@@ -3,7 +3,7 @@
 Sua pedaleira de guitarra no navegador. Cada pedal é desenhado como o real e tem o som modelado nele.
 Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opção "Adicionar à tela inicial").
 
-**Pedais** (21, na ordem em que costumam ficar na pedaleira)
+**Pedais** (22, na ordem em que costumam ficar na pedaleira)
 
 | Pedal | Inspirado no | Som |
 |---|---|---|
@@ -27,6 +27,7 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
 | Volume | Ernie Ball VP Jr | Pedal de volume com curva de áudio e mínimo ajustável |
 | Eco 8 | Boss DD-8 | Delay, modos STD, ANLG, MOD e P.PONG (estéreo), com trails |
 | Salão | TC Electronic Hall of Fame 2 | Reverb estéreo por convolução, 5 salas, com trails |
+| Pulso | Boss DB-90 | Metrônomo: BPM com TAP, compasso com acento, volume. Clique no fone, fora dos efeitos |
 | Laço | TC Electronic Ditto | Looper de até 2 min: grava, toca, sobrepõe; 2 pisadas param |
 
 **Para tocar ao vivo**

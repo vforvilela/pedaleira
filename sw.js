@@ -1,12 +1,12 @@
 // Service worker: rede primeiro (assim você sempre recebe a versão nova), cache quando estiver offline.
-const CACHE = 'pedaleira-v22';
+const CACHE = 'pedaleira-v23';
 const SHELL = [
   './', 'index.html', 'css/app.css', 'fonts/archivo-latin.woff2', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png',
   'js/app.js', 'js/suggestions.js', 'js/core.js', 'js/board.js', 'js/power.js', 'js/presets.js', 'js/scenes.js', 'js/control.js', 'js/stage.js', 'js/store.js', 'js/midi.js', 'js/audio/engine.js', 'js/audio/reverb-ir.js', 'js/audio/pitch.js', 'js/audio/dynamics.js', 'js/audio/dsp-worklet.js', 'js/ui/pedal-view.js',
   'js/pedals/index.js', 'js/pedals/common.js', 'js/pedals/sol-drive.js', 'js/pedals/eco-8.js',
   'js/pedals/salao.js', 'js/pedals/amp.js', 'js/pedals/afinador.js',
   'js/pedals/silencio.js', 'js/pedals/aperto.js', 'js/pedals/marimbondo.js', 'js/pedals/coro.js', 'js/pedals/fase-90.js',
-  'js/pedals/ondas.js', 'js/pedals/ua.js', 'js/pedals/equalizador.js', 'js/pedals/turbo.js', 'js/pedals/volume.js', 'js/pedals/laco.js', 'js/pedals/oitava.js', 'js/pedals/flange.js', 'js/pedals/baleia.js', 'js/audio/looper.js', 'js/audio/latency.js', 'js/audio/modulation.js', 'js/audio/fuzz.js', 'js/audio/channel.js', 'js/factory.js', 'js/pedals/ratazana.js', 'js/pedals/abafa.js',
+  'js/pedals/ondas.js', 'js/pedals/ua.js', 'js/pedals/equalizador.js', 'js/pedals/turbo.js', 'js/pedals/volume.js', 'js/pedals/laco.js', 'js/pedals/oitava.js', 'js/pedals/flange.js', 'js/pedals/baleia.js', 'js/audio/looper.js', 'js/audio/latency.js', 'js/audio/modulation.js', 'js/audio/fuzz.js', 'js/audio/channel.js', 'js/factory.js', 'js/pedals/ratazana.js', 'js/pedals/abafa.js', 'js/pedals/pulso.js', 'js/audio/metro.js',
   'js/nam/nam-core.js', 'js/nam/nam-engine.js', 'js/nam/nam-worklet.js', 'js/nam/nam.wasm',
 ];
 

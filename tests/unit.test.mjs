@@ -287,3 +287,24 @@ test('canal da interface: escolhe o canal da palhetada, não decide com canais i
   assert.equal(pickChannel(0.3, 0.3), null, 'interface que duplica a entrada fica na mistura');
   assert.equal(pickChannel(0.3, 0.1), null, 'menos de 12 dB de diferença: não decide');
 });
+
+test('metrônomo: clique a cada tempo no BPM certo, acento no primeiro do compasso', async () => {
+  const { Metronome } = await import('../js/audio/metro.js');
+  const sr = 48000, m = new Metronome(sr);
+  m.set({ bpm: 120, beats: 3, level: 1, on: true });
+  const out = new Float32Array(sr * 2);
+  for (let i = 0; i < out.length; i += 128) m.process(null, out.subarray(i, i + 128));
+  // Inícios de clique: amostra com som depois de 10 ms de silêncio.
+  const starts = [];
+  for (let i = 0, quiet = 1e9; i < out.length; i++) {
+    if (Math.abs(out[i]) > 1e-4) { if (quiet > sr * 0.01) starts.push(i); quiet = 0; } else quiet++;
+  }
+  assert.deepEqual(starts.map(s => Math.round(s / 100)), [0, 240, 480, 720]);
+  // Cruzamentos por zero nos primeiros 5 ms: o acento (1760 Hz) tem mais que os outros (1100 Hz).
+  const zc = s => { let n = 0; for (let i = s + 1; i < s + 240; i++) if ((out[i - 1] < 0) !== (out[i] < 0)) n++; return n; };
+  assert.ok(zc(starts[0]) > zc(starts[1]) + 2 && zc(starts[3]) > zc(starts[1]) + 2, `acento: ${zc(starts[0])} vs ${zc(starts[1])}`);
+  m.set({ on: false });
+  const off = new Float32Array(sr);
+  m.process(null, off);
+  assert.ok(off.every(x => x === 0) || off.slice(1500).every(x => x === 0), 'desligado não clica');
+});
