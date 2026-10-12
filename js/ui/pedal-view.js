@@ -20,19 +20,20 @@ const SIZES = { compact: [140, 250], stomp: [140, 250], amp: [250, 160], treadle
 const knobAngle = (c, v) =>
   c.type === 'select' ? -120 + (240 * v) / Math.max(1, c.options.length - 1) : -135 + 27 * v;
 
-function drawKnob(svg, c, x, y, r, ink) {
+// hit: raio da área de toque (unidades do SVG ≈ px); no mínimo 20, o que dá ~44 px na tela.
+function drawKnob(svg, c, x, y, r, ink, hit = Math.max(r + 6, 20)) {
   const g = el('g', {
     class: 'knob', tabindex: 0, role: 'slider', 'aria-label': c.label, 'data-param': c.id,
     'aria-valuemin': 0, 'aria-valuemax': c.type === 'select' ? c.options.length - 1 : 10,
   }, svg);
-  text(g, x, y - r - 7, c.label, { class: 'klabel', fill: ink, 'font-size': r > 13 ? 8 : 6 });
+  text(g, x, y - r - 7, c.label, { class: 'klabel', fill: ink, 'font-size': r >= 13 ? 10 : 8.5 });
   el('circle', { cx: x, cy: y + 1.5, r: r + 2.5, fill: 'rgba(0,0,0,.35)' }, g);
   el('circle', { cx: x, cy: y, r: r + 2, fill: '#2a2a2a' }, g);
   el('circle', { cx: x, cy: y, r, fill: 'url(#knobGrad)' }, g);
   const ptr = el('g', {}, g);
   el('line', { x1: x, y1: y - r * 0.2, x2: x, y2: y - r + 2, stroke: '#f5f5f5', 'stroke-width': 2.2, 'stroke-linecap': 'round' }, ptr);
-  const val = c.type === 'select' ? text(g, x, y + r + 11, '', { class: 'kval', fill: ink, 'font-size': 7 }) : null;
-  el('circle', { cx: x, cy: y, r: r + 6, fill: 'transparent' }, g); // área de toque maior
+  const val = c.type === 'select' ? text(g, x, y + r + 11, '', { class: 'kval', fill: ink, 'font-size': 8 }) : null;
+  el('circle', { cx: x, cy: y, r: hit, fill: 'transparent' }, g); // área de toque maior que o botão
   return {
     g,
     render(v) {
@@ -113,6 +114,7 @@ function drawPedal(def) {
   const [W, H] = SIZES[look.style];
   const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, class: `pedal-svg ${look.style}`, role: 'group', 'aria-label': def.name });
   const knobs = {};
+  const footAttrs = { class: 'footswitch', role: 'button', tabindex: 0, 'aria-label': `${def.name}: ligar ou desligar` };
   let led, foot;
 
   if (look.style === 'amp') {
@@ -122,10 +124,11 @@ function drawPedal(def) {
     el('rect', { x: 12, y: 14, width: W - 24, height: 78, rx: 4, fill: 'url(#metalGrad)', opacity: 0.6 }, svg);
     const n = def.controls.length;
     def.controls.forEach((c, i) => {
-      knobs[c.id] = drawKnob(svg, c, 12 + ((W - 24) * (i + 0.5)) / n, 56, 13, look.ink);
+      knobs[c.id] = drawKnob(svg, c, 12 + ((W - 24) * (i + 0.5)) / n, 56, 13, look.ink, Math.min(20, (W - 24) / n / 2));
     });
     text(svg, 26, 128, def.name, { 'text-anchor': 'start', class: 'amp-logo', fill: '#e9e3d0', 'font-size': 24 });
-    foot = el('g', { class: 'footswitch', role: 'button', tabindex: 0, 'aria-label': 'Ligar ou desligar' }, svg);
+    foot = el('g', footAttrs, svg);
+    el('rect', { x: W - 80, y: 100, width: 74, height: 50, fill: 'transparent' }, foot);
     el('rect', { x: W - 70, y: 108, width: 52, height: 30, rx: 4, fill: '#111', stroke: '#333' }, foot);
     led = el('circle', { cx: W - 56, cy: 123, r: 6, class: 'led', stroke: '#000' }, foot);
     text(foot, W - 34, 127, 'ON', { fill: '#bbb', 'font-size': 9, 'font-weight': 700 });
@@ -137,10 +140,10 @@ function drawPedal(def) {
     el('rect', { x: 2, y: 2, width: W - 4, height: H - 4, rx: 12, fill: 'url(#metalGrad)', opacity: 0.35 }, svg);
     const [main, ...rest] = def.controls;
     knobs[main.id] = drawTreadle(svg, main, W, look);
-    rest.forEach((c, i) => { knobs[c.id] = drawKnob(svg, c, 26 + i * 30, 214, 8, look.ink); });
+    rest.forEach((c, i) => { knobs[c.id] = drawKnob(svg, c, 26 + i * 30, 214, 8, look.ink, 15); });
     led = el('circle', { cx: W - 48, cy: 214, r: 3.6, class: 'led', stroke: 'rgba(0,0,0,.5)' }, svg);
     text(svg, W / 2, 262, look.subtitle, { fill: look.ink, 'font-size': 8, 'letter-spacing': 1.5 });
-    foot = el('g', { class: 'footswitch', role: 'button', tabindex: 0, 'aria-label': 'Ligar ou desligar' }, svg);
+    foot = el('g', footAttrs, svg);
     el('circle', { cx: W - 26, cy: 228, r: 18, fill: 'transparent' }, foot);
     el('circle', { cx: W - 26, cy: 228, r: 12, fill: '#6d7075', stroke: '#3b3d40', 'stroke-width': 2 }, foot);
     el('circle', { cx: W - 26, cy: 228, r: 8, fill: 'url(#footGrad)', stroke: '#55585c' }, foot);
@@ -167,16 +170,18 @@ function drawPedal(def) {
     const r = n > 3 ? 12 : 14.5;
     // Margem nas bordas para os rótulos não encostarem no canto do pedal.
     const pad = n > 3 ? 8 : 4;
+    // Área de toque até a metade da distância para o vizinho, senão um botão rouba o toque do outro.
+    const hit = Math.max(r + 4, Math.min(20, (W - 2 * pad) / n / 2));
     def.controls.forEach((c, i) => {
-      knobs[c.id] = drawKnob(svg, c, pad + ((W - 2 * pad) * (i + 0.5)) / n, 46, c.type === 'select' ? r - 2 : r, look.ink);
+      knobs[c.id] = drawKnob(svg, c, pad + ((W - 2 * pad) * (i + 0.5)) / n, 46, c.type === 'select' ? r - 2 : r, look.ink, hit);
     });
   }
 
   if (look.style === 'compact') {
     // Pedal articulado estilo Boss: a placa inteira é o footswitch.
     led = el('circle', { cx: W / 2, cy: 12, r: 3.6, class: 'led', stroke: 'rgba(0,0,0,.5)' }, svg);
-    if (!display) text(svg, W / 2 + 14, 14, 'CHECK', { 'font-size': 5, fill: look.ink, opacity: 0.7 });
-    foot = el('g', { class: 'footswitch', role: 'button', tabindex: 0, 'aria-label': 'Ligar ou desligar' }, svg);
+    if (!display) text(svg, W / 2 + 14, 14, 'CHECK', { 'font-size': 5, fill: look.ink, opacity: 0.7, 'aria-hidden': 'true' });
+    foot = el('g', footAttrs, svg);
     el('rect', { x: 7, y: 92, width: W - 14, height: 151, rx: 6, fill: 'rgba(0,0,0,.07)', stroke: 'rgba(0,0,0,.25)' }, foot);
     el('rect', { x: 18, y: 100, width: W - 36, height: 70, rx: 4, fill: '#1c1c1c' }, foot);
     for (let y = 106; y < 166; y += 6) el('line', { x1: 22, x2: W - 22, y1: y, y2: y, stroke: '#2c2c2c', 'stroke-width': 2 }, foot);
@@ -188,7 +193,7 @@ function drawPedal(def) {
     led = el('circle', { cx: W / 2, cy: 104, r: 4, class: 'led', stroke: 'rgba(0,0,0,.5)' }, svg);
     text(svg, W / 2, 146, def.name, { class: 'pedal-name script', fill: look.accent, 'font-size': 26 });
     text(svg, W / 2, 162, look.subtitle.toUpperCase(), { fill: look.ink, 'font-size': 8, 'letter-spacing': 2 });
-    foot = el('g', { class: 'footswitch', role: 'button', tabindex: 0, 'aria-label': 'Ligar ou desligar' }, svg);
+    foot = el('g', footAttrs, svg);
     el('circle', { cx: W / 2, cy: 210, r: 24, fill: 'transparent' }, foot);
     el('circle', { cx: W / 2, cy: 210, r: 17, fill: '#6d7075', stroke: '#3b3d40', 'stroke-width': 2 }, foot);
     el('circle', { cx: W / 2, cy: 210, r: 12, fill: 'url(#footGrad)', stroke: '#55585c' }, foot);
@@ -198,7 +203,8 @@ function drawPedal(def) {
 
 // Visor do afinador: 11 LEDs (centro verde = afinado) e o nome da nota.
 function drawTunerDisplay(svg, W) {
-  const g = el('g', { class: 'tuner-display', 'aria-live': 'polite' }, svg);
+  // Sem aria-live: a leitura muda a cada quadro e inundaria o leitor de tela. O rótulo fica atualizado.
+  const g = el('g', { class: 'tuner-display', role: 'img', 'aria-label': 'Afinador desligado' }, svg);
   el('rect', { x: 14, y: 19, width: W - 28, height: 37, rx: 3, fill: '#0a0d0b', stroke: 'rgba(0,0,0,.6)' }, g);
   const segs = [];
   const sw = 7, gap = 2.2, total = 11 * sw + 10 * gap, x0 = W / 2 - total / 2;
@@ -216,6 +222,8 @@ function drawTunerDisplay(svg, W) {
       note.textContent = active ? (r ? `${r.note}${r.octave}` : '–') : '';
       note.classList.toggle('ok', !!inTune);
       cents.textContent = active && r ? `${r.cents > 0 ? '+' : ''}${Math.round(r.cents)}¢` : '';
+      const label = !active ? 'Afinador desligado' : r ? `Afinador: ${note.textContent} ${cents.textContent}` : 'Afinador: sem nota';
+      if (g.getAttribute('aria-label') !== label) g.setAttribute('aria-label', label);
     },
   };
 }

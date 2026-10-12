@@ -35,7 +35,8 @@ export function runMeter() {
     if (!engine.running) return;
     const peak = engine.peak(buf);
     const db = 20 * Math.log10(peak || 1e-6);
-    bar.style.width = `${Math.max(0, Math.min(100, ((db + 60) / 60) * 100))}%`;
+    // scaleX em vez de width: não recalcula o layout a cada quadro.
+    bar.style.transform = `scaleX(${Math.max(0, Math.min(1, (db + 60) / 60))})`;
     meter.classList.toggle('clip', peak > 0.98);
     meterRaf = requestAnimationFrame(tick);
   };
@@ -85,7 +86,7 @@ export async function stop() {
   await engine.stop();
   for (const l of live.values()) { l.audio = null; l.view?.setState(''); }
   runTuners();
-  $('meter').firstElementChild.style.width = '0';
+  $('meter').firstElementChild.style.transform = 'scaleX(0)';
   $('latency').textContent = '—';
   status('Desligado.');
   $('measure').hidden = true;

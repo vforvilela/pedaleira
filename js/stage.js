@@ -91,7 +91,8 @@ export function setStageTuner(r, active) {
   t.classList.toggle('ok', !!inTune);
   t.querySelector('b').textContent = r ? `${r.note}${r.octave}` : '–';
   t.querySelector('small').textContent = r ? `${r.cents > 0 ? '+' : ''}${Math.round(r.cents)}¢` : '';
-  t.querySelector('i').style.left = r ? `${50 + Math.max(-50, Math.min(50, r.cents))}%` : '50%';
+  // A agulha ocupa a barra inteira: deslocar c% dela põe o ponteiro a c% do centro (±50¢ = ponta).
+  t.querySelector('i').style.transform = `translateX(${r ? Math.max(-50, Math.min(50, r.cents)) : 0}%)`;
 }
 
 $('stageBtn').onclick = enterStage;

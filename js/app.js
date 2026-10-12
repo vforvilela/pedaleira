@@ -13,7 +13,15 @@ import './stage.js';
 
 // ---------- Biblioteca ----------
 
-$('library').replaceChildren(...PEDALS.map(def => {
+// Agrupada pela posição na cadeia, na ordem em que o sinal passa.
+const GROUPS = [
+  ['Afinar e filtrar', ['tuner', 'filter']],
+  ['Dinâmica', ['comp', 'gate', 'volume']],
+  ['Drive e amp', ['drive', 'amp', 'eq']],
+  ['Modulação', ['mod']],
+  ['Delay, reverb e looper', ['time', 'looper']],
+];
+const addButton = def => {
   const b = document.createElement('button');
   b.className = 'add';
   b.innerHTML = `<span class="swatch" style="background:${def.look.body}"></span><span><b></b><small></small></span>`;
@@ -21,6 +29,17 @@ $('library').replaceChildren(...PEDALS.map(def => {
   b.querySelector('small').textContent = def.inspiredBy ? `inspirado no ${def.inspiredBy}` : 'amp + caixa, aceita captura NAM';
   b.onclick = () => addBlock(def.type);
   return b;
+};
+$('library').replaceChildren(...GROUPS.map(([title, cats]) => {
+  const group = document.createElement('section');
+  group.className = 'lib-group';
+  const h = document.createElement('h3');
+  h.textContent = title;
+  const grid = document.createElement('div');
+  grid.className = 'lib-grid';
+  grid.append(...PEDALS.filter(d => cats.includes(d.category)).map(addButton));
+  group.append(h, grid);
+  return group;
 }));
 
 // ---------- Início ----------

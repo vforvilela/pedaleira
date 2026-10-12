@@ -6,7 +6,7 @@ export default {
   name: 'Ondas',
   inspiredBy: 'Boss TR-2',
   category: 'mod',
-  look: { style: 'compact', body: '#2e8b57', ink: '#0b2416', strip: '#151515', stripInk: '#7fd3a2', subtitle: 'Tremolo', led: '#ff3b30' },
+  look: { style: 'compact', body: '#36a065', ink: '#0b2416', strip: '#151515', stripInk: '#7fd3a2', subtitle: 'Tremolo', led: '#ff3b30' },
   controls: [
     { id: 'wave', label: 'WAVE', default: 3 },
     { id: 'rate', label: 'RATE', default: 5 },

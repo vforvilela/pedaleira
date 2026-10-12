@@ -28,7 +28,7 @@ jobs:
       - name: Teste no Chrome headless
         run: node tests/browser-smoke.mjs /tmp/shots
       # Só o app: sem testes, sem o código-fonte do wasm.
-      - run: mkdir _site && cp -r index.html manifest.webmanifest sw.js css js icons _site/
+      - run: mkdir _site && cp -r index.html manifest.webmanifest sw.js css js icons fonts _site/
       - uses: actions/upload-pages-artifact@v4
 
   deploy:

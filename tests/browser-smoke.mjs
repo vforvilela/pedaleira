@@ -110,7 +110,9 @@ try {
 
   // Arrasta o Sol Drive pelo ⠿ até depois do Amp.
   const pos = await evaluate(`(() => {
-    const g = document.querySelectorAll('.pedal')[1].querySelector('.grip').getBoundingClientRect();
+    const grip = document.querySelectorAll('.pedal')[1].querySelector('.grip');
+    document.querySelector('.board-wrap').scrollLeft = 0;
+    const g = grip.getBoundingClientRect();
     const a = document.querySelectorAll('.pedal')[2].getBoundingClientRect();
     return { x: g.x + g.width / 2, y: g.y + g.height / 2, to: a.right - 10 };
   })()`);
@@ -222,6 +224,8 @@ try {
   await shot('3-celular.png', 390, 844, true);
 
   // Arrastar com o dedo (toque) pelo ⠿, na tela de celular.
+  // Tela alta: o toque precisa cair dentro dela, e a emulação não rola a página.
+  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 1200, deviceScaleFactor: 2, mobile: true });
   await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 });
   await evaluate(`document.querySelector('.board-wrap').scrollLeft = 0`);
   const before = await evaluate(`__pedaleira.state.chain.map(b => b.type).join(',')`);

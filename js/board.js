@@ -1,5 +1,5 @@
 // Pedaleira na tela: desenha a cadeia, adiciona, remove, arrasta e carrega arquivos nos pedais.
-import { $, applyStoredFiles, createAudio, engine, live, loadIntoAudio, newBlock, reconnect, releaseFile, save, state, status, tapTempo, toast, hideToast, toggleBlock } from './core.js';
+import { $, applyStoredFiles, changeListeners, createAudio, engine, live, loadIntoAudio, newBlock, reconnect, releaseFile, save, state, status, tapTempo, toast, hideToast, toggleBlock } from './core.js';
 import { ORDER, byType } from './pedals/index.js';
 import { putFile } from './store.js';
 import { pedalView } from './ui/pedal-view.js';
@@ -56,7 +56,29 @@ export function renderBoard() {
   nodes.push(cable(), jack('Saída', '🎧'));
   board.replaceChildren(...nodes);
   $('empty').hidden = state.chain.length > 0;
+  renderChainMap();
 }
+
+// Mapa da cadeia (só no celular, onde cabe pouco mais de um pedal na tela): a ordem inteira numa linha;
+// tocar num nome leva até o pedal.
+function renderChainMap() {
+  $('chainMap').replaceChildren(...state.chain.map(b => {
+    const def = byType[b.type];
+    const chip = document.createElement('button');
+    chip.className = 'map-chip';
+    chip.dataset.uid = b.uid;
+    chip.style.setProperty('--body', def.look.body);
+    chip.textContent = def.name;
+    chip.onclick = () => live.get(b.uid)?.view.root.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    return chip;
+  }));
+  updateChainMap();
+}
+function updateChainMap() {
+  for (const chip of $('chainMap').children)
+    chip.classList.toggle('on', !!state.chain.find(b => b.uid === chip.dataset.uid)?.on);
+}
+changeListeners.push(updateChainMap);
 
 export function addBlock(type) {
   const block = newBlock(type);

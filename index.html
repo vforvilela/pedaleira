@@ -9,6 +9,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="preload" href="fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -66,6 +67,7 @@
     <button class="scene-btn" aria-pressed="false" title="Cena D (atalho: D)">D</button>
     <button id="sceneRec" aria-pressed="false" title="Guarda numa cena os pedais ligados e a posição dos botões">Gravar cena</button>
   </div>
+  <nav id="chainMap" class="chain-map" aria-label="Ordem dos pedais"></nav>
   <section class="board-wrap" aria-label="Pedaleira">
     <div id="board" class="board"></div>
     <p id="empty" class="empty" hidden>Pedaleira vazia. Adicione um pedal abaixo.</p>
