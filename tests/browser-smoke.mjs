@@ -377,6 +377,19 @@ try {
     document.getElementById('setlistClose').click();
     return { open, moved, renamed, gone, back };
   })()`);
+  // Modo palco com wah: fader grande muda a posição do pedal.
+  const expr = await evaluate(`(async () => {
+    const p = __pedaleira;
+    [...document.querySelectorAll('#library .add')].find(b => b.querySelector('b').textContent === 'Uá').click();
+    document.getElementById('stageBtn').click();
+    const input = document.querySelector('#stageExpr input');
+    input.value = 8.5; input.dispatchEvent(new Event('input'));
+    const ua = p.state.chain.find(b => b.type === 'ua');
+    const ok = !!input && ua.params.pedal === 8.5;
+    document.getElementById('stageExit').click();
+    return ok;
+  })()`);
+  check(expr, 'modo palco: fader grande controla o wah');
   check(Object.values(setl).every(Boolean), `setlist reordena, renomeia, apaga e desfaz (${JSON.stringify(setl)})`);
 
   // Link: copia a pedaleira atual e, aberto noutro lugar, vira um preset igual.

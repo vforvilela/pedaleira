@@ -1,6 +1,6 @@
 // Modo palco: tela cheia com o preset em letras grandes, as cenas A–D, um botão grande por pedal
 // e a nota do afinador. Pensado para o celular no chão ou no pedestal, no escuro.
-import { $, changeListeners, live, SCENE_NAMES, state, toggleBlock } from './core.js';
+import { $, changeListeners, live, SCENE_NAMES, setParam, state, toggleBlock } from './core.js';
 import { byType } from './pedals/index.js';
 import { stepPreset, isDirty } from './presets.js';
 import { recallScene, sceneActive, sceneUsed } from './scenes.js';
@@ -32,6 +32,7 @@ export function renderStage() {
     b.classList.toggle('used', sceneUsed(i));
     b.setAttribute('aria-pressed', sceneActive(i));
   });
+  renderExpression();
   const pedals = $('stagePedals');
   pedals.replaceChildren(...state.chain.map((b, i) => {
     const def = byType[b.type];
@@ -48,6 +49,37 @@ export function renderStage() {
     btn.onclick = () => toggleBlock(b);
     return btn;
   }));
+}
+
+// Wah e volume: um fader grande por pedal de expressão. Só recria quando muda o conjunto de pedais,
+// senão a re-renderização a cada movimento interromperia o arraste.
+let exprKey = '';
+function renderExpression() {
+  const blocks = state.chain.filter(b => byType[b.type].look.style === 'treadle');
+  const key = blocks.map(b => b.uid).join();
+  const box = $('stageExpr');
+  if (key !== exprKey) {
+    exprKey = key;
+    box.replaceChildren(...blocks.map(b => {
+      const def = byType[b.type], c = def.controls[0];
+      const label = document.createElement('label');
+      label.className = 'stage-expr';
+      label.dataset.uid = b.uid;
+      label.innerHTML = '<input type="range" min="0" max="10" step="0.1"><span></span>';
+      label.querySelector('span').textContent = def.name;
+      const input = label.querySelector('input');
+      input.setAttribute('aria-label', `${def.name}: ${c.label}`);
+      input.oninput = () => setParam(b, c.id, +input.value);
+      return label;
+    }));
+  }
+  box.hidden = !blocks.length;
+  for (const label of box.children) {
+    const b = state.chain.find(x => x.uid === label.dataset.uid);
+    const input = label.querySelector('input');
+    if (b && document.activeElement !== input) input.value = b.params[byType[b.type].controls[0].id];
+    label.classList.toggle('off', !b?.on);
+  }
 }
 
 // Chamado pelos afinadores: com algum ligado, a nota aparece grande no meio da tela.

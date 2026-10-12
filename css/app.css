@@ -190,6 +190,12 @@ body.stage { overflow: hidden; }
 .stage-scene { font-size: clamp(36px, 9vw, 80px); font-weight: 800; color: var(--muted); border-width: 2px; border-radius: 14px; }
 .stage-scene.used { color: var(--text); }
 .stage-scene[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #1a1205; }
+.stage-bottom { display: flex; gap: 10px; align-items: stretch; }
+.stage-bottom .stage-pedals { flex: 1; align-content: end; }
+.stage-exprs { display: flex; gap: 8px; }
+.stage-expr { display: grid; justify-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px 6px; font-size: 13px; color: var(--muted); }
+.stage-expr.off { opacity: .5; }
+.stage-expr input { writing-mode: vertical-lr; direction: rtl; width: 44px; height: 150px; accent-color: var(--accent); }
 .stage-pedals { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
 .stage-pedal {
   display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; min-height: 64px; text-align: left;
