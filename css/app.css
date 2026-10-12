@@ -55,6 +55,9 @@ h1 .ember {
 .io { display: flex; gap: 8px; min-width: 0; }
 .io select { flex: 1; min-width: 0; max-width: 340px; }
 .io #channel { flex: 0 0 auto; }
+.io #device { min-width: 170px; }
+/* Em tela média, entrada + canal + botões não cabem ao lado dos níveis: os níveis descem uma linha. */
+@media (max-width: 1440px) { .top .levels { grid-column: 1 / -1; } }
 .levels { display: flex; gap: 14px; align-items: center; font-size: 13px; color: var(--muted); }
 .meter { width: 90px; height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; border: 1px solid var(--line); }
 .meter div { height: 100%; background: var(--ok); transform: scaleX(0); transform-origin: left; transition: transform 60ms linear; }

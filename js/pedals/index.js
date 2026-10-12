@@ -4,6 +4,8 @@ import aperto from './aperto.js';
 import turbo from './turbo.js';
 import solDrive from './sol-drive.js';
 import marimbondo from './marimbondo.js';
+import ratazana from './ratazana.js';
+import abafa from './abafa.js';
 import silencio from './silencio.js';
 import amp from './amp.js';
 import equalizador from './equalizador.js';
@@ -19,7 +21,7 @@ import flange from './flange.js';
 import baleia from './baleia.js';
 
 // Na ordem em que costumam ficar na pedaleira (é também a ordem da lista "Adicionar pedal").
-export const PEDALS = [afinador, ua, baleia, oitava, aperto, turbo, solDrive, marimbondo, silencio, amp, equalizador, coro, flange, fase90, ondas, volume, eco8, salao, laco];
+export const PEDALS = [afinador, ua, baleia, oitava, aperto, turbo, solDrive, ratazana, marimbondo, abafa, silencio, amp, equalizador, coro, flange, fase90, ondas, volume, eco8, salao, laco];
 export const byType = Object.fromEntries(PEDALS.map(p => [p.type, p]));
 
 export const DEFAULT_CHAIN = ['afinador', 'sol-drive', 'amp', 'eco-8', 'salao'];

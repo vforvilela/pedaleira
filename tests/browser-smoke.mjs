@@ -211,7 +211,7 @@ try {
   check(await evaluate(`__pedaleira.state.preset`) === 'Música B', 'tecla ] vai para o preset B');
 
   // MIDI: aprende CC 64 para ligar/desligar o primeiro pedal, depois usa; Program Change N escolhe o preset
-  // N+1 da setlist (os de fábrica vêm antes: o preset A é o 6º, PC 5).
+  // N+1 da setlist (os de fábrica vêm antes do preset A).
   const midiRes = await evaluate(`(() => {
     const { state, midi } = __pedaleira, b = state.chain[1], before = b.on;
     midi.learn({ kind: 'toggle', uid: b.uid });
@@ -851,7 +851,7 @@ try {
     return levels;
   })()`);
   const lv = Object.values(fac);
-  check(lv.length === 5 && Math.min(...lv) > -30 && Math.max(...lv) - Math.min(...lv) <= 6,
+  check(lv.length === 7 && Math.min(...lv) > -30 && Math.max(...lv) - Math.min(...lv) <= 6,
     `presets de fábrica tocam com volume parecido (dB RMS: ${JSON.stringify(fac)})`);
 
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);

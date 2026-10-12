@@ -3,7 +3,7 @@
 Sua pedaleira de guitarra no navegador. Cada pedal é desenhado como o real e tem o som modelado nele.
 Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opção "Adicionar à tela inicial").
 
-**Pedais** (19, na ordem em que costumam ficar na pedaleira)
+**Pedais** (21, na ordem em que costumam ficar na pedaleira)
 
 | Pedal | Inspirado no | Som |
 |---|---|---|
@@ -14,7 +14,9 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
 | Aperto | Boss CS-3 | Compressor sem atraso, LEVEL, TONE, ATTACK, SUSTAIN |
 | Turbo | Xotic EP Booster | Boost até +20 dB, BRIGHT |
 | Sol Drive | Boss SD-1 | Circuito Web Audio, ou captura NAM (botão NAM) |
+| Ratazana | ProCo RAT | Distorção: amp-op com ganho alto, diodos para o terra, FILTER que escurece |
 | Marimbondo | Dunlop Fuzz Face | Fuzz de clipagem assimétrica. Limpa quando você baixa o volume da guitarra, como o original |
+| Abafa | Electro-Harmonix Big Muff Pi | Fuzz de sustentação: dois estágios de clipagem, TONE com buraco nos médios |
 | Silêncio | Boss NS-2 | Noise gate com histerese, THRES e DECAY |
 | Amp | — | 2 estágios de pré, BASS/MID/TREBLE, power amp; ou captura NAM. Caixa 1x12, 4x12, IR `.wav` ou nenhuma |
 | Equalizador | Boss GE-7 | 7 faixas de ±15 dB e volume, em faders |
@@ -30,7 +32,7 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
 **Para tocar ao vivo**
 
 - **Presets de fábrica** para começar: Limpo com chorus, Crunch (cena A base, B solo com boost e delay), Solo com
-  delay, Fuzz anos 60 e Ambiente. Todos com o amp interno e volumes parecidos. Quem já usava o app ganha os que não tem.
+  delay, Fuzz anos 60, Distorção anos 80, Parede de fuzz e Ambiente. Todos com o amp interno e volumes parecidos. Quem já usava o app ganha os que não tem.
 
 - **Presets por música:** escreva o nome, clique em Salvar. ◀ ▶ (ou `[` `]`) trocam de preset.
   Mudou algo e não salvou? O preset ganha `*` e a mudança fica guardada como rascunho: trocar de preset e voltar

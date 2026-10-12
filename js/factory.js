@@ -2,7 +2,7 @@
 // interno (nada para baixar). Quem já usava ganha os que ainda não tem, uma vez por versão desta lista.
 import { SCENES, newBlock } from './core.js';
 
-export const FACTORY_VERSION = 1;
+export const FACTORY_VERSION = 2;
 
 // [tipo, parâmetros, ligado? (null: como o pedal vem), cenas] — cenas: { A: on/off, B: on/off, ... } (letras ausentes: fora da cena).
 const P = (type, params = {}, on = null, scenes = null) => ({ type, params, on, scenes });
@@ -40,6 +40,21 @@ const SPEC = [
     P('amp', { gain: 3.5, bass: 5, mid: 5, treble: 6, volume: 5 }),
     P('ondas', { wave: 3, rate: 5, depth: 5 }, false),
     P('salao', { room: 3, decay: 5, level: 4 }),
+  ] },
+  { name: 'Distorção anos 80', chain: [
+    P('afinador'),
+    P('ratazana', { dist: 6, filter: 4, volume: 5 }),
+    P('silencio', { thres: 4, decay: 3 }),
+    P('amp', { gain: 4, bass: 5.5, mid: 6, treble: 5.5, volume: 5 }),
+    P('eco-8', { level: 3, feedback: 3, time: 6.6, mode: 1 }, false),
+    P('salao', { room: 0, decay: 4, level: 3 }),
+  ] },
+  { name: 'Parede de fuzz', chain: [
+    P('afinador'),
+    P('abafa', { sustain: 7, tone: 4.5, volume: 5 }),
+    P('amp', { gain: 3.5, bass: 5.5, mid: 5, treble: 5.5, volume: 5 }),
+    P('eco-8', { level: 3.5, feedback: 4, time: 6.9, mode: 1 }),
+    P('salao', { room: 1, decay: 6, level: 4 }),
   ] },
   { name: 'Ambiente', chain: [
     P('afinador'),
