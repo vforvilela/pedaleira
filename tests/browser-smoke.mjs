@@ -240,6 +240,29 @@ try {
   const after = await evaluate(`__pedaleira.state.chain.map(b => b.type).join(',')`);
   const exp = before.split(','); exp.unshift(exp.splice(1, 1)[0]);
   check(after === exp.join(','), `arrastar com o dedo muda a ordem (${before} → ${after})`);
+  // Toque sem arrastar num botão do pedal: abre os controles em tamanho de dedo (≥ 44 px).
+  const kp = await evaluate(`(() => {
+    const k = document.querySelector('.pedal .knob[data-param="level"]');
+    const r = k.getBoundingClientRect();
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+  })()`);
+  await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: kp.x, y: kp.y }] });
+  await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await sleep(200);
+  const sheet = await evaluate(`(() => {
+    const d = document.querySelector('.knob-sheet');
+    if (!d?.open) return null;
+    const rows = [...d.querySelectorAll('.knob-row input')];
+    const minH = Math.min(...rows.map(i => i.getBoundingClientRect().height));
+    const block = __pedaleira.state.chain.find(b => b.uid === document.querySelector('.pedal .knob[data-param="level"]').closest('.pedal').dataset.uid);
+    const input = d.querySelector('input[data-param="level"]');
+    input.value = 7.5; input.dispatchEvent(new Event('input'));
+    const ok = block.params.level === 7.5;
+    d.querySelector('button').click();
+    return { rows: rows.length, minH, ok, closed: !d.open };
+  })()`);
+  check(sheet && sheet.minH >= 44 && sheet.ok && sheet.closed,
+    `toque num botão abre os controles em tamanho de dedo (${JSON.stringify(sheet)})`);
 
   // Pedais novos entram na posição de costume: gate e compressor antes dos drives, fuzz junto dos drives.
   await send('Emulation.setTouchEmulationEnabled', { enabled: false });

@@ -314,6 +314,7 @@ export function pedalView(block, cb) {
   foot.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
 
   // Botões: arrastar na vertical (ou horizontal), roda do mouse, setas, duplo clique volta ao padrão.
+  const setters = {};
   for (const c of def.controls) {
     const k = knobs[c.id], g = k.g;
     const max = c.type === 'select' ? c.options.length - 1 : 10;
@@ -325,6 +326,7 @@ export function pedalView(block, cb) {
       k.render(v);
       cb.change(c.id, v);
     };
+    setters[c.id] = setV;
     let drag = null;
     g.addEventListener('pointerdown', e => {
       e.preventDefault();
@@ -340,8 +342,10 @@ export function pedalView(block, cb) {
       const per = c.type === 'select' ? 28 : c.type === 'slider' ? 6 : 16; // pixels por unidade
       setV(drag.v + d / per);
     });
-    const end = () => {
-      if (drag && !drag.moved && c.type === 'select') setV((block.params[c.id] + 1) % (max + 1));
+    const end = e => {
+      // Toque sem arrastar: abre os controles do pedal em tamanho de dedo (o botão desenhado é pequeno demais).
+      if (drag && !drag.moved && e.pointerType === 'touch') openKnobSheet(def, block, setters, c.id);
+      else if (drag && !drag.moved && c.type === 'select') setV((block.params[c.id] + 1) % (max + 1));
       drag = null;
       root.classList.remove('turning');
     };
@@ -376,4 +380,44 @@ export function pedalView(block, cb) {
       caption.querySelector('.inspired').textContent = label || (def.inspiredBy ? `inspirado no ${def.inspiredBy}` : '');
     },
   };
+}
+
+// Painel de controles em tamanho de dedo: um slider de 44 px por botão do pedal.
+// No celular, os botões de um pedal de 4 controles não cabem em 44 px sem se sobrepor; este é o equivalente.
+let sheet = null;
+function openKnobSheet(def, block, setters, focusId) {
+  if (!sheet) {
+    sheet = document.createElement('dialog');
+    sheet.className = 'knob-sheet';
+    sheet.setAttribute('aria-labelledby', 'knobSheetTitle');
+    sheet.innerHTML = '<div class="knob-sheet-head"><h2 id="knobSheetTitle"></h2><button class="primary">Pronto</button></div><div class="knob-sheet-rows"></div>';
+    sheet.querySelector('button').onclick = () => sheet.close();
+    // Toque fora do painel (no fundo escurecido) fecha. pointerdown, não click: o click sintético do próprio
+    // toque que abriu o painel cairia no fundo e fecharia na hora.
+    sheet.addEventListener('pointerdown', e => {
+      const r = sheet.getBoundingClientRect();
+      if (e.target === sheet && (e.clientY < r.top || e.clientX < r.left || e.clientX > r.right)) sheet.close();
+    });
+    document.body.append(sheet);
+  }
+  sheet.querySelector('h2').textContent = def.name;
+  const rows = def.controls.map(c => {
+    const max = c.type === 'select' ? c.options.length - 1 : 10;
+    const label = document.createElement('label');
+    label.className = 'knob-row';
+    label.innerHTML = '<span></span><input type="range" min="0"><output></output>';
+    label.querySelector('span').textContent = c.label;
+    const input = label.querySelector('input'), out = label.querySelector('output');
+    input.max = max;
+    input.step = c.type === 'select' ? 1 : 0.1;
+    input.value = block.params[c.id];
+    input.dataset.param = c.id;
+    const show = () => { out.textContent = c.type === 'select' ? c.options[+input.value] : (+input.value).toFixed(1); };
+    show();
+    input.oninput = () => { setters[c.id](+input.value); show(); };
+    return label;
+  });
+  sheet.querySelector('.knob-sheet-rows').replaceChildren(...rows);
+  if (!sheet.open) sheet.showModal();
+  sheet.querySelector(`input[data-param="${focusId}"]`)?.focus();
 }

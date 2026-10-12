@@ -310,3 +310,18 @@ h2 { font-size: 20px; font-weight: 700; font-stretch: 112%; letter-spacing: -.01
   .add { padding: 8px 10px; gap: 8px; }
   .add small { display: none; }
 }
+
+/* ---------- Controles do pedal em tamanho de dedo (toque num botão) ---------- */
+.knob-sheet {
+  margin: auto auto 0; width: 100%; max-width: 560px; border: 1px solid var(--line); border-bottom: 0;
+  border-radius: 16px 16px 0 0; background: var(--panel); color: var(--text);
+  padding: 14px 16px calc(16px + env(safe-area-inset-bottom));
+}
+.knob-sheet::backdrop { background: rgba(0,0,0,.55); }
+.knob-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.knob-sheet h2 { margin: 0; }
+.knob-sheet-rows { display: grid; gap: 4px; }
+.knob-row { display: grid; grid-template-columns: 72px 1fr 64px; align-items: center; gap: 10px; min-height: var(--touch); }
+.knob-row span { font-weight: 700; font-stretch: 75%; letter-spacing: .03em; color: var(--muted); }
+.knob-row input { width: 100%; height: var(--touch); accent-color: var(--accent); }
+.knob-row output { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
