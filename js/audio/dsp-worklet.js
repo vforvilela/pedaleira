@@ -2,6 +2,7 @@
 // Parâmetros chegam pela porta: { ...valores } para o gate e o compressor.
 import { Gate, Compressor, Limiter } from './dynamics.js';
 import { Looper } from './looper.js';
+import { LatencyProbe } from './latency.js';
 
 class DspProcessor extends AudioWorkletProcessor {
   constructor(make) {
@@ -45,6 +46,20 @@ registerProcessor('looper', class extends DspProcessor {
       this.port.postMessage({ state: this.last, seconds: this.dsp.len / sampleRate });
     }
     return true;
+  }
+});
+
+// Medição de latência: devolve { ms, hits } quando termina.
+registerProcessor('latency', class extends DspProcessor {
+  constructor() { super(() => new LatencyProbe(sampleRate)); this.sentResult = false; }
+  process(inputs, outputs) {
+    const out = outputs[0]?.[0];
+    if (out) this.dsp.process(inputs[0]?.[0], out);
+    if (this.dsp.done && !this.sentResult) {
+      this.sentResult = true;
+      this.port.postMessage({ ms: this.dsp.resultMs(), hits: this.dsp.delays.length, clicks: this.dsp.clicks });
+    }
+    return !this.sentResult;
   }
 });
 

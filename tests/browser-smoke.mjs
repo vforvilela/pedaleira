@@ -394,6 +394,25 @@ try {
   })()`);
   check(link.got === 1 && link.same && link.hash === '' && link.len < 4000, `link compartilhado recria a pedaleira (${JSON.stringify(link)})`);
 
+  // Medição de latência: num laço simulado de 10 ms dentro do navegador, acha ~10 ms.
+  const rt = await evaluate(`(async () => {
+    const ctx = new OfflineAudioContext(1, 48000 * 4, 48000);
+    await ctx.audioWorklet.addModule('js/audio/dsp-worklet.js');
+    const probe = new AudioWorkletNode(ctx, 'latency', { outputChannelCount: [1] });
+    const cable = ctx.createDelay(1); cable.delayTime.value = 0.010;
+    probe.connect(cable).connect(probe);
+    probe.connect(ctx.destination); // sem isso o navegador não processa o nó
+    let result = null;
+    probe.port.onmessage = e => { result = e.data; };
+    await ctx.startRendering();
+    await new Promise(r => setTimeout(r, 100));
+    // E no áudio ao vivo, sem cabo (microfone falso): termina e avisa que o clique não voltou.
+    const live = await __pedaleira.engine.measureRoundTrip();
+    return { result, live };
+  })()`);
+  check(rt.result?.hits >= 5 && rt.result.ms > 9.5 && rt.result.ms < 13.5 && rt.live && 'ms' in rt.live,
+    `medição de latência acha o laço de 10 ms (${JSON.stringify(rt)})`);
+
   // Latência: o limitador novo não atrasa nada; o DynamicsCompressorNode do navegador atrasa.
   const lat = await evaluate(`(async () => {
     const delayOf = async build => {

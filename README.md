@@ -43,6 +43,8 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
   Trocar de cena não marca o preset com `*`.
 - **Desfazer**: removeu um pedal sem querer? Clique em Desfazer (ou `Ctrl+Z`) em até 10 s.
 - **Ganho de entrada** para acertar o nível da interface (o medidor não deve ficar vermelho).
+- **Medir latência real**: com o áudio ligado, botão Medir ao lado da latência. Ligue um cabo da saída da
+  interface na entrada; o app toca 6 cliques e mede quanto tempo eles levam para voltar.
 - **Tap tempo** no Eco 8 (botão TAP ou tecla `T`), de 20 ms a 2 s.
 - **Teclado como footswitch:** `1`–`9` ligam e desligam o pedal naquela posição (o número aparece em cima de cada pedal).
 - **Footswitch Bluetooth de virar página** (funciona no iPhone): setas e PageUp/PageDown trocam de preset.

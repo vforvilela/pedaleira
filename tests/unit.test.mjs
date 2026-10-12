@@ -161,3 +161,32 @@ test('todo arquivo do app está no cache offline do service worker', () => {
   const missing = walk('js/').filter(f => /\.(js|wasm)$/.test(f) && !sw.includes(`'${f}'`));
   assert.deepEqual(missing, []);
 });
+
+// ---------- Latência ----------
+import { LatencyProbe } from '../js/audio/latency.js';
+
+test('medição de latência acha o atraso de um cabo simulado (com ruído)', () => {
+  const sr = 48000, delay = 517; // ~10,8 ms
+  const p = new LatencyProbe(sr);
+  const line = new Float32Array(sr * 6); // o que sai, para devolver atrasado
+  let s = 3;
+  const out = new Float32Array(128), inp = new Float32Array(128);
+  for (let f = 0; !p.done && f < line.length - 128; f += 128) {
+    for (let i = 0; i < 128; i++) {
+      const noise = ((s = (s * 16807) % 2147483647) / 2147483647 - 0.5) * 0.004;
+      inp[i] = (f + i >= delay ? 0.3 * line[f + i - delay] : 0) + noise;
+    }
+    p.process(inp, out);
+    line.set(out, f);
+  }
+  assert.ok(p.done);
+  assert.equal(p.delays.length, 6);
+  assert.ok(Math.abs(p.resultMs() - (delay / sr) * 1000) < 0.1, `${p.resultMs()} ms`);
+});
+
+test('sem cabo, a medição avisa que o clique não voltou', () => {
+  const p = new LatencyProbe(48000);
+  const out = new Float32Array(128);
+  for (let f = 0; !p.done && f < 48000 * 6; f += 128) p.process(new Float32Array(128), out);
+  assert.equal(p.resultMs(), null);
+});

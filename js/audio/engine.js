@@ -109,6 +109,27 @@ export class Engine {
     return p;
   }
 
+  // Latência real de ida e volta (precisa de cabo da saída para a entrada). A pedaleira fica muda enquanto mede.
+  async measureRoundTrip() {
+    const ctx = this.ctx;
+    const probe = new AudioWorkletNode(ctx, 'latency', {
+      numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1], channelCount: 1, channelCountMode: 'explicit',
+    });
+    this.master.disconnect();
+    this.input.connect(probe);
+    probe.connect(ctx.destination);
+    try {
+      return await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('a medição não terminou')), 8000);
+        probe.port.onmessage = ({ data }) => { clearTimeout(timer); resolve(data); };
+      });
+    } finally {
+      this.input.disconnect(probe);
+      probe.disconnect();
+      this.master.connect(this.limiter);
+    }
+  }
+
   latencyMs() {
     const c = this.ctx;
     return ((c.baseLatency || 0) + (c.outputLatency || 0)) * 1000;

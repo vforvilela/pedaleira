@@ -70,6 +70,7 @@ export async function start() {
   showLat();
   latencyTimer = setInterval(showLat, 1000);
   if (!$('status').classList.contains('err')) status(`Tocando: ${track.label}`);
+  $('measure').hidden = false;
   $('power').textContent = 'Desligar';
   $('power').setAttribute('aria-pressed', 'true');
   save();
@@ -87,6 +88,7 @@ export async function stop() {
   $('meter').firstElementChild.style.width = '0';
   $('latency').textContent = '—';
   status('Desligado.');
+  $('measure').hidden = true;
   $('power').textContent = 'Ligar';
   $('power').setAttribute('aria-pressed', 'false');
 }
@@ -113,6 +115,39 @@ $('device').onchange = async () => {
   await stop();
   $('power').click();
 };
+
+// Medir a latência real: o usuário liga um cabo da saída na entrada; a pedaleira fica muda por ~3 s.
+$('measure').onclick = async () => {
+  if (!engine.running) return;
+  if ($('measure').dataset.ready !== '1') {
+    $('measure').dataset.ready = '1';
+    $('measure').textContent = 'Começar';
+    status('Ligue um cabo da SAÍDA da interface na ENTRADA (ou encoste o fone no microfone), abaixe o volume do fone e clique em Começar.');
+    return;
+  }
+  $('measure').dataset.ready = '';
+  $('measure').textContent = 'Medindo…';
+  $('measure').disabled = true;
+  try {
+    const r = await engine.measureRoundTrip();
+    if (r.ms === null) status('O clique não voltou pela entrada. Confira o cabo da saída para a entrada e o ganho de entrada.', true);
+    else {
+      state.measuredMs = Math.round(r.ms * 10) / 10;
+      save();
+      status(`Latência real, de ida e volta: ${state.measuredMs} ms (${r.hits} de ${r.clicks} cliques). ${state.measuredMs <= 12 ? 'Ótima para tocar.' : state.measuredMs <= 20 ? 'Boa para tocar.' : 'Alta: dá para sentir o atraso. Tente outra interface ou fone com fio.'}`, state.measuredMs > 20);
+      showMeasured();
+    }
+  } catch (e) {
+    status(`Não consegui medir: ${e.message}`, true);
+  } finally {
+    $('measure').textContent = 'Medir';
+    $('measure').disabled = false;
+  }
+};
+const showMeasured = () => {
+  if (state.measuredMs) $('measure').title = `Última medição: ${state.measuredMs} ms de ida e volta. Clique para medir de novo.`;
+};
+showMeasured();
 
 $('inGain').value = state.inputGain;
 const showInput = () => { $('inGainV').textContent = `${state.inputGain > 0 ? '+' : ''}${state.inputGain} dB`; };
