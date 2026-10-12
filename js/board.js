@@ -1,5 +1,5 @@
 // Pedaleira na tela: desenha a cadeia, adiciona, remove, arrasta e carrega arquivos nos pedais.
-import { $, applyStoredFiles, createAudio, engine, live, loadIntoAudio, newBlock, reconnect, releaseFile, save, state, status, tapTempo, toggleBlock } from './core.js';
+import { $, applyStoredFiles, createAudio, engine, live, loadIntoAudio, newBlock, reconnect, releaseFile, save, state, status, tapTempo, toast, hideToast, toggleBlock } from './core.js';
 import { ORDER, byType } from './pedals/index.js';
 import { putFile } from './store.js';
 import { pedalView } from './ui/pedal-view.js';
@@ -113,20 +113,6 @@ export async function undoRemove() {
   status(`${byType[block.type].name} voltou para a pedaleira.`);
   if (engine.running) await applyStoredFiles(block);
 }
-
-// Aviso no rodapé com um botão de ação.
-let toastTimer = 0;
-function toast(msg, action, fn) {
-  const t = $('toast');
-  t.querySelector('span').textContent = msg;
-  const b = t.querySelector('button');
-  b.textContent = action;
-  b.onclick = fn;
-  t.hidden = false;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(hideToast, 10000);
-}
-function hideToast() { $('toast').hidden = true; }
 
 export function moveBlock(id, to) {
   const from = state.chain.findIndex(b => b.uid === id);

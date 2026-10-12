@@ -3,7 +3,7 @@ import { loadWasmBytes } from './audio/engine.js';
 import { addBlock, renderBoard } from './board.js';
 import { midi } from './control.js';
 import { $, engine, live, state } from './core.js';
-import { buildExport, importPresets, renderPresets } from './presets.js';
+import { buildExport, importPresets, openSharedLink, renderPresets, shareLink } from './presets.js';
 import { renderScenes } from './scenes.js';
 import { getFile } from './store.js';
 import { installDefs } from './ui/pedal-view.js';
@@ -30,7 +30,9 @@ renderBoard();
 renderPresets();
 renderScenes();
 // Acesso para depuração pelo console e para os testes no navegador.
-window.__pedaleira = { engine, get state() { return state; }, live, midi, buildExport, importPresets, getFile };
+window.__pedaleira = { engine, get state() { return state; }, live, midi, buildExport, importPresets, getFile, shareLink, openSharedLink };
+openSharedLink();
+addEventListener('hashchange', openSharedLink);
 loadWasmBytes();
 if ('serviceWorker' in navigator && location.protocol !== 'file:')
   navigator.serviceWorker.register('sw.js').catch(() => {});

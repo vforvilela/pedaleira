@@ -1,6 +1,6 @@
 // Presets, rascunhos, exportar e importar.
 import { ensureView, fileInput, renderBoard } from './board.js';
-import { $, changeListeners, sameScene, createAudio, engine, live, loadIntoAudio, normalizeBlock, normalizeChain, reconnect, releaseFile, save, SCENE_NAMES, snapshot, state, status } from './core.js';
+import { $, changeListeners, hideToast, sameScene, toast, createAudio, engine, live, loadIntoAudio, normalizeBlock, normalizeChain, reconnect, releaseFile, save, SCENE_NAMES, snapshot, state, status } from './core.js';
 import { getFile, putFile } from './store.js';
 
 // ---------- Presets ----------
@@ -80,16 +80,169 @@ export function savePreset() {
 }
 
 export function deletePreset() {
-  const i = state.presets.findIndex(p => p.name === state.preset);
-  if (i < 0) return;
+  deletePresetAt(state.presets.findIndex(p => p.name === state.preset));
+}
+
+// Apaga com 10 s para desfazer; os arquivos do preset só saem do armazenamento depois.
+let deleted = null;
+export function deletePresetAt(i) {
+  if (i < 0 || i >= state.presets.length) return;
+  finishDelete();
   const [p] = state.presets.splice(i, 1);
+  const wasCurrent = state.preset === p.name;
+  deleted = { p, i, draft: state.drafts[p.name], wasCurrent, timer: setTimeout(finishDelete, 10000) };
   delete state.drafts[p.name];
-  for (const b of p.chain) for (const f of Object.values(b.files)) releaseFile(f.key);
-  status(`Preset "${p.name}" apagado. A pedaleira continua como está.`);
-  state.preset = null;
+  if (wasCurrent) state.preset = null;
   save();
   renderPresets();
+  renderSetlist();
+  status(`Preset "${p.name}" apagado. A pedaleira continua como está.`);
+  toast(`Preset "${p.name}" apagado.`, 'Desfazer', undoDelete);
 }
+
+function finishDelete() {
+  if (!deleted) return;
+  clearTimeout(deleted.timer);
+  for (const b of deleted.p.chain) for (const f of Object.values(b.files)) releaseFile(f.key);
+  deleted = null;
+}
+
+function undoDelete() {
+  if (!deleted) return;
+  const { p, i, draft, wasCurrent, timer } = deleted;
+  clearTimeout(timer);
+  deleted = null;
+  hideToast();
+  let name = p.name;
+  for (let n = 2; presetByName(name); n++) name = `${p.name} (${n})`;
+  state.presets.splice(Math.min(i, state.presets.length), 0, { ...p, name });
+  if (draft) state.drafts[name] = draft;
+  if (wasCurrent && state.preset === null) state.preset = name;
+  save();
+  renderPresets();
+  renderSetlist();
+  status(`Preset "${name}" de volta.`);
+}
+
+// ---------- Setlist: ordem, nomes e apagar ----------
+// A ordem é a do ◀ ▶ e a do Program Change MIDI (PC 0 = primeiro).
+
+export function renderSetlist() {
+  const list = $('setlistItems');
+  if (!list) return;
+  list.replaceChildren(...state.presets.map((p, i) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="pc"></span><input type="text" maxlength="40" aria-label="Nome do preset">
+      <button class="up" aria-label="Subir">▲</button><button class="down" aria-label="Descer">▼</button><button class="del" aria-label="Apagar">✕</button>`;
+    li.querySelector('.pc').textContent = String(i + 1);
+    li.querySelector('.pc').title = `Program Change ${i}`;
+    const input = li.querySelector('input');
+    input.value = p.name;
+    input.onchange = () => renamePreset(p, input.value.trim()) || (input.value = p.name);
+    li.querySelector('.up').disabled = i === 0;
+    li.querySelector('.down').disabled = i === state.presets.length - 1;
+    li.querySelector('.up').onclick = () => movePreset(i, -1);
+    li.querySelector('.down').onclick = () => movePreset(i, 1);
+    li.querySelector('.del').onclick = () => deletePresetAt(i);
+    return li;
+  }));
+  $('setlistEmpty').hidden = state.presets.length > 0;
+}
+
+function renamePreset(p, name) {
+  if (!name || name === p.name) return false;
+  if (presetByName(name)) { status(`Já existe um preset "${name}".`, true); return false; }
+  if (state.drafts[p.name]) { state.drafts[name] = state.drafts[p.name]; delete state.drafts[p.name]; }
+  if (state.preset === p.name) state.preset = name;
+  p.name = name;
+  save();
+  renderPresets();
+  renderSetlist();
+  return true;
+}
+
+function movePreset(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= state.presets.length) return;
+  [state.presets[i], state.presets[j]] = [state.presets[j], state.presets[i]];
+  save();
+  renderPresets();
+  renderSetlist();
+  $('setlistItems').children[j]?.querySelector(dir < 0 ? '.up' : '.down')?.focus();
+}
+
+$('presetOrganize').onclick = () => { renderSetlist(); $('setlist').showModal(); };
+$('setlistClose').onclick = () => $('setlist').close();
+
+// ---------- Compartilhar por link ----------
+// O link leva a pedaleira atual (pedais, botões e cenas). Capturas .nam e IRs não cabem num link:
+// para levá-las, use Exportar.
+
+const b64url = bytes => toBase64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64url = s => fromBase64(s.replace(/-/g, '+').replace(/_/g, '/'));
+
+async function pipe(bytes, stream) {
+  return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer());
+}
+
+// Copia sem travar a página: o navigator.clipboard pode ficar pendente ou ser negado.
+function copyText(text) {
+  const viaApi = !!navigator.clipboard?.writeText;
+  navigator.clipboard?.writeText(text).catch(() => {});
+  const t = document.createElement('textarea');
+  t.value = text;
+  t.style.cssText = 'position:fixed;opacity:0';
+  document.body.append(t);
+  t.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch { /* sem suporte */ }
+  t.remove();
+  return ok || viaApi;
+}
+
+export async function shareLink() {
+  const name = state.preset || 'Pedaleira compartilhada';
+  const chain = snapshot(state.chain).map(b => ({ ...b, files: {} }));
+  const json = new TextEncoder().encode(JSON.stringify({ name, chain }));
+  const packed = typeof CompressionStream === 'function' ? `1.${b64url(await pipe(json, new CompressionStream('deflate-raw')))}` : `0.${b64url(json)}`;
+  const url = `${location.origin}${location.pathname}#p=${packed}`;
+  const noFiles = state.chain.some(b => Object.keys(b.files).length) ? ' Capturas .nam e IRs não vão no link (use Exportar).' : '';
+  if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+    try { await navigator.share({ title: name, url }); return url; } catch { /* cancelado: copia */ }
+  }
+  status(copyText(url) ? `Link de "${name}" copiado.${noFiles}` : `Não consegui copiar. Link: ${url}`);
+  return url;
+}
+
+// Abre um link compartilhado: entra como preset novo e já fica selecionado.
+export async function openSharedLink() {
+  const m = location.hash.match(/^#p=([01])\.([\w-]+)$/);
+  if (!m) return false;
+  history.replaceState(null, '', location.pathname + location.search);
+  try {
+    let bytes = new Uint8Array(unb64url(m[2]));
+    if (m[1] === '1') bytes = await pipe(bytes, new DecompressionStream('deflate-raw'));
+    const doc = JSON.parse(new TextDecoder().decode(bytes));
+    const chain = normalizeChain(doc.chain || []);
+    if (!chain.length) throw new Error('vazio');
+    const base = String(doc.name || 'Compartilhado').slice(0, 34);
+    const same = state.presets.find(p => sameChain(p.chain, chain));
+    let name = same?.name || base;
+    if (!same) {
+      for (let n = 2; presetByName(name); n++) name = `${base} (${n})`;
+      state.presets.push({ name, chain });
+    }
+    save();
+    await applyPreset(name);
+    status(`Preset "${name}" recebido por link.`);
+    return true;
+  } catch {
+    status('O link de preset está incompleto ou corrompido.', true);
+    return false;
+  }
+}
+
+$('presetShare').onclick = () => shareLink().catch(e => status(`Não consegui criar o link: ${e.message}`, true));
 
 // Volta o preset atual para a versão salva, descartando o rascunho.
 export async function revertPreset() {

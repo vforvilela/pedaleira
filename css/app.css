@@ -198,6 +198,15 @@ body.stage { overflow: hidden; }
   .stage-scenes { grid-template-columns: repeat(2, 1fr); }
 }
 
+.setlist { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 14px; padding: 16px; width: min(480px, calc(100vw - 32px)); }
+.setlist::backdrop { background: rgba(0,0,0,.6); }
+.setlist h2 { margin: 0 0 4px; color: var(--text); font-size: 16px; text-transform: none; letter-spacing: 0; }
+.setlist ol { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 6px; max-height: 60vh; overflow: auto; }
+.setlist li { display: grid; grid-template-columns: 28px 1fr auto auto auto; gap: 6px; align-items: center; }
+.setlist .pc { color: var(--muted); font: 700 13px ui-monospace, monospace; text-align: right; }
+.setlist input { min-width: 0; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.setlist li button { padding: 6px 10px; }
+.setlist li button:disabled { opacity: .3; cursor: default; }
 .toast {
   position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 20;
   display: flex; gap: 12px; align-items: center; padding: 10px 12px 10px 16px; border-radius: 10px;

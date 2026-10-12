@@ -359,6 +359,41 @@ try {
   })()`);
   check(Object.values(ampLv).every(db => db > -40 && db < -3), `amp interno com nível de saída usável no limpo e no saturado (dB RMS por GAIN: ${JSON.stringify(ampLv)})`);
 
+  // Setlist: subir, renomear, apagar e desfazer.
+  const setl = await evaluate(`(async () => {
+    const p = __pedaleira, names = () => p.state.presets.map(x => x.name);
+    document.getElementById('presetOrganize').click();
+    const open = document.getElementById('setlist').open;
+    const before = names();
+    document.querySelectorAll('#setlistItems li')[1].querySelector('.up').click();
+    const moved = names()[0] === before[1] && names()[1] === before[0];
+    const inp = document.querySelectorAll('#setlistItems li')[0].querySelector('input');
+    inp.value = 'Abertura'; inp.dispatchEvent(new Event('change'));
+    const renamed = names()[0] === 'Abertura';
+    document.querySelectorAll('#setlistItems li')[0].querySelector('.del').click();
+    const gone = !names().includes('Abertura');
+    document.querySelector('#toast button').click();
+    const back = names()[0] === 'Abertura';
+    document.getElementById('setlistClose').click();
+    return { open, moved, renamed, gone, back };
+  })()`);
+  check(Object.values(setl).every(Boolean), `setlist reordena, renomeia, apaga e desfaz (${JSON.stringify(setl)})`);
+
+  // Link: copia a pedaleira atual e, aberto noutro lugar, vira um preset igual.
+  const link = await evaluate(`(async () => {
+    const p = __pedaleira;
+    // Sem a janela de compartilhar do sistema (no headless ela nunca responde): testa o caminho de copiar.
+    Object.defineProperty(navigator, 'share', { value: undefined, configurable: true });
+    const url = await p.shareLink();
+    const chain = JSON.stringify(p.state.chain.map(b => [b.type, b.on, b.params]));
+    const n = p.state.presets.length;
+    p.state.presets.splice(0); // simula outro aparelho
+    location.hash = url.slice(url.indexOf('#'));
+    await new Promise(r => setTimeout(r, 800));
+    return { len: url.length, got: p.state.presets.length, same: JSON.stringify(p.state.chain.map(b => [b.type, b.on, b.params])) === chain, hash: location.hash };
+  })()`);
+  check(link.got === 1 && link.same && link.hash === '' && link.len < 4000, `link compartilhado recria a pedaleira (${JSON.stringify(link)})`);
+
   // Latência: o limitador novo não atrasa nada; o DynamicsCompressorNode do navegador atrasa.
   const lat = await evaluate(`(async () => {
     const delayOf = async build => {
@@ -386,8 +421,8 @@ try {
   const all = await evaluate(`__pedaleira.state.chain.map(b => b.type)`);
   check(['ua', 'turbo', 'equalizador', 'coro', 'fase-90', 'ondas', 'volume', 'laco'].every(t => all.includes(t)) && all[all.length - 1] === 'laco',
     `os 8 pedais novos entram, looper no fim (${all.join(',')})`);
-  // Liga tudo que estiver desligado, menos o afinador (que cortaria o som em MUTE).
-  await evaluate(`__pedaleira.state.chain.forEach((b, i) => { if (!b.on && b.type !== 'afinador') document.querySelectorAll('.pedal')[i].querySelector('.footswitch').dispatchEvent(new MouseEvent('click', { bubbles: true })); })`);
+  // Liga todos os pedais, e desliga o afinador (que cortaria o som em MUTE).
+  await evaluate(`__pedaleira.state.chain.forEach((b, i) => { if (b.on === (b.type === 'afinador')) document.querySelectorAll('.pedal')[i].querySelector('.footswitch').dispatchEvent(new MouseEvent('click', { bubbles: true })); })`);
   const p4 = await peakOver(1500);
   check(p4 > 0.0005, `sinal na saída com todos os pedais ligados (pico ${p4.toFixed(4)})`);
 
