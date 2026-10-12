@@ -160,15 +160,18 @@ export function makeDraggable(block, view) {
     if (!drag || e.pointerId !== drag.id) return;
     const dx = e.clientX - drag.x;
     if (!drag.started && Math.abs(dx) < 6) return;
-    drag.started = true;
-    root.classList.add('dragging');
-    root.style.transform = `translateX(${dx}px)`;
-    const others = [...board.querySelectorAll('.pedal')].filter(p => p !== root);
-    let to = others.length;
-    for (let i = 0; i < others.length; i++) {
-      const r = others[i].getBoundingClientRect();
-      if (e.clientX < r.left + r.width / 2) { to = i; break; }
+    if (!drag.started) {
+      drag.started = true;
+      root.classList.add('dragging');
+      // Os outros pedais não se movem durante o arraste: mede uma vez, não a cada movimento (evita reflow).
+      drag.others = [...board.querySelectorAll('.pedal')].filter(p => p !== root);
+      drag.mids = drag.others.map(p => { const r = p.getBoundingClientRect(); return r.left + r.width / 2 + board.parentElement.scrollLeft; });
     }
+    root.style.transform = `translateX(${dx}px)`;
+    const { others, mids } = drag;
+    const x = e.clientX + board.parentElement.scrollLeft;
+    let to = mids.findIndex(m => x < m);
+    if (to < 0) to = others.length;
     others.forEach((p, i) => p.classList.toggle('drop-before', i === to));
     board.classList.toggle('drop-end', to === others.length);
     drag.to = to;
@@ -188,6 +191,18 @@ export function makeDraggable(block, view) {
   };
 
   grip.addEventListener('pointerdown', e => { e.preventDefault(); begin(e); });
+  // Teclado: setas no ⠿ trocam o pedal de lugar com o vizinho.
+  grip.addEventListener('keydown', e => {
+    const dir = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[e.key];
+    if (!dir) return;
+    e.preventDefault();
+    const from = state.chain.findIndex(b => b.uid === block.uid);
+    const to = from + dir;
+    if (to < 0 || to >= state.chain.length) return;
+    moveBlock(block.uid, dir > 0 ? to + 1 : to);
+    grip.focus();
+    status(`${byType[block.type].name} agora é o ${to + 1}º da cadeia.`);
+  });
   root.addEventListener('pointerdown', e => {
     if (e.pointerType !== 'mouse' || e.button !== 0) return;
     if (e.target.closest('.knob, .footswitch, button')) return;

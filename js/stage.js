@@ -7,10 +7,13 @@ import { recallScene, sceneActive, sceneUsed } from './scenes.js';
 
 const stage = $('stage');
 const isOn = () => document.body.classList.contains('stage');
+// O palco cobre a tela: o resto da página sai do Tab e do leitor de tela enquanto ele está aberto.
+const behind = () => document.querySelectorAll('body > header, body > main');
 
 export function enterStage() {
   document.body.classList.add('stage');
   stage.hidden = false;
+  behind().forEach(e => { e.inert = true; });
   renderStage();
   document.documentElement.requestFullscreen?.().catch(() => {});
   $('stageExit').focus();
@@ -19,6 +22,7 @@ export function enterStage() {
 export function exitStage() {
   document.body.classList.remove('stage');
   stage.hidden = true;
+  behind().forEach(e => { e.inert = false; });
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   $('stageBtn').focus();
 }

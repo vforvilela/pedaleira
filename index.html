@@ -80,13 +80,13 @@
   <section class="lib-wrap">
     <h2>Adicionar pedal</h2>
     <div id="library" class="library"></div>
-    <p class="hint">O sinal vai da esquerda para a direita. <b>Arraste pelo ⠿ para mudar a ordem</b> (ex.: delay antes do drive). Gire os botões arrastando para cima ou para baixo; dois cliques voltam ao padrão. Clique no pedal para ligar e desligar.</p>
-    <p class="hint">Atalhos: <kbd>1</kbd>–<kbd>9</kbd> ligam e desligam o pedal naquela posição, <kbd>A</kbd>–<kbd>D</kbd> chamam as cenas, <kbd>T</kbd> é o tap tempo do delay, <kbd>[</kbd> <kbd>]</kbd>, as setas e PageUp/PageDown trocam de preset.</p>
-    <p class="hint">Footswitch: um controlador MIDI faz tudo isso pelo botão MIDI (no Chrome e no Edge). No celular, inclusive no iPhone, um footswitch Bluetooth de virar página troca de preset sem configurar. Não toque com fone Bluetooth: o atraso passa de 150 ms.</p>
+    <p class="hint">O sinal vai da esquerda para a direita: a ordem muda o som (ex.: delay antes do drive). Dois cliques num botão voltam ao padrão.</p>
+    <p class="hint">Atalhos: <kbd>1</kbd>–<kbd>9</kbd> ligam e desligam o pedal naquela posição, <kbd>A</kbd>–<kbd>D</kbd> chamam as cenas, <kbd>T</kbd> é o tap tempo do delay, <kbd>[</kbd> <kbd>]</kbd>, as setas e PageUp/PageDown trocam de preset. Com o foco no ⠿, as setas mudam o pedal de lugar.</p>
+    <p class="hint">Footswitch: um controlador MIDI faz tudo isso pelo botão MIDI, em ⋯ Mais (no Chrome e no Edge). No celular, inclusive no iPhone, um footswitch Bluetooth de virar página troca de preset sem configurar.</p>
   </section>
 </main>
 
-<div id="stage" class="stage-view" hidden>
+<div id="stage" class="stage-view" role="dialog" aria-modal="true" aria-label="Modo palco" hidden>
   <div class="stage-top">
     <button id="stagePrev" class="stage-nav" aria-label="Preset anterior">◀</button>
     <div class="stage-title"><b id="stagePreset"></b><small id="stageCount"></small></div>

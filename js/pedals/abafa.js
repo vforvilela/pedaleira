@@ -10,7 +10,7 @@ export default {
   name: 'Abafa',
   inspiredBy: 'Electro-Harmonix Big Muff Pi',
   category: 'drive',
-  look: { style: 'stomp', body: '#d8d6cf', ink: '#b3261e', accent: '#1c1c1c', subtitle: 'Sustain Fuzz', led: '#ff3b30' },
+  look: { style: 'stomp', body: '#d8d6cf', ink: '#a8231c', accent: '#1c1c1c', subtitle: 'Sustain Fuzz', led: '#ff3b30' },
   controls: [
     { id: 'volume', label: 'VOLUME', default: 5 },
     { id: 'tone', label: 'TONE', default: 5 },

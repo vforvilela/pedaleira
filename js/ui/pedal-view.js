@@ -32,7 +32,7 @@ function drawKnob(svg, c, x, y, r, ink, hit = Math.max(r + 6, 20)) {
   el('circle', { cx: x, cy: y, r, fill: 'url(#knobGrad)' }, g);
   const ptr = el('g', {}, g);
   el('line', { x1: x, y1: y - r * 0.2, x2: x, y2: y - r + 2, stroke: '#f5f5f5', 'stroke-width': 2.2, 'stroke-linecap': 'round' }, ptr);
-  const val = c.type === 'select' || c.show ? text(g, x, y + r + 11, '', { class: 'kval', fill: ink, 'font-size': 8 }) : null;
+  const val = c.type === 'select' || c.show ? text(g, x, y + r + 11, '', { class: 'kval', fill: ink, 'font-size': 9 }) : null;
   el('circle', { cx: x, cy: y, r: hit, fill: 'transparent' }, g); // área de toque maior que o botão
   return {
     g,
@@ -56,7 +56,7 @@ function drawSlider(svg, c, x, y0, y1, ink) {
   el('rect', { x: x - 1.5, y: y0, width: 3, height: y1 - y0, rx: 1.5, fill: '#111' }, g);
   if (c.bipolar) el('line', { x1: x - 5, x2: x + 5, y1: (y0 + y1) / 2, y2: (y0 + y1) / 2, stroke: ink, 'stroke-width': 0.6, opacity: 0.6 }, g);
   const cap = el('rect', { x: x - 5, y: 0, width: 10, height: 6, rx: 1, fill: '#e8e8e8', stroke: '#333', 'stroke-width': 0.6 }, g);
-  text(g, x, y1 + 10, c.label, { class: 'klabel', fill: ink, 'font-size': 5.2 });
+  text(g, x, y1 + 11, c.label, { class: 'klabel', fill: ink, 'font-size': 7 });
   return {
     g,
     render(v) {
@@ -263,8 +263,8 @@ export function pedalView(block, cb) {
   tools.className = 'tools';
   const grip = document.createElement('button');
   grip.className = 'grip';
-  grip.title = 'Arrastar para mudar a ordem';
-  grip.setAttribute('aria-label', 'Arrastar para mudar a ordem');
+  grip.title = 'Arrastar para mudar a ordem (no teclado: setas)';
+  grip.setAttribute('aria-label', `Mudar ${def.name} de lugar: arraste ou use as setas`);
   grip.textContent = '⠿';
   tools.append(grip);
   for (const [kind, f] of Object.entries(def.files || {})) {
@@ -374,6 +374,10 @@ export function pedalView(block, cb) {
       const step = c.type === 'select' ? 1 : e.shiftKey ? 1 : 0.1;
       if (e.key === 'ArrowUp' || e.key === 'ArrowRight') setV(block.params[c.id] + step);
       else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') setV(block.params[c.id] - step);
+      else if (e.key === 'PageUp') setV(block.params[c.id] + 1);
+      else if (e.key === 'PageDown') setV(block.params[c.id] - 1);
+      else if (e.key === 'Home') setV(0);
+      else if (e.key === 'End') setV(max);
       else return;
       e.preventDefault();
     });

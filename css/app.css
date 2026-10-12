@@ -3,6 +3,10 @@
   font-family: Archivo; src: url(../fonts/archivo-latin.woff2) format('woff2');
   font-weight: 100 900; font-stretch: 62% 125%; font-display: swap;
 }
+/* Damion (SIL OFL 1.1, ver fonts/OFL-Damion.txt): letreiro manuscrito dos pedais, igual em qualquer sistema. */
+@font-face {
+  font-family: Damion; src: url(../fonts/damion-latin.woff2) format('woff2'); font-display: swap;
+}
 /* Escuro de propósito: palco e quarto com pouca luz. */
 :root {
   --bg: #141518; --panel: #1d1f23; --line: #2e3238; --text: #ece9e4; --muted: #9aa1a9;
@@ -14,6 +18,7 @@
   --led-blue: #3aa0ff; --led-amp: #ff5a36; --led-green-off: #2a4a33;
   /* Visor do afinador */
   --seg-off: #2a0f0d; --seg-mid-off: #0e2a14; --tuner-red: #ff4a3a; --tuner-dim: #c9d2cc; --tuner-zone: #3a3f45;
+  --font-script: Damion, "Brush Script MT", cursive;
   --font: Archivo, system-ui, -apple-system, "Segoe UI", sans-serif;
   --touch: 44px;
   color-scheme: dark;
@@ -78,7 +83,7 @@ button.small { padding: 3px 8px; font-size: 12px; border-radius: 6px; }
 #midi[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 #record[aria-pressed="true"] { border-color: var(--bad); color: var(--bad); font-variant-numeric: tabular-nums; }
 body.midi-learn .footswitch, body.midi-learn .tap-btn, body.midi-learn .knob,
-body.midi-learn #presetPrev, body.midi-learn #presetNext { outline: 2px dashed rgba(240,162,59,.7); outline-offset: 2px; cursor: crosshair; }
+body.midi-learn #presetPrev, body.midi-learn #presetNext { outline: 2px dashed color-mix(in oklch, var(--accent) 70%, transparent); outline-offset: 2px; cursor: crosshair; }
 body.midi-learn .learn-target { outline: 3px solid var(--accent) !important; }
 kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; color: var(--text); }
 .status { grid-column: 1 / -1; margin: 0; font-size: 13px; color: var(--muted); }
@@ -90,11 +95,10 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
   #presetPrev, #presetNext { min-width: var(--touch); }
   .master input { height: var(--touch); }
 }
-.more-btn { display: none; }
+.presets:not(.show-more) .more-item { display: none; }
+#presetSave { border-color: color-mix(in oklch, var(--accent) 45%, var(--line)); font-weight: 600; }
 @media (max-width: 760px) {
   .top { grid-template-columns: 1fr; position: static; padding: 10px 12px; gap: 8px; }
-  .more-btn { display: inline-block; }
-  .presets:not(.show-more) .more-item { display: none; }
   .presets input { order: 5; flex-basis: 100%; max-width: none; }
   .scenes { padding: 0 12px 8px; gap: 6px; flex-wrap: nowrap; }
   .scenes-label { display: none; }
@@ -119,7 +123,7 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
 .scene-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .scenes.recording .scene-btn { border-style: dashed; border-color: var(--bad); }
 #sceneRec[aria-pressed="true"] { border-color: var(--bad); color: var(--bad); }
-body.midi-learn .scene-btn { outline: 2px dashed rgba(240,162,59,.7); outline-offset: 2px; cursor: crosshair; }
+body.midi-learn .scene-btn { outline: 2px dashed color-mix(in oklch, var(--accent) 70%, transparent); outline-offset: 2px; cursor: crosshair; }
 .lat.high b { color: var(--bad); }
 
 /* ---------- Pedaleira ---------- */
@@ -171,9 +175,9 @@ main { padding: 16px 0 32px; }
 .led.lit { fill: var(--led-red); filter: drop-shadow(0 0 4px var(--led-red)); }
 .stomp .led.lit { fill: var(--led-blue); filter: drop-shadow(0 0 4px var(--led-blue)); }
 .amp .led.lit { fill: var(--led-amp); filter: drop-shadow(0 0 6px var(--led-amp)); }
-.pedal-name { font-family: "Arial Black", "Helvetica Neue", Impact, sans-serif; font-weight: 900; letter-spacing: -.01em; }
-.pedal-name.script { font-family: "Brush Script MT", "Segoe Script", cursive; font-style: italic; font-weight: 700; }
-.amp-logo { font-family: "Brush Script MT", "Segoe Script", cursive; font-style: italic; }
+.pedal-name { font-family: var(--font); font-weight: 900; font-stretch: 112%; letter-spacing: -.01em; }
+.pedal-name.script { font-family: var(--font-script); font-weight: 400; font-stretch: normal; letter-spacing: 0; }
+.amp-logo { font-family: var(--font-script); }
 
 .pedal { position: relative; }
 .pedal .num {
@@ -183,8 +187,9 @@ main { padding: 16px 0 32px; }
 }
 .tuner-display .seg { fill: var(--seg-off); }
 .tuner-display .seg.mid { fill: var(--seg-mid-off); }
-.tuner-display.active .seg.lit { fill: var(--led-red); filter: drop-shadow(0 0 2px var(--led-red)); }
-.tuner-display.active .seg.mid.lit { fill: var(--led-green); filter: drop-shadow(0 0 3px var(--led-green)); }
+/* Sem filter: drop-shadow aqui; os segmentos mudam a cada quadro e o filtro redesenharia o pedal inteiro. */
+.tuner-display.active .seg.lit { fill: var(--led-red); }
+.tuner-display.active .seg.mid.lit { fill: var(--led-green); }
 .tuner-note { font-family: ui-monospace, "DejaVu Sans Mono", monospace; font-weight: 700; fill: var(--tuner-red); }
 .tuner-note.ok { fill: var(--led-green); }
 .tuner-cents { font-family: ui-monospace, monospace; fill: var(--tuner-dim); }
@@ -242,7 +247,7 @@ body.stage { overflow: hidden; }
 .stage-bottom .stage-pedals { flex: 1; align-content: end; }
 .stage-exprs { display: flex; gap: 8px; }
 .stage-expr { display: grid; justify-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px 6px; font-size: 13px; color: var(--muted); }
-.stage-expr.off { opacity: .5; }
+.stage-expr.off input { opacity: .45; }
 .stage-expr input { writing-mode: vertical-lr; direction: rtl; width: 44px; height: 150px; accent-color: var(--accent); }
 .stage-pedals { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
 .stage-pedal {
