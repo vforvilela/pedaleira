@@ -6,7 +6,7 @@ const SHELL = [
   'js/pedals/index.js', 'js/pedals/common.js', 'js/pedals/sol-drive.js', 'js/pedals/eco-8.js',
   'js/pedals/salao.js', 'js/pedals/amp.js', 'js/pedals/afinador.js',
   'js/pedals/silencio.js', 'js/pedals/aperto.js', 'js/pedals/marimbondo.js', 'js/pedals/coro.js', 'js/pedals/fase-90.js',
-  'js/pedals/ondas.js', 'js/pedals/ua.js', 'js/pedals/equalizador.js', 'js/pedals/turbo.js', 'js/pedals/volume.js', 'js/pedals/laco.js', 'js/pedals/oitava.js', 'js/pedals/flange.js', 'js/pedals/baleia.js', 'js/audio/looper.js', 'js/audio/latency.js', 'js/audio/modulation.js', 'js/audio/fuzz.js', 'js/audio/channel.js',
+  'js/pedals/ondas.js', 'js/pedals/ua.js', 'js/pedals/equalizador.js', 'js/pedals/turbo.js', 'js/pedals/volume.js', 'js/pedals/laco.js', 'js/pedals/oitava.js', 'js/pedals/flange.js', 'js/pedals/baleia.js', 'js/audio/looper.js', 'js/audio/latency.js', 'js/audio/modulation.js', 'js/audio/fuzz.js', 'js/audio/channel.js', 'js/factory.js',
   'js/nam/nam-core.js', 'js/nam/nam-engine.js', 'js/nam/nam-worklet.js', 'js/nam/nam.wasm',
 ];
 

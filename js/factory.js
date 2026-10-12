@@ -1,0 +1,63 @@
+// Presets de fábrica: quem abre o app pela primeira vez já tem sons prontos para tocar, todos com o amp
+// interno (nada para baixar). Quem já usava ganha os que ainda não tem, uma vez por versão desta lista.
+import { SCENES, newBlock } from './core.js';
+
+export const FACTORY_VERSION = 1;
+
+// [tipo, parâmetros, ligado? (null: como o pedal vem), cenas] — cenas: { A: on/off, B: on/off, ... } (letras ausentes: fora da cena).
+const P = (type, params = {}, on = null, scenes = null) => ({ type, params, on, scenes });
+const LETTERS = ['A', 'B', 'C', 'D'];
+
+const SPEC = [
+  { name: 'Limpo com chorus', chain: [
+    P('afinador'),
+    P('aperto', { level: 5, sustain: 4, attack: 6 }),
+    P('amp', { gain: 2.5, bass: 5, mid: 4.5, treble: 6.5, volume: 6 }),
+    P('coro', { rate: 3, depth: 5 }),
+    P('salao', { room: 1, decay: 5, level: 3.5 }),
+  ] },
+  // Cena A: base com o drive; B: solo com boost e delay.
+  { name: 'Crunch: base e solo', chain: [
+    P('afinador'),
+    P('turbo', { boost: 4, bright: 0 }, false, { A: false, B: true }),
+    P('sol-drive', { drive: 4, tone: 6, level: 6 }),
+    P('amp', { gain: 5, bass: 5, mid: 6, treble: 6, volume: 5 }),
+    P('eco-8', { level: 3.5, feedback: 3, time: 6.4, mode: 1 }, false, { A: false, B: true }),
+    P('salao', { room: 0, decay: 4, level: 3 }),
+  ] },
+  { name: 'Solo com delay', chain: [
+    P('afinador'),
+    P('sol-drive', { drive: 6, tone: 6, level: 6.5 }),
+    P('amp', { gain: 7, bass: 5, mid: 7, treble: 6, volume: 4.5 }),
+    P('silencio', { thres: 4, decay: 4 }),
+    P('eco-8', { level: 4, feedback: 4, time: 6.8, mode: 2 }),
+    P('salao', { room: 1, decay: 5, level: 3 }),
+  ] },
+  { name: 'Fuzz anos 60', chain: [
+    P('afinador'),
+    P('ua', { mode: 1, q: 6 }, false),
+    P('marimbondo', { fuzz: 8, volume: 5 }),
+    P('amp', { gain: 3.5, bass: 5, mid: 5, treble: 6, volume: 5 }),
+    P('ondas', { wave: 3, rate: 5, depth: 5 }, false),
+    P('salao', { room: 3, decay: 5, level: 4 }),
+  ] },
+  { name: 'Ambiente', chain: [
+    P('afinador'),
+    P('aperto', { level: 5, sustain: 6 }),
+    P('amp', { gain: 3, bass: 5, mid: 4, treble: 6.5, volume: 5.5 }),
+    P('volume', { level: 10, min: 0 }),
+    P('eco-8', { level: 5, feedback: 6, time: 6.8, mode: 3 }),
+    P('salao', { room: 4, decay: 8, level: 6, tone: 5 }),
+  ] },
+];
+
+export const factoryPresets = () => SPEC.map(({ name, chain }) => ({
+  name,
+  chain: chain.map(({ type, params, on, scenes }) => {
+    const b = newBlock(type);
+    Object.assign(b.params, params);
+    if (on !== null) b.on = on;
+    if (scenes) b.scenes = Array.from({ length: SCENES }, (_, i) => (LETTERS[i] in scenes ? { on: scenes[LETTERS[i]], params: null } : null));
+    return b;
+  }),
+}));

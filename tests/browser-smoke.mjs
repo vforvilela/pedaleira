@@ -66,6 +66,9 @@ try {
   await sleep(1500);
 
   check(await evaluate(`document.querySelectorAll('.pedal').length`) === 5, 'pedaleira padrão com 5 pedais (afinador primeiro)');
+  const facNames = await evaluate(`[...document.getElementById('preset').options].map(o => o.textContent).join(', ')`);
+  check(['Limpo com chorus', 'Crunch: base e solo', 'Solo com delay', 'Fuzz anos 60', 'Ambiente'].every(n => facNames.includes(n)),
+    `primeira visita já tem os presets de fábrica (${facNames})`);
   await shot('1-desligado.png');
   check(await evaluate(`!document.getElementById('intro').hidden`), 'primeira visita mostra os primeiros passos');
   await evaluate(`document.getElementById('introOk').click()`);
@@ -89,23 +92,25 @@ try {
   const chan = await evaluate(`(async () => {
     const e = __pedaleira.engine, b = new Float32Array(1024), wait = () => new Promise(r => setTimeout(r, 150));
     // Espera um bipe e mede a entrada junto com o canal cru: a razão é o ganho do caminho escolhido.
-    const peak = async () => {
+    // ch: canal escolhido; null: a mistura, comparada com a média dos dois.
+    const peak = async ch => {
       await wait();
       for (let i = 0; i < 60; i++) {
-        const raw = e.peak(b, e.chAnalyser[0]), inp = e.peak(b);
+        const r0 = e.peak(b, e.chAnalyser[0]), r1 = e.peak(b, e.chAnalyser[1]), inp = e.peak(b);
+        const raw = ch === null ? (r0 + r1) / 2 : [r0, r1][ch];
         if (raw > 0.05) return inp / raw;
         await new Promise(r => setTimeout(r, 50));
       }
-      return 0;
+      return null; // esse canal não bipou (o microfone falso às vezes manda só um)
     };
-    e.useChannel(1); const c2 = await peak();
-    e.useChannel(0); const c1 = await peak();
-    e.useChannel(null); const mix = await peak();
+    e.useChannel(1); const c2 = await peak(1);
+    e.useChannel(0); const c1 = await peak(0);
+    e.useChannel(null); const mix = await peak(null);
     return { c1, c2, mix, channels: e.channels, hidden: document.getElementById('channel').hidden,
       auto: document.getElementById('channel').options[0].textContent };
   })()`);
-  check([chan.c1, chan.c2, chan.mix].every(g => Math.abs(g - 1) < 0.1),
-    `canal escolhido passa inteiro (ganho: canal 1 = ${chan.c1.toFixed(2)}, canal 2 = ${chan.c2.toFixed(2)}, mistura = ${chan.mix.toFixed(2)})`);
+  check([chan.c1, chan.c2, chan.mix].filter(g => g !== null).length >= 2 && [chan.c1, chan.c2, chan.mix].every(g => g === null || Math.abs(g - 1) < 0.1),
+    `canal escolhido passa inteiro (ganho: canal 1 = ${chan.c1?.toFixed(2)}, canal 2 = ${chan.c2?.toFixed(2)}, mistura = ${chan.mix?.toFixed(2)})`);
   check(chan.hidden === (chan.channels === 1), `seletor de canal some só com entrada mono (canais: ${chan.channels})`);
   check(chan.auto === 'Canal: auto', `automático não escolhe canal quando os dois são iguais ("${chan.auto}")`);
 
@@ -205,19 +210,21 @@ try {
   await sleep(300);
   check(await evaluate(`__pedaleira.state.preset`) === 'Música B', 'tecla ] vai para o preset B');
 
-  // MIDI: aprende CC 64 para ligar/desligar o primeiro pedal, depois usa; Program Change 0 escolhe o preset A.
+  // MIDI: aprende CC 64 para ligar/desligar o primeiro pedal, depois usa; Program Change N escolhe o preset
+  // N+1 da setlist (os de fábrica vêm antes: o preset A é o 6º, PC 5).
   const midiRes = await evaluate(`(() => {
     const { state, midi } = __pedaleira, b = state.chain[1], before = b.on;
     midi.learn({ kind: 'toggle', uid: b.uid });
     midi.handle([0xB0, 64, 127]);
     midi.handle([0xB0, 64, 127]);
     const toggled = b.on !== before;
-    midi.handle([0xC0, 0]);
-    return { toggled, mappings: state.midi.length };
+    const pc = state.presets.findIndex(p => p.name === 'Música A');
+    midi.handle([0xC0, pc]);
+    return { toggled, mappings: state.midi.length, pc };
   })()`);
   await sleep(300);
   check(midiRes.toggled && midiRes.mappings === 1, `MIDI aprende e liga/desliga (${JSON.stringify(midiRes)})`);
-  check(await evaluate(`__pedaleira.state.preset`) === 'Música A', 'Program Change 0 escolhe o preset A');
+  check(await evaluate(`__pedaleira.state.preset`) === 'Música A', `Program Change ${midiRes.pc} escolhe o preset A`);
 
   // Rascunho: mudar o preset A marca *, trocar e voltar mantém a mudança, Reverter desfaz.
   await evaluate(`(() => { const b = __pedaleira.state.chain.find(b => b.type === 'sol-drive'); const k = document.querySelector('.pedal[data-uid="' + b.uid + '"] .knob[data-param="drive"]'); k.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', shiftKey: true, bubbles: true })); })()`);
@@ -367,6 +374,8 @@ try {
   })()`);
   const ix = pages.map(n => n);
   check(pages[1] !== pages[0] && pages[2] !== pages[1] && pages[3] === pages[1], `PageDown, seta e PageUp trocam de preset (${ix.join(' → ')})`);
+  // Volta para o preset de antes (os de fábrica no meio da lista não têm todos os pedais dos testes seguintes).
+  await evaluate(`(() => { const s = document.getElementById('preset'); s.value = ${JSON.stringify(ix[0])}; s.dispatchEvent(new Event('change')); })()`);
 
   // Cena guarda a posição dos botões: B com o Eco 8 mais alto; A volta ao normal.
   const sceneParams = await evaluate(`(() => {
@@ -816,6 +825,34 @@ try {
       h1: getComputedStyle(document.querySelector('h1')).fontFamily, klabel: getComputedStyle(document.querySelector('.klabel')).fontFamily };
   })`);
   check(font.loaded && font.check && font.h1.startsWith('Archivo') && font.klabel.startsWith('Archivo'), `fonte Archivo carregada e em uso (${JSON.stringify(font)})`);
+
+  // Presets de fábrica: cada um soa e nenhum fica muito mais alto ou baixo que os outros. Render offline da
+  // cadeia (só os pedais ligados) com a guitarra simulada a -12 dBFS.
+  const fac = await evaluate(`(async () => {
+    const { byType } = await import('./js/pedals/index.js');
+    const { factoryPresets } = await import('./js/factory.js');
+    const levels = {};
+    for (const f of factoryPresets()) {
+      const ctx = new OfflineAudioContext(2, 48000, 48000);
+      await ctx.audioWorklet.addModule('js/nam/nam-worklet.js');
+      await ctx.audioWorklet.addModule('js/audio/dsp-worklet.js');
+      const osc = ctx.createOscillator(); osc.type = 'sawtooth'; osc.frequency.value = 110;
+      const env = ctx.createGain(); env.gain.setValueAtTime(0.25, 0); env.gain.setTargetAtTime(0.02, 0.05, 0.2);
+      let prev = osc.connect(env);
+      for (const b of f.chain.filter(b => b.on)) {
+        const a = byType[b.type].create(ctx, { params: b.params }); a.setOn(true);
+        prev.connect(a.input); prev = a.output;
+      }
+      prev.connect(ctx.destination); osc.start();
+      const d = (await ctx.startRendering()).getChannelData(0);
+      let sum = 0; for (const x of d) sum += x * x;
+      levels[f.name] = Math.round(10 * Math.log10(sum / d.length + 1e-20));
+    }
+    return levels;
+  })()`);
+  const lv = Object.values(fac);
+  check(lv.length === 5 && Math.min(...lv) > -30 && Math.max(...lv) - Math.min(...lv) <= 6,
+    `presets de fábrica tocam com volume parecido (dB RMS: ${JSON.stringify(fac)})`);
 
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
   console.log(`screenshots em ${out}`);

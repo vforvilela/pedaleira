@@ -29,6 +29,9 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
 
 **Para tocar ao vivo**
 
+- **Presets de fábrica** para começar: Limpo com chorus, Crunch (cena A base, B solo com boost e delay), Solo com
+  delay, Fuzz anos 60 e Ambiente. Todos com o amp interno e volumes parecidos. Quem já usava o app ganha os que não tem.
+
 - **Presets por música:** escreva o nome, clique em Salvar. ◀ ▶ (ou `[` `]`) trocam de preset.
   Mudou algo e não salvou? O preset ganha `*` e a mudança fica guardada como rascunho: trocar de preset e voltar
   não perde nada. **Reverter** volta para a versão salva.

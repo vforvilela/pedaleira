@@ -2,6 +2,7 @@
 import { Engine } from './audio/engine.js';
 import { DEFAULT_CHAIN, byType, defaultParams } from './pedals/index.js';
 import { deleteFile, getFile, loadState, saveState } from './store.js';
+import { FACTORY_VERSION, factoryPresets } from './factory.js';
 
 export const $ = id => document.getElementById(id);
 export const engine = new Engine();
@@ -53,10 +54,18 @@ export const state = {
   chain: normalizeChain(saved?.chain || DEFAULT_CHAIN.map(newBlock)),
   presets: (saved?.presets || []).map(p => ({ name: p.name, chain: normalizeChain(p.chain) })),
   preset: saved?.preset ?? null,
+  factory: saved?.factory ?? 0,
   // Rascunhos: mudanças não salvas por preset ('' = sem preset).
   drafts: Object.fromEntries(Object.entries(saved?.drafts || {}).map(([k, c]) => [k, normalizeChain(c)])),
   midi: saved?.midi || [],
 };
+// Presets de fábrica que a pessoa ainda não tem (pelo nome: um preset dela com o mesmo nome fica).
+if (state.factory < FACTORY_VERSION) {
+  const add = factoryPresets().filter(f => !state.presets.some(p => p.name === f.name));
+  state.presets.push(...add.map(p => ({ name: p.name, chain: normalizeChain(p.chain) })));
+  state.factory = FACTORY_VERSION;
+}
+
 // Quem precisa reagir a qualquer mudança (asterisco do preset, botões de cena) se inscreve aqui.
 export const changeListeners = [];
 export const save = () => { saveState(state); for (const f of changeListeners) f(); };
