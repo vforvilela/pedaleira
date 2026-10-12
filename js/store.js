@@ -31,6 +31,14 @@ async function tx(mode, fn) {
   });
 }
 
-export const putFile = (key, value) => tx('readwrite', s => s.put(value, key)).catch(() => {});
+export const putFile = (key, value) => { persist(); return tx('readwrite', s => s.put(value, key)).catch(() => {}); };
+
+// Pede ao navegador para não apagar os dados quando faltar espaço (capturas e IRs dão trabalho para achar de novo).
+let asked = false;
+export function persist() {
+  if (asked || !navigator.storage?.persist) return;
+  asked = true;
+  navigator.storage.persisted().then(p => p || navigator.storage.persist()).catch(() => {});
+}
 export const getFile = key => tx('readonly', s => s.get(key)).catch(() => undefined);
 export const deleteFile = key => tx('readwrite', s => s.delete(key)).catch(() => {});
