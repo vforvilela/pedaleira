@@ -63,6 +63,9 @@ try {
 
   check(await evaluate(`document.querySelectorAll('.pedal').length`) === 5, 'pedaleira padrão com 5 pedais (afinador primeiro)');
   await shot('1-desligado.png');
+  check(await evaluate(`!document.getElementById('intro').hidden`), 'primeira visita mostra os primeiros passos');
+  await evaluate(`document.getElementById('introOk').click()`);
+  check(await evaluate(`document.getElementById('intro').hidden && __pedaleira.state.introDone`), 'Entendi esconde os primeiros passos e lembra');
 
   await evaluate(`document.getElementById('power').click()`);
   await sleep(2500);

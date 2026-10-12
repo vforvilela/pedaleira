@@ -2,7 +2,7 @@
 import { loadWasmBytes } from './audio/engine.js';
 import { addBlock, renderBoard } from './board.js';
 import { midi } from './control.js';
-import { $, engine, live, state, status } from './core.js';
+import { $, engine, live, save, state, status } from './core.js';
 import { buildExport, importPresets, openSharedLink, renderPresets, shareLink } from './presets.js';
 import { renderScenes } from './scenes.js';
 import { getFile, persist } from './store.js';
@@ -52,6 +52,9 @@ $('install').onclick = async () => {
 if (!window.AudioWorkletNode || !navigator.mediaDevices?.getUserMedia)
   status('Este navegador não tem o que a Pedaleira precisa (AudioWorklet e entrada de áudio). Use Chrome, Edge, Firefox ou Safari atualizados.', true);
 persist();
+
+$('intro').hidden = state.introDone;
+$('introOk').onclick = () => { state.introDone = true; $('intro').hidden = true; save(); };
 
 $('moreBtn').onclick = () => {
   const open = $('presetsRow').classList.toggle('show-more');

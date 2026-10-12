@@ -72,6 +72,12 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
   .levels { flex-wrap: wrap; }
 }
 
+/* ---------- Primeiros passos ---------- */
+.intro { margin: 0 16px 14px; padding: 14px 16px; background: var(--panel); border: 1px solid var(--accent); border-radius: 12px; max-width: 760px; }
+.intro h2 { margin: 0 0 6px; color: var(--accent); }
+.intro ol { margin: 0 0 8px; padding-left: 20px; display: grid; gap: 4px; }
+.intro p { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+
 /* ---------- Cenas ---------- */
 .scenes { display: flex; gap: 6px; align-items: center; padding: 0 16px 12px; flex-wrap: wrap; }
 .scenes-label { font-size: 13px; color: var(--muted); margin-right: 4px; text-transform: uppercase; letter-spacing: .08em; }

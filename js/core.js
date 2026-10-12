@@ -46,6 +46,8 @@ export const state = {
   master: saved?.master ?? -6,
   inputGain: saved?.inputGain ?? 0,
   measuredMs: saved?.measuredMs ?? null,
+  // Quem já usava o app antes do cartão de primeiros passos não precisa vê-lo.
+  introDone: saved ? saved.introDone ?? true : false,
   deviceId: saved?.deviceId ?? '',
   chain: normalizeChain(saved?.chain || DEFAULT_CHAIN.map(newBlock)),
   presets: (saved?.presets || []).map(p => ({ name: p.name, chain: normalizeChain(p.chain) })),
