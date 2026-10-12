@@ -14,7 +14,7 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
 | Aperto | Boss CS-3 | Compressor sem atraso, LEVEL, TONE, ATTACK, SUSTAIN |
 | Turbo | Xotic EP Booster | Boost até +20 dB, BRIGHT |
 | Sol Drive | Boss SD-1 | Circuito Web Audio, ou captura NAM (botão NAM) |
-| Marimbondo | Dunlop Fuzz Face | Fuzz de clipagem assimétrica |
+| Marimbondo | Dunlop Fuzz Face | Fuzz de clipagem assimétrica. Limpa quando você baixa o volume da guitarra, como o original |
 | Silêncio | Boss NS-2 | Noise gate com histerese, THRES e DECAY |
 | Amp | — | 2 estágios de pré, BASS/MID/TREBLE, power amp; ou captura NAM. Caixa 1x12, 4x12, IR `.wav` ou nenhuma |
 | Equalizador | Boss GE-7 | 7 faixas de ±15 dB e volume, em faders |

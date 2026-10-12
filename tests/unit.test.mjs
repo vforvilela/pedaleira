@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { detectPitch, noteOf } from '../js/audio/pitch.js';
 import { parseMidi, Midi } from '../js/midi.js';
+import { FuzzBias, fuzzShape } from '../js/audio/fuzz.js';
 
 const SR = 48000;
 
@@ -252,4 +253,27 @@ test('css: nenhuma cor fixa fora das variáveis de :root', async () => {
   const outside = css.replace(/:root\s*\{[^}]*\}/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
   const hex = outside.match(/#[0-9a-fA-F]{3,8}\b/g) || [];
   assert.deepEqual(hex, [], `cores fixas fora de :root: ${hex.join(', ')}`);
+});
+
+test('fuzz limpa quando o volume da guitarra baixa (como o Fuzz Face)', () => {
+  const F = 196;
+  const goertzel = (x, f) => {
+    const c = 2 * Math.cos((2 * Math.PI * f) / SR);
+    let s1 = 0, s2 = 0;
+    for (const v of x) { const s = v + c * s1 - s2; s2 = s1; s1 = s; }
+    return Math.sqrt(s1 * s1 + s2 * s2 - c * s1 * s2);
+  };
+  const thd = amp => {
+    const x = new Float32Array(SR), y = new Float32Array(SR);
+    for (let i = 0; i < SR; i++) x[i] = amp * Math.sin((2 * Math.PI * F * i) / SR);
+    new FuzzBias(SR).process(x, y);
+    const z = y.subarray(SR / 2).map(v => fuzzShape(Math.max(-1, Math.min(1, v))));
+    let h = 0;
+    for (let k = 2; k <= 12; k++) h += goertzel(z, F * k) ** 2;
+    return Math.sqrt(h) / goertzel(z, F);
+  };
+  const full = thd(0.3), mid = thd(0.09), low = thd(0.045);
+  assert.ok(full > 0.35, `volume 100% satura (THD ${full.toFixed(3)})`);
+  assert.ok(mid < full / 2.5, `volume 30% bem menos sujo (THD ${mid.toFixed(3)})`);
+  assert.ok(low < 0.02, `volume 15% limpo (THD ${low.toFixed(3)})`);
 });

@@ -1,8 +1,9 @@
 // Fuzz redondo inspirado no Dunlop Fuzz Face: dois transistores, clipagem forte e assimétrica.
-import { Bypass, biquad, curve, dbToGain, smooth } from './common.js';
+// Limpa quando você baixa o volume da guitarra, como o pedal (ver audio/fuzz.js).
+import { Bypass, biquad, curve, dbToGain, monoWorklet, smooth } from './common.js';
+import { fuzzShape } from '../audio/fuzz.js';
 
-// O lado positivo bate no teto logo; o negativo arredonda. A assimetria gera os harmônicos pares do fuzz.
-const fuzzCurve = curve(x => (x >= 0 ? Math.tanh(6 * x) : 0.85 * Math.tanh(2.2 * x)));
+const fuzzCurve = curve(fuzzShape);
 
 export default {
   type: 'marimbondo',
@@ -19,7 +20,8 @@ export default {
     const bp = new Bypass(ctx);
     // A entrada de baixa impedância do Fuzz Face tira um pouco do grave antes de saturar.
     const hp = biquad(ctx, 'highpass', 90, 0.7);
-    const gain = ctx.createGain();
+    // Ganho antes da clipagem, que cai com o nível que chega da guitarra.
+    const gain = monoWorklet(ctx, 'fuzzbias');
     const shaper = ctx.createWaveShaper();
     shaper.curve = fuzzCurve;
     shaper.oversample = '4x';
@@ -29,7 +31,7 @@ export default {
     bp.input.connect(hp).connect(gain).connect(shaper).connect(dcBlock).connect(lp).connect(vol).connect(bp.wet);
     const p = { ...env.params };
     const apply = () => {
-      smooth(ctx, gain.gain, dbToGain(8 + p.fuzz * 3.4));
+      gain.port.postMessage({ drive: dbToGain(8 + p.fuzz * 3.4) });
       smooth(ctx, vol.gain, dbToGain(-32 + p.volume * 3.4));
     };
     apply();

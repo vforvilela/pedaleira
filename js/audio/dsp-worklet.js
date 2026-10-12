@@ -4,6 +4,7 @@ import { Gate, Compressor, Limiter } from './dynamics.js';
 import { Looper } from './looper.js';
 import { LatencyProbe } from './latency.js';
 import { OctaveDown, Flanger, Envelope, PitchShifter } from './modulation.js';
+import { FuzzBias } from './fuzz.js';
 
 class DspProcessor extends AudioWorkletProcessor {
   constructor(make) {
@@ -82,6 +83,12 @@ registerProcessor('envelope', class extends DspProcessor {
 registerProcessor('pitch', class extends DspProcessor {
   constructor() { super(() => new PitchShifter(sampleRate)); }
   configure(p) { this.dsp.set(p); }
+});
+
+// Ganho de entrada do fuzz, que cai com o nível (volume da guitarra): { drive }.
+registerProcessor('fuzzbias', class extends DspProcessor {
+  constructor() { super(() => new FuzzBias(sampleRate)); }
+  configure({ drive }) { this.dsp.drive = drive; }
 });
 
 registerProcessor('limiter', class extends DspProcessor {
