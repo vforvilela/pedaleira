@@ -114,3 +114,50 @@ test('limitador nunca passa de -1 dB e não atrasa o som', () => {
   const loud = run(new Limiter(SR, -1), sine(110, 3, SR / 4));
   assert.ok(peakOf(loud) <= 10 ** (-1 / 20) + 1e-6, `pico ${peakOf(loud)}`);
 });
+
+// ---------- Looper ----------
+import { Looper } from '../js/audio/looper.js';
+
+test('looper grava, toca em loop, sobrepõe e para', () => {
+  const l = new Looper(1000, 10); // 1 kHz para o teste ficar pequeno
+  const block = v => new Float32Array(250).fill(v);
+  const out = new Float32Array(250);
+  l.command('press');
+  l.process(block(1), out); // grava 0,25 s de 1
+  l.command('press');
+  assert.equal(l.state, 'play');
+  assert.equal(l.len, 250);
+  l.process(block(0), out);
+  assert.equal(out[0], 1, 'toca o que gravou');
+  l.command('press'); // sobrepõe 0,5
+  l.process(block(0.5), out);
+  assert.equal(out[10], 1.5);
+  l.command('press');
+  l.process(block(0), out);
+  assert.equal(out[10], 1.5, 'a camada nova ficou no loop');
+  l.command('stop');
+  l.process(block(0.2), out);
+  assert.ok(Math.abs(out[3] - 0.2) < 1e-6, 'parado, só passa o som');
+  l.command('clear');
+  assert.equal(l.state, 'empty');
+});
+
+test('looper ignora gravação de menos de 0,1 s (pisada sem querer)', () => {
+  const l = new Looper(1000, 10);
+  l.command('press');
+  l.process(new Float32Array(50), new Float32Array(50));
+  l.command('press');
+  assert.equal(l.state, 'empty');
+});
+
+// ---------- Offline ----------
+import { readFileSync, readdirSync } from 'node:fs';
+
+test('todo arquivo do app está no cache offline do service worker', () => {
+  const root = new URL('..', import.meta.url);
+  const sw = readFileSync(new URL('sw.js', root), 'utf8');
+  const walk = dir => readdirSync(new URL(dir, root), { withFileTypes: true })
+    .flatMap(e => (e.isDirectory() ? walk(`${dir}${e.name}/`) : [`${dir}${e.name}`]));
+  const missing = walk('js/').filter(f => /\.(js|wasm)$/.test(f) && !sw.includes(`'${f}'`));
+  assert.deepEqual(missing, []);
+});

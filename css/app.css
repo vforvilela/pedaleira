@@ -145,6 +145,15 @@ main { padding: 16px 0 32px; }
 .tools .file-btn.has { border-color: var(--accent); color: var(--accent); }
 .tools .tap-btn { font-weight: 700; letter-spacing: .05em; }
 .tools .tap-btn:active { background: var(--accent); color: #1a1205; }
+.tools .action-btn { font-weight: 700; letter-spacing: .04em; }
+.pedal[data-state="rec"] .led { fill: #ff3b30; filter: drop-shadow(0 0 5px #ff3b30); animation: blink .6s steps(2) infinite; }
+.pedal[data-state="play"] .led { fill: #3dff6e; filter: drop-shadow(0 0 5px #3dff6e); }
+.pedal[data-state="dub"] .led { fill: #ffc531; filter: drop-shadow(0 0 5px #ffc531); }
+.pedal[data-state="stop"] .led { fill: #2a4a33; filter: none; }
+.pedal[data-state="rec"] .inspired, .pedal[data-state="dub"] .inspired { color: var(--accent); font-weight: 600; }
+@keyframes blink { 50% { opacity: .35; } }
+.pedal.treadle .pedal-svg { width: 150px; }
+.slider { cursor: ns-resize; }
 .tools .remove:hover { border-color: var(--bad); color: var(--bad); }
 
 /* ---------- Modo palco ---------- */
@@ -180,6 +189,9 @@ body.stage { overflow: hidden; }
 .stage-pedal .led { width: 14px; height: 14px; border-radius: 50%; background: #3a1512; }
 .stage-pedal[aria-pressed="true"] .led { background: #ff3b30; box-shadow: 0 0 10px #ff3b30; }
 .stage-pedal[aria-pressed="false"] { opacity: .6; }
+.stage-pedal[data-state="rec"] .led { background: #ff3b30; box-shadow: 0 0 10px #ff3b30; animation: blink .6s steps(2) infinite; }
+.stage-pedal[data-state="play"] .led { background: #3dff6e; box-shadow: 0 0 10px #3dff6e; }
+.stage-pedal[data-state="dub"] .led { background: #ffc531; box-shadow: 0 0 10px #ffc531; }
 .stage-pedal small { color: var(--muted); font: 700 13px ui-monospace, monospace; }
 @media (max-width: 600px) {
   .stage-top { grid-template-columns: 60px 1fr 60px 44px; }

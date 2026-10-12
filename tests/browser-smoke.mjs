@@ -230,9 +230,9 @@ try {
     await evaluate(`[...document.querySelectorAll('#library .add')].find(b => b.querySelector('b').textContent === ${JSON.stringify(name)}).click()`);
   await sleep(500);
   const order2 = await evaluate(`__pedaleira.state.chain.map(b => b.type).join(',')`);
-  // (o teste de toque deixou o amp em primeiro: os novos entram antes dele, na ordem gate → compressor → fuzz)
+  // (o teste de toque deixou o amp em primeiro: os novos entram antes dele, na ordem compressor → fuzz → gate)
   const at = t => order2.split(',').indexOf(t);
-  check(at('silencio') < at('aperto') && at('aperto') < at('marimbondo') && at('marimbondo') < at('amp'),
+  check(at('aperto') < at('marimbondo') && at('marimbondo') < at('silencio') && at('silencio') < at('amp'),
     `gate, compressor e fuzz entram no lugar certo (${order2})`);
   const p3 = await peakOver(1500);
   check(p3 > 0.001, `sinal na saída com gate, compressor e fuzz ligados (pico ${p3.toFixed(4)})`);
@@ -338,6 +338,27 @@ try {
   check(await evaluate(`getComputedStyle(document.getElementById('stage')).display === 'none'`), 'Esc sai do modo palco');
   await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
 
+  // Amp interno: nível de saída razoável do limpo ao saturado (guitarra simulada a -20 dBFS).
+  const ampLv = await evaluate(`(async () => {
+    const { default: amp } = await import('./js/pedals/amp.js');
+    const { defaultParams } = await import('./js/pedals/index.js');
+    const res = {};
+    for (const gain of [0, 5, 10]) {
+      const ctx = new OfflineAudioContext(1, 48000, 48000);
+      await ctx.audioWorklet.addModule('js/nam/nam-worklet.js');
+      const a = amp.create(ctx, { params: { ...defaultParams(amp), gain } });
+      a.setOn(true);
+      const osc = ctx.createOscillator(); osc.frequency.value = 110;
+      const g = ctx.createGain(); g.gain.value = 0.1;
+      osc.connect(g).connect(a.input); a.output.connect(ctx.destination); osc.start();
+      const out = (await ctx.startRendering()).getChannelData(0).subarray(24000);
+      let sum = 0; for (const x of out) sum += x * x;
+      res[gain] = Math.round(10 * Math.log10(sum / out.length));
+    }
+    return res;
+  })()`);
+  check(Object.values(ampLv).every(db => db > -40 && db < -3), `amp interno com nível de saída usável no limpo e no saturado (dB RMS por GAIN: ${JSON.stringify(ampLv)})`);
+
   // Latência: o limitador novo não atrasa nada; o DynamicsCompressorNode do navegador atrasa.
   const lat = await evaluate(`(async () => {
     const delayOf = async build => {
@@ -356,6 +377,39 @@ try {
     };
   })()`);
   check(lat.ours === 0, `limitador de saída sem atraso (nosso ${lat.ours} ms; o do navegador atrasaria ${lat.native} ms)`);
+
+  // Os outros pedais: todos entram, tocam e não dão erro.
+  const more = ['Uá', 'Turbo', 'Equalizador', 'Coro', 'Fase 90', 'Ondas', 'Volume', 'Laço'];
+  for (const name of more)
+    await evaluate(`[...document.querySelectorAll('#library .add')].find(b => b.querySelector('b').textContent === ${JSON.stringify(name)}).click()`);
+  await sleep(600);
+  const all = await evaluate(`__pedaleira.state.chain.map(b => b.type)`);
+  check(['ua', 'turbo', 'equalizador', 'coro', 'fase-90', 'ondas', 'volume', 'laco'].every(t => all.includes(t)) && all[all.length - 1] === 'laco',
+    `os 8 pedais novos entram, looper no fim (${all.join(',')})`);
+  // Liga tudo que estiver desligado, menos o afinador (que cortaria o som em MUTE).
+  await evaluate(`__pedaleira.state.chain.forEach((b, i) => { if (!b.on && b.type !== 'afinador') document.querySelectorAll('.pedal')[i].querySelector('.footswitch').dispatchEvent(new MouseEvent('click', { bubbles: true })); })`);
+  const p4 = await peakOver(1500);
+  check(p4 > 0.0005, `sinal na saída com todos os pedais ligados (pico ${p4.toFixed(4)})`);
+
+  // Looper: grava 0,6 s, toca, sobrepõe, para, apaga.
+  const loopStates = await evaluate(`(async () => {
+    const p = __pedaleira, i = p.state.chain.findIndex(b => b.type === 'laco');
+    const el = document.querySelectorAll('.pedal')[i], foot = el.querySelector('.footswitch');
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    const st = () => el.dataset.state;
+    const seen = [st()];
+    const press = async ms => { foot.dispatchEvent(new MouseEvent('click', { bubbles: true })); await wait(ms); seen.push(st()); };
+    await press(600); await press(500); await press(500);
+    el.querySelector('[data-action="stop"]').click(); await wait(200); seen.push(st());
+    await press(500);
+    el.querySelector('[data-action="clear"]').click(); await wait(200); seen.push(st());
+    return seen;
+  })()`);
+  check(loopStates.join(',') === 'empty,rec,play,dub,stop,play,empty', `looper grava, toca, sobrepõe, para e apaga (${loopStates.join(' → ')})`);
+  await evaluate(`document.querySelector('.pedal.treadle').scrollIntoView({ inline: 'center', block: 'nearest' }); scrollTo(0, 0)`);
+  await shot('10-todos-os-pedais.png', 1600, 900);
+  await evaluate(`document.querySelector('.pedal[data-uid] .slider')?.closest('.pedal').scrollIntoView({ inline: 'center', block: 'nearest' }); scrollTo(0, 0)`);
+  await shot('11-equalizador.png', 1600, 900);
 
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
   console.log(`screenshots em ${out}`);

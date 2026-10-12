@@ -3,18 +3,26 @@
 Monte uma pedaleira de guitarra no navegador. Cada pedal é desenhado como o real e tem o som modelado nele.
 Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opção "Adicionar à tela inicial").
 
-**Pedais**
+**Pedais** (16, na ordem em que costumam ficar na pedaleira)
 
 | Pedal | Inspirado no | Som |
 |---|---|---|
 | Afinador | Boss TU-3 | Cromático (YIN), MUTE ou THRU, Lá de 438 a 445 Hz |
-| Silêncio | Boss NS-2 | Noise gate com histerese, THRES e DECAY |
+| Uá | Dunlop Cry Baby | Wah: arraste o pedal ou use um pedal de expressão MIDI |
 | Aperto | Boss CS-3 | Compressor sem atraso, LEVEL, TONE, ATTACK, SUSTAIN |
+| Turbo | Xotic EP Booster | Boost até +20 dB, BRIGHT |
 | Sol Drive | Boss SD-1 | Circuito Web Audio, ou captura NAM (botão NAM) |
 | Marimbondo | Dunlop Fuzz Face | Fuzz de clipagem assimétrica |
-| Amp | — | Pré-amp simples, ou captura NAM; caixa interna ou IR `.wav` |
+| Silêncio | Boss NS-2 | Noise gate com histerese, THRES e DECAY |
+| Amp | — | 2 estágios de pré, BASS/MID/TREBLE, power amp; ou captura NAM. Caixa 1x12, 4x12, IR `.wav` ou nenhuma |
+| Equalizador | Boss GE-7 | 7 faixas de ±15 dB e volume, em faders |
+| Coro | Boss CE-2 | Chorus |
+| Fase 90 | MXR Phase 90 | Phaser de 4 estágios, um botão |
+| Ondas | Boss TR-2 | Tremolo, de triângulo a quadrada |
+| Volume | Ernie Ball VP Jr | Pedal de volume com curva de áudio e mínimo ajustável |
 | Eco 8 | Boss DD-8 | Delay Web Audio, modos STD, ANLG e MOD, com trails |
 | Salão | TC Electronic Hall of Fame 2 | Reverb por convolução, 5 salas, com trails |
+| Laço | TC Electronic Ditto | Looper de até 2 min: grava, toca, sobrepõe; 2 pisadas param |
 
 **Para tocar ao vivo**
 
@@ -23,9 +31,14 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
   não perde nada. **Reverter** volta para a versão salva.
 - **Exportar / Importar:** um arquivo `.json` com os presets e as capturas `.nam` e IRs que eles usam.
   Serve de backup e para levar os presets do PC para o celular.
-- **Cenas A–D** dentro do preset: cada uma liga e desliga vários pedais de uma vez (ex.: A = base, B = solo).
+- **Modo palco** (botão Palco): preset em letras grandes, cenas A–D enormes, um botão por pedal e a nota do
+  afinador. A tela fica acesa enquanto o áudio estiver ligado.
+- **Cenas A–D** dentro do preset: cada uma liga e desliga vários pedais e muda a posição dos botões de uma vez
+  (ex.: A = base, B = solo com mais volume e delay).
   Ligue os pedais, clique em **Gravar cena** e depois na letra. Atalhos `A`–`D`; também por MIDI.
   Trocar de cena não marca o preset com `*`.
+- **Desfazer**: removeu um pedal sem querer? Clique em Desfazer (ou `Ctrl+Z`) em até 10 s.
+- **Ganho de entrada** para acertar o nível da interface (o medidor não deve ficar vermelho).
 - **Tap tempo** no Eco 8 (botão TAP ou tecla `T`), de 20 ms a 2 s.
 - **Teclado como footswitch:** `1`–`9` ligam e desligam o pedal naquela posição (o número aparece em cima de cada pedal).
 - **Footswitch Bluetooth de virar página** (funciona no iPhone): setas e PageUp/PageDown trocam de preset.

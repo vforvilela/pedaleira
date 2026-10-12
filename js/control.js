@@ -123,7 +123,7 @@ document.addEventListener('keydown', e => {
   if (e.key.length === 1 && scene >= 0) recallScene(scene);
   else if (/^[1-9]$/.test(e.key)) {
     const b = state.chain[+e.key - 1];
-    if (b) { toggleBlock(b); status(`${byType[b.type].name}: ${b.on ? 'ligado' : 'desligado'}`); }
+    if (b) { toggleBlock(b); if (!byType[b.type].press) status(`${byType[b.type].name}: ${b.on ? 'ligado' : 'desligado'}`); }
   } else if (e.key === 't' || e.key === 'T') {
     const b = state.chain.find(b => byType[b.type].tap);
     if (b) tapTempo(b);

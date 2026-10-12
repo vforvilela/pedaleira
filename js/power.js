@@ -82,7 +82,7 @@ export async function stop() {
   clearInterval(latencyTimer);
   clearInterval(tunerTimer);
   await engine.stop();
-  for (const l of live.values()) l.audio = null;
+  for (const l of live.values()) { l.audio = null; l.view?.setState(''); }
   runTuners();
   $('meter').firstElementChild.style.width = '0';
   $('latency').textContent = '—';

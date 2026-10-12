@@ -1,6 +1,6 @@
 // Modo palco: tela cheia com o preset em letras grandes, as cenas A–D, um botão grande por pedal
 // e a nota do afinador. Pensado para o celular no chão ou no pedestal, no escuro.
-import { $, changeListeners, SCENE_NAMES, state, toggleBlock } from './core.js';
+import { $, changeListeners, live, SCENE_NAMES, state, toggleBlock } from './core.js';
 import { byType } from './pedals/index.js';
 import { stepPreset, isDirty } from './presets.js';
 import { recallScene, sceneActive, sceneUsed } from './scenes.js';
@@ -37,11 +37,14 @@ export function renderStage() {
     const def = byType[b.type];
     const btn = document.createElement('button');
     btn.className = 'stage-pedal';
-    btn.setAttribute('aria-pressed', b.on);
+    // Looper: o botão mostra o estado (gravando, tocando…) em vez de ligado/desligado.
+    const loop = live.get(b.uid)?.audio?.state;
+    btn.setAttribute('aria-pressed', def.press ? !!loop && loop !== 'empty' && loop !== 'stop' : b.on);
+    if (def.press) btn.dataset.state = loop || '';
     btn.style.setProperty('--body', def.look.body);
     btn.innerHTML = `<span class="led"></span><b></b><small></small>`;
     btn.querySelector('b').textContent = def.name;
-    btn.querySelector('small').textContent = i < 9 ? String(i + 1) : '';
+    btn.querySelector('small').textContent = def.press && loop ? { empty: 'vazio', rec: 'GRAVANDO', play: 'tocando', dub: 'SOBREPONDO', stop: 'parado' }[loop] : i < 9 ? String(i + 1) : '';
     btn.onclick = () => toggleBlock(b);
     return btn;
   }));

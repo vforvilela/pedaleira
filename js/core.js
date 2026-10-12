@@ -74,6 +74,7 @@ export function createAudio(block) {
   const l = live.get(block.uid);
   l.audio = l.def.create(engine.ctx, { params: { ...block.params }, wasmBytes: engine.wasmBytes });
   l.audio.setOn(block.on);
+  l.audio.onState?.(s => { l.view?.setState(s, l.def.stateLabels?.[s]); for (const f of changeListeners) f(); });
 }
 
 export function reconnect() {
@@ -141,8 +142,14 @@ export function setParam(block, id, v) {
 }
 
 export function toggleBlock(block) {
-  block.on = !block.on;
   const l = live.get(block.uid);
+  // Pedais com pisada própria (looper): a pisada vai para o pedal, ele não liga nem desliga.
+  if (l?.def.press) {
+    if (l.audio) l.audio.press();
+    else status(`${l.def.name}: clique em Ligar primeiro.`);
+    return;
+  }
+  block.on = !block.on;
   l?.audio?.setOn(block.on);
   l?.view?.update();
   save();

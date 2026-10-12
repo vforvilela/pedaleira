@@ -1,5 +1,5 @@
 // Pedaleira na tela: desenha a cadeia, adiciona, remove, arrasta e carrega arquivos nos pedais.
-import { $, applyStoredFiles, createAudio, engine, live, loadIntoAudio, newBlock, reconnect, releaseFile, save, state, status, tapTempo } from './core.js';
+import { $, applyStoredFiles, createAudio, engine, live, loadIntoAudio, newBlock, reconnect, releaseFile, save, state, status, tapTempo, toggleBlock } from './core.js';
 import { ORDER, byType } from './pedals/index.js';
 import { putFile } from './store.js';
 import { pedalView } from './ui/pedal-view.js';
@@ -28,7 +28,8 @@ export function ensureView(block) {
   if (l.view) return l.view;
   l.view = pedalView({ ...block, def: l.def, get on() { return block.on; }, params: block.params, get files() { return block.files; } }, {
     change(id, v) { block.params[id] = v; l.audio?.set(id, v); save(); },
-    toggle() { block.on = !block.on; l.audio?.setOn(block.on); save(); },
+    toggle: () => toggleBlock(block),
+    action: id => l.audio?.action?.(id),
     tap: () => tapTempo(block),
     file: (kind, accept) => pickFile(block, kind, accept),
     clearFile(kind) {

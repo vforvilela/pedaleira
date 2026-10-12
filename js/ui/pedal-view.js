@@ -14,7 +14,7 @@ function text(parent, x, y, str, attrs = {}) {
   return t;
 }
 
-const SIZES = { compact: [140, 250], stomp: [140, 250], amp: [250, 160] };
+const SIZES = { compact: [140, 250], stomp: [140, 250], amp: [250, 160], treadle: [140, 270] };
 
 // Ângulo do ponteiro: botão contínuo vai de -135° a 135°; chave seletora espalha as posições.
 const knobAngle = (c, v) =>
@@ -40,6 +40,48 @@ function drawKnob(svg, c, x, y, r, ink) {
       g.setAttribute('aria-valuenow', v);
       g.setAttribute('aria-valuetext', c.type === 'select' ? c.options[v] : v.toFixed(1));
       if (val) val.textContent = c.options[v];
+    },
+  };
+}
+
+// Fader vertical (equalizador gráfico). Centro = 0 dB nos controles bipolares.
+function drawSlider(svg, c, x, y0, y1, ink) {
+  const g = el('g', {
+    class: 'knob slider', tabindex: 0, role: 'slider', 'aria-label': c.label, 'data-param': c.id,
+    'aria-valuemin': 0, 'aria-valuemax': 10,
+  }, svg);
+  el('rect', { x: x - 7, y: y0 - 4, width: 14, height: y1 - y0 + 8, fill: 'transparent' }, g); // área de toque
+  el('rect', { x: x - 1.5, y: y0, width: 3, height: y1 - y0, rx: 1.5, fill: '#111' }, g);
+  if (c.bipolar) el('line', { x1: x - 5, x2: x + 5, y1: (y0 + y1) / 2, y2: (y0 + y1) / 2, stroke: ink, 'stroke-width': 0.6, opacity: 0.6 }, g);
+  const cap = el('rect', { x: x - 5, y: 0, width: 10, height: 6, rx: 1, fill: '#e8e8e8', stroke: '#333', 'stroke-width': 0.6 }, g);
+  text(g, x, y1 + 10, c.label, { class: 'klabel', fill: ink, 'font-size': 5.2 });
+  return {
+    g,
+    render(v) {
+      cap.setAttribute('y', y1 - ((y1 - y0) * v) / 10 - 3);
+      g.setAttribute('aria-valuenow', v);
+      g.setAttribute('aria-valuetext', v.toFixed(1));
+    },
+  };
+}
+
+// Pedal de expressão (wah, volume): arrastar o pedal para cima e para baixo. O ponteiro na lateral mostra a posição.
+function drawTreadle(svg, c, W, look) {
+  const g = el('g', {
+    class: 'knob treadle', tabindex: 0, role: 'slider', 'aria-label': c.label, 'data-param': c.id,
+    'aria-valuemin': 0, 'aria-valuemax': 10,
+  }, svg);
+  el('rect', { x: 14, y: 16, width: W - 28, height: 176, rx: 8, fill: '#151515', stroke: '#000' }, g);
+  for (let y = 26; y < 186; y += 8) el('line', { x1: 22, x2: W - 22, y1: y, y2: y, stroke: '#262626', 'stroke-width': 3, 'stroke-linecap': 'round' }, g);
+  text(g, W / 2, 112, look.plate || '', { class: 'pedal-name script', fill: look.accent, 'font-size': 22 });
+  el('rect', { x: W - 10, y: 22, width: 3, height: 164, rx: 1.5, fill: '#000' }, g);
+  const ptr = el('path', { d: 'M0 0 l-6 -4 v8 z', fill: look.accent }, g);
+  return {
+    g,
+    render(v) {
+      ptr.setAttribute('transform', `translate(${W - 10} ${186 - 16.4 * v})`);
+      g.setAttribute('aria-valuenow', v);
+      g.setAttribute('aria-valuetext', v.toFixed(1));
     },
   };
 }
@@ -90,6 +132,21 @@ function drawPedal(def) {
     return { svg, knobs, led, foot, W, H };
   }
 
+  if (look.style === 'treadle') {
+    el('rect', { x: 2, y: 2, width: W - 4, height: H - 4, rx: 12, fill: look.body, stroke: 'rgba(0,0,0,.6)', 'stroke-width': 2 }, svg);
+    el('rect', { x: 2, y: 2, width: W - 4, height: H - 4, rx: 12, fill: 'url(#metalGrad)', opacity: 0.35 }, svg);
+    const [main, ...rest] = def.controls;
+    knobs[main.id] = drawTreadle(svg, main, W, look);
+    rest.forEach((c, i) => { knobs[c.id] = drawKnob(svg, c, 26 + i * 30, 214, 8, look.ink); });
+    led = el('circle', { cx: W - 48, cy: 214, r: 3.6, class: 'led', stroke: 'rgba(0,0,0,.5)' }, svg);
+    text(svg, W / 2, 262, look.subtitle, { fill: look.ink, 'font-size': 8, 'letter-spacing': 1.5 });
+    foot = el('g', { class: 'footswitch', role: 'button', tabindex: 0, 'aria-label': 'Ligar ou desligar' }, svg);
+    el('circle', { cx: W - 26, cy: 228, r: 18, fill: 'transparent' }, foot);
+    el('circle', { cx: W - 26, cy: 228, r: 12, fill: '#6d7075', stroke: '#3b3d40', 'stroke-width': 2 }, foot);
+    el('circle', { cx: W - 26, cy: 228, r: 8, fill: 'url(#footGrad)', stroke: '#55585c' }, foot);
+    return { svg, knobs, led, foot, W, H };
+  }
+
   // Corpo do pedal.
   el('rect', { x: 2, y: 2, width: W - 4, height: H - 4, rx: look.style === 'stomp' ? 14 : 9, fill: look.body, stroke: 'rgba(0,0,0,.45)', 'stroke-width': 2 }, svg);
   el('rect', { x: 2, y: 2, width: W - 4, height: H - 4, rx: look.style === 'stomp' ? 14 : 9, fill: 'url(#metalGrad)', opacity: look.style === 'stomp' ? 0.9 : 0.35 }, svg);
@@ -101,6 +158,10 @@ function drawPedal(def) {
     def.controls.forEach((c, i) => {
       knobs[c.id] = drawKnob(svg, c, i === 0 ? 26 : W - 26, 73, 6.5, look.ink);
     });
+  } else if (def.controls.every(c => c.type === 'slider')) {
+    // Equalizador gráfico: uma fileira de faders.
+    const n = def.controls.length, step = (W - 20) / n;
+    def.controls.forEach((c, i) => { knobs[c.id] = drawSlider(svg, c, 10 + step * (i + 0.5), 22, 76, look.ink); });
   } else {
     const n = def.controls.length;
     const r = n > 3 ? 12 : 14.5;
@@ -201,6 +262,15 @@ export function pedalView(block, cb) {
     tap.onclick = () => cb.tap();
     tools.append(tap);
   }
+  for (const a of def.actions || []) {
+    const b = document.createElement('button');
+    b.className = 'action-btn';
+    b.dataset.action = a.id;
+    b.title = a.title || a.label;
+    b.textContent = a.label;
+    b.onclick = () => cb.action(a.id);
+    tools.append(b);
+  }
   const rm = document.createElement('button');
   rm.className = 'remove';
   rm.title = 'Tirar da pedaleira';
@@ -259,7 +329,7 @@ export function pedalView(block, cb) {
       if (!drag) return;
       const d = (drag.y - e.clientY) + (e.clientX - drag.x);
       if (Math.abs(d) > 3) drag.moved = true;
-      const per = c.type === 'select' ? 28 : 16; // pixels por unidade
+      const per = c.type === 'select' ? 28 : c.type === 'slider' ? 6 : 16; // pixels por unidade
       setV(drag.v + d / per);
     });
     const end = () => {
@@ -292,5 +362,10 @@ export function pedalView(block, cb) {
     root, grip, update,
     setDisplay: (r, active) => display?.set(r, active),
     setNumber(n) { num.textContent = n ? String(n) : ''; num.hidden = !n; },
+    // Estado próprio do pedal (ex.: looper gravando/tocando): muda a cor do LED e a legenda.
+    setState(s, label) {
+      root.dataset.state = s || '';
+      caption.querySelector('.inspired').textContent = label || (def.inspiredBy ? `inspirado no ${def.inspiredBy}` : '');
+    },
   };
 }
