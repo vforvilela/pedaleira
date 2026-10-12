@@ -1,6 +1,6 @@
 // Looper amostra a amostra (roda no AudioWorklet e nos testes de unidade).
 // Pisada: vazio → grava → toca → sobrepõe → toca → … ; parado → toca. STOP para; APAGAR esvazia.
-// A saída é o sinal que entra mais o loop (no volume LEVEL).
+// A saída é só o loop (no volume LEVEL); o som ao vivo passa por fora, no pedal.
 
 export class Looper {
   constructor(sampleRate, maxSeconds = 120) {
@@ -42,14 +42,14 @@ export class Looper {
       const x = inp[i];
       if (this.state === 'rec') {
         buf[this.pos++] = x;
-        out[i] = x;
+        out[i] = 0;
         if (this.pos >= buf.length) this.finishRecording();
       } else if (this.state === 'play' || this.state === 'dub') {
         const y = buf[this.pos];
         if (this.state === 'dub') buf[this.pos] = y + x;
-        out[i] = x + level * y;
+        out[i] = level * y;
         if (++this.pos >= this.len) this.pos = 0;
-      } else out[i] = x;
+      } else out[i] = 0;
     }
   }
 }

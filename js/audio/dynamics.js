@@ -88,14 +88,18 @@ export class Limiter {
     this.rel = coef(0.1, sampleRate);
   }
 
-  process(inp, out) {
+  process(inp, out) { this.processChannels([inp], [out]); }
+
+  // Estéreo: o mesmo ganho nos dois canais, senão a imagem pula de lado quando um canal bate no teto.
+  processChannels(ins, outs) {
     let g = this.gain;
-    const c = this.ceiling;
-    for (let i = 0; i < inp.length; i++) {
-      const a = Math.abs(inp[i]);
+    const c = this.ceiling, n = ins[0].length;
+    for (let i = 0; i < n; i++) {
+      let a = 0;
+      for (const ch of ins) a = Math.max(a, Math.abs(ch[i]));
       const target = a > c ? c / a : 1;
       g = target < g ? target : target + (g - target) * this.rel;
-      out[i] = inp[i] * g;
+      for (let k = 0; k < ins.length; k++) outs[k][i] = ins[k][i] * g;
     }
     this.gain = g;
   }

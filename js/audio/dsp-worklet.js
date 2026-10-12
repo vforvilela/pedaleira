@@ -81,4 +81,11 @@ registerProcessor('envelope', class extends DspProcessor {
 
 registerProcessor('limiter', class extends DspProcessor {
   constructor() { super(() => new Limiter(sampleRate)); }
+  process(inputs, outputs) {
+    const ins = inputs[0], outs = outputs[0];
+    if (!outs?.length) return true;
+    if (!ins?.length) { for (const o of outs) o.fill(0); return true; }
+    this.dsp.processChannels(ins.slice(0, outs.length), outs.slice(0, ins.length));
+    return true;
+  }
 });

@@ -16,7 +16,8 @@ const server = spawn('python3', ['-m', 'http.server', String(PORT), '-d', root],
 const chrome = spawn('google-chrome', [
   '--headless=new', `--remote-debugging-port=${DBG}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), 'chr-'))}`,
   '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--autoplay-policy=no-user-gesture-required',
-  '--window-size=1280,900', '--no-first-run', 'about:blank',
+  // --mute-audio: o teste mede a saída dentro da página; nada toca nos alto-falantes de quem roda.
+  '--mute-audio', '--window-size=1280,900', '--no-first-run', 'about:blank',
 ], { stdio: 'ignore' });
 
 let failed = false;
@@ -491,6 +492,24 @@ try {
   await evaluate(`__pedaleira.state.chain.forEach((b, i) => { if (b.on === (b.type === 'afinador')) document.querySelectorAll('.pedal')[i].querySelector('.footswitch').dispatchEvent(new MouseEvent('click', { bubbles: true })); })`);
   const p4 = await peakOver(1500);
   check(p4 > 0.0005, `sinal na saída com todos os pedais ligados (pico ${p4.toFixed(4)})`);
+
+  // Estéreo: com reverb e chorus, os dois lados da saída são diferentes (e nenhum está mudo).
+  const stereo = await evaluate(`(async () => {
+    const e = __pedaleira.engine, ctx = e.ctx;
+    const split = ctx.createChannelSplitter(2), L = ctx.createAnalyser(), R = ctx.createAnalyser();
+    L.fftSize = R.fftSize = 2048;
+    e.limiter.connect(split); split.connect(L, 0); split.connect(R, 1);
+    const a = new Float32Array(2048), b = new Float32Array(2048);
+    let diff = 0, eL = 0, eR = 0;
+    for (let t = 0; t < 15; t++) {
+      await new Promise(r => setTimeout(r, 100));
+      L.getFloatTimeDomainData(a); R.getFloatTimeDomainData(b);
+      for (let i = 0; i < a.length; i++) { diff += (a[i] - b[i]) ** 2; eL += a[i] ** 2; eR += b[i] ** 2; }
+    }
+    e.limiter.disconnect(split);
+    return { diffRatio: diff / (eL + eR + 1e-12), eL, eR };
+  })()`);
+  check(stereo.diffRatio > 0.01 && stereo.eL > 0 && stereo.eR > 0, `saída estéreo: reverb e chorus diferentes em cada lado (${JSON.stringify(stereo)})`);
 
   // Looper: grava 0,6 s, toca, sobrepõe, para, apaga.
   const loopStates = await evaluate(`(async () => {

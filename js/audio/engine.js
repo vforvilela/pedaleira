@@ -62,7 +62,9 @@ export class Engine {
 
     this.master = ctx.createGain();
     // Limitador de segurança antes do fone (sem o atraso de ~6 ms do DynamicsCompressorNode).
-    this.limiter = monoWorklet(ctx, 'limiter');
+    this.limiter = new AudioWorkletNode(ctx, 'limiter', {
+      numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2], channelCount: 2, channelCountMode: 'explicit',
+    });
     this.master.connect(this.limiter).connect(ctx.destination);
     this.outAnalyser = ctx.createAnalyser();
     this.outAnalyser.fftSize = 1024;

@@ -131,13 +131,13 @@ test('looper grava, toca em loop, sobrepõe e para', () => {
   assert.equal(out[0], 1, 'toca o que gravou');
   l.command('press'); // sobrepõe 0,5
   l.process(block(0.5), out);
-  assert.equal(out[10], 1.5);
+  assert.equal(out[10], 1, 'durante a sobreposição toca a camada antiga');
   l.command('press');
   l.process(block(0), out);
   assert.equal(out[10], 1.5, 'a camada nova ficou no loop');
   l.command('stop');
   l.process(block(0.2), out);
-  assert.ok(Math.abs(out[3] - 0.2) < 1e-6, 'parado, só passa o som');
+  assert.equal(out[3], 0, 'parado, o loop cala (o som ao vivo passa por fora)');
   l.command('clear');
   assert.equal(l.state, 'empty');
 });

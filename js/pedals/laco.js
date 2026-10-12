@@ -28,6 +28,7 @@ export default {
     const input = ctx.createGain();
     const node = monoWorklet(ctx, 'looper');
     const output = ctx.createGain();
+    input.connect(output); // o som ao vivo passa direto (e continua estéreo)
     input.connect(node).connect(output);
     const p = { ...env.params };
     let state = 'empty', listener = null, lastPress = -1e9;

@@ -1,4 +1,5 @@
 // Chorus azul-claro inspirado no Boss CE-2: um eco curtíssimo que oscila e se soma ao som limpo.
+// Em estéreo, como o CE-2 com duas saídas: o lado direito oscila ao contrário do esquerdo.
 import { Bypass, biquad, logMap, smooth } from './common.js';
 
 export default {
@@ -14,19 +15,28 @@ export default {
 
   create(ctx, env) {
     const bp = new Bypass(ctx);
-    const delay = ctx.createDelay(0.05);
-    delay.delayTime.value = 0.008;
-    const dark = biquad(ctx, 'lowpass', 5500, 0.6); // o BBD do CE-2 é escuro
-    const wet = ctx.createGain();
-    wet.gain.value = 0.7;
     const dry = ctx.createGain();
     dry.gain.value = 0.75;
-    bp.input.connect(dry).connect(bp.wet);
-    bp.input.connect(delay).connect(dark).connect(wet).connect(bp.wet);
+    const merge = ctx.createChannelMerger(2);
     const lfo = ctx.createOscillator();
     lfo.type = 'triangle';
-    const depth = ctx.createGain();
-    lfo.connect(depth).connect(delay.delayTime);
+    const depth = ctx.createGain(), inverted = ctx.createGain();
+    lfo.connect(depth);
+    depth.connect(inverted);
+    inverted.gain.value = -1;
+    [depth, inverted].forEach((mod, side) => {
+      const delay = ctx.createDelay(0.05);
+      delay.delayTime.value = 0.008;
+      const dark = biquad(ctx, 'lowpass', 5500, 0.6); // o BBD do CE-2 é escuro
+      const wet = ctx.createGain();
+      wet.gain.value = 0.7;
+      mod.connect(delay.delayTime);
+      bp.input.connect(delay).connect(dark).connect(wet);
+      wet.connect(merge, 0, side);
+      bp.input.connect(dry);
+      dry.connect(merge, 0, side);
+    });
+    merge.connect(bp.wet);
     lfo.start();
     const p = { ...env.params };
     const apply = () => {
