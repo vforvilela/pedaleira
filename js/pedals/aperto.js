@@ -24,15 +24,15 @@ export default {
     bp.input.connect(comp).connect(tone).connect(bp.wet);
     const p = { ...env.params };
     const apply = () => {
-      const threshold = -12 - p.sustain * 3.6; // -12 a -48 dB
-      const ratio = 3 + p.sustain * 1.2;       // 3:1 a 15:1
+      const threshold = -12 - p.sustain * 3.3; // -12 a -45 dB
+      const ratio = 3 + p.sustain * 0.7;       // 3:1 a 10:1
       comp.port.postMessage({
         threshold, ratio,
         // ATTACK para a direita deixa passar mais da palhetada antes de comprimir.
         attack: logMap(p.attack, 0.0005, 0.04),
         release: 0.25,
-        // Repõe metade do que a compressão tira, mais o LEVEL.
-        makeup: -threshold * (1 - 1 / ratio) * 0.5 - 12 + p.level * 2.4,
+        // Repõe parte do que a compressão tira (LEVEL no meio ≈ mesmo volume do pedal desligado), ±12 dB no LEVEL.
+        makeup: -threshold * (1 - 1 / ratio) * 0.35 + (p.level - 5) * 2.4,
       });
       smooth(ctx, tone.gain, (p.tone - 5) * 2.4);
     };

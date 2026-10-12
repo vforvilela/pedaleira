@@ -413,6 +413,40 @@ try {
   check(rt.result?.hits >= 5 && rt.result.ms > 9.5 && rt.result.ms < 13.5 && rt.live && 'ms' in rt.live,
     `medição de latência acha o laço de 10 ms (${JSON.stringify(rt)})`);
 
+  // Todos os pedais, com todos os botões no mínimo, no padrão e no máximo: nada de NaN, silêncio ou explosão.
+  const matrix = await evaluate(`(async () => {
+    const { PEDALS, defaultParams } = await import('./js/pedals/index.js');
+    const bad = [], levels = {};
+    for (const def of PEDALS) {
+      for (const pos of ['min', 'padrão', 'max']) {
+        const ctx = new OfflineAudioContext(1, 24000, 48000);
+        await ctx.audioWorklet.addModule('js/nam/nam-worklet.js');
+        await ctx.audioWorklet.addModule('js/audio/dsp-worklet.js');
+        const params = defaultParams(def);
+        if (pos !== 'padrão') for (const c of def.controls) params[c.id] = pos === 'min' ? 0 : c.type === 'select' ? c.options.length - 1 : 10;
+        const a = def.create(ctx, { params });
+        a.setOn(true);
+        // Guitarra simulada: dente de serra de 110 Hz que decai, a -12 dBFS.
+        const osc = ctx.createOscillator(); osc.type = 'sawtooth'; osc.frequency.value = 110;
+        const env = ctx.createGain(); env.gain.setValueAtTime(0.25, 0); env.gain.setTargetAtTime(0.02, 0.05, 0.2);
+        osc.connect(env).connect(a.input); a.output.connect(ctx.destination); osc.start();
+        const out = (await ctx.startRendering()).getChannelData(0);
+        let sum = 0, peak = 0, finite = true;
+        for (const x of out) { if (!Number.isFinite(x)) finite = false; sum += x * x; peak = Math.max(peak, Math.abs(x)); }
+        const db = Math.round(10 * Math.log10(sum / out.length + 1e-20));
+        levels[def.type + ':' + pos] = db;
+        // Volume no mínimo pode calar de propósito (pedal de volume, LEVEL 0); fora isso, tem que soar.
+        const mayBeSilent = pos === 'min';
+        // EQ com todas as faixas e o volume no máximo soma +30 dB de propósito (como o GE-7 de verdade).
+        const maxPeak = def.type === 'equalizador' && pos === 'max' ? 40 : 8;
+        if (!finite || peak > maxPeak || (!mayBeSilent && db < -60)) bad.push(def.type + ':' + pos + ' (' + (finite ? db + ' dB, pico ' + peak.toFixed(2) : 'NaN') + ')');
+      }
+    }
+    return { bad, levels };
+  })()`);
+  check(matrix.bad.length === 0, `todos os pedais soam sem NaN, silêncio ou explosão no mínimo, padrão e máximo${matrix.bad.length ? ': ' + matrix.bad.join(', ') : ''}`);
+  console.log('info: nível (dB RMS) por pedal e posição:', JSON.stringify(matrix.levels));
+
   // Latência: o limitador novo não atrasa nada; o DynamicsCompressorNode do navegador atrasa.
   const lat = await evaluate(`(async () => {
     const delayOf = async build => {

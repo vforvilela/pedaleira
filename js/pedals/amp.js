@@ -112,7 +112,7 @@ export default {
       smooth(ctx, mid.gain, (p.mid - 5) * 2.4);
       smooth(ctx, treble.gain, (p.treble - 5) * 2.4);
       smooth(ctx, powerIn.gain, usingNam ? 0.5 : 0.9);
-      smooth(ctx, volume.gain, dbToGain(-30 + p.volume * 4));
+      smooth(ctx, volume.gain, dbToGain(-28 + p.volume * 3.2));
       route();
     };
     apply();
