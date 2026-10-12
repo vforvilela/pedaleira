@@ -1,4 +1,5 @@
 // Controle pelo pé: MIDI e teclado (inclusive footswitch Bluetooth de virar página).
+import { undoRemove } from './board.js';
 import { $, blockByUid, closest, save, SCENE_NAMES, setParam, state, status, tapTempo, toggleBlock } from './core.js';
 import { Midi, midiSupported } from './midi.js';
 import { byType } from './pedals/index.js';
@@ -109,10 +110,15 @@ document.addEventListener('click', e => {
 // Teclado do computador como footswitch: 1–9 liga/desliga o pedal na posição, T = tap, [ ] = presets,
 // A–D = cenas. Setas e PageUp/PageDown também trocam de preset: é o que mandam os footswitches
 // Bluetooth de virar página (que funcionam como teclado no celular, inclusive no iPhone).
-export const PREV_KEYS = new Set(['[', 'ArrowLeft', 'ArrowUp', 'PageUp']);
+export const ARROWS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
+const stageOn = () => document.body.classList.contains('stage');
+const PREV_KEYS = new Set(['[', 'ArrowLeft', 'ArrowUp', 'PageUp']);
 export const NEXT_KEYS = new Set([']', 'ArrowRight', 'ArrowDown', 'PageDown']);
 document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !closest(e, 'input, textarea')) { undoRemove(); e.preventDefault(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey || closest(e, 'input, select, textarea, .knob')) return;
+  // Setas só trocam de preset sem nada em foco (ou no modo palco): com foco num botão, elas são do botão.
+  if (ARROWS.has(e.key) && !stageOn() && document.activeElement && document.activeElement !== document.body) return;
   const scene = 'abcd'.indexOf(e.key.toLowerCase());
   if (e.key.length === 1 && scene >= 0) recallScene(scene);
   else if (/^[1-9]$/.test(e.key)) {

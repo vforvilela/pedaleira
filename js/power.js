@@ -1,4 +1,5 @@
 // Ligar e desligar o áudio, escolher a entrada, medidor, volume, latência e afinadores.
+import { setStageTuner } from './stage.js';
 import { noteOf } from './audio/pitch.js';
 import { $, applyStoredFiles, createAudio, engine, live, reconnect, save, state, status } from './core.js';
 
@@ -15,13 +16,17 @@ let meterRaf = 0, latencyTimer = 0, tunerTimer = 0;
 
 // Lê os afinadores ligados ~12 vezes por segundo; desligados, o visor apaga.
 export function runTuners() {
+  let tuner = null, tunerOn = false;
   for (const b of state.chain) {
     const l = live.get(b.uid);
     if (l?.def.category !== 'tuner' || !l.view) continue;
     const active = b.on && !!l.audio;
     const hz = active ? l.audio.read() : null;
-    l.view.setDisplay(hz ? noteOf(hz, l.audio.ref()) : null, active);
+    const r = hz ? noteOf(hz, l.audio.ref()) : null;
+    l.view.setDisplay(r, active);
+    if (active) tuner = r ?? null, tunerOn = true;
   }
+  setStageTuner(tuner, tunerOn);
 }
 export function runMeter() {
   const buf = new Float32Array(engine.analyser.fftSize);
@@ -46,6 +51,8 @@ export async function start() {
   for (const b of state.chain) createAudio(b);
   reconnect();
   engine.setMaster(state.master);
+  engine.setInputGain(state.inputGain);
+  watchAudio(track);
   await Promise.all(state.chain.map(applyStoredFiles));
   runMeter();
   tunerTimer = setInterval(runTuners, 80);
@@ -69,6 +76,8 @@ export async function start() {
 }
 
 export async function stop() {
+  wakeLock?.release().catch(() => {});
+  wakeLock = null;
   cancelAnimationFrame(meterRaf);
   clearInterval(latencyTimer);
   clearInterval(tunerTimer);
@@ -104,6 +113,54 @@ $('device').onchange = async () => {
   await stop();
   $('power').click();
 };
+
+$('inGain').value = state.inputGain;
+const showInput = () => { $('inGainV').textContent = `${state.inputGain > 0 ? '+' : ''}${state.inputGain} dB`; };
+showInput();
+$('inGain').oninput = () => {
+  state.inputGain = +$('inGain').value;
+  showInput();
+  engine.setInputGain(state.inputGain);
+  save();
+};
+
+// ---------- Para tocar ao vivo: tela acesa, áudio que volta sozinho, interface desconectada ----------
+
+let wakeLock = null;
+async function keepScreenOn() {
+  if (!engine.running || document.visibilityState !== 'visible' || wakeLock || !navigator.wakeLock) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  } catch { /* sem permissão ou sem suporte: segue sem */ }
+}
+
+// O sistema pode pausar o áudio (ligação no celular, app em segundo plano, fone tirado no iPhone).
+async function resumeAudio() {
+  const ctx = engine.ctx;
+  if (!ctx || ctx.state === 'running' || ctx.state === 'closed') return;
+  try { await ctx.resume(); } catch { /* precisa de um toque */ }
+  if (ctx.state === 'running') status('Áudio de volta.');
+  else status('O sistema pausou o áudio. Toque na tela para voltar.', true);
+}
+
+function watchAudio(track) {
+  keepScreenOn();
+  engine.ctx.onstatechange = () => { if (engine.running) resumeAudio(); };
+  track.addEventListener('ended', async () => {
+    if (!engine.running) return;
+    await stop();
+    status('A entrada de áudio sumiu (interface desconectada?). Conecte de novo e clique em Ligar.', true);
+  });
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  resumeAudio();
+  keepScreenOn();
+});
+document.addEventListener('pointerdown', resumeAudio, true);
+navigator.mediaDevices?.addEventListener?.('devicechange', () => listDevices(state.deviceId).catch(() => {}));
 
 $('master').value = state.master;
 export const showMaster = () => { $('masterV').textContent = `${state.master} dB`; };

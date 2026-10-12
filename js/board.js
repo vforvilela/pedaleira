@@ -1,5 +1,5 @@
 // Pedaleira na tela: desenha a cadeia, adiciona, remove, arrasta e carrega arquivos nos pedais.
-import { $, createAudio, engine, live, loadIntoAudio, newBlock, reconnect, releaseFile, save, state, status, tapTempo } from './core.js';
+import { $, applyStoredFiles, createAudio, engine, live, loadIntoAudio, newBlock, reconnect, releaseFile, save, state, status, tapTempo } from './core.js';
 import { ORDER, byType } from './pedals/index.js';
 import { putFile } from './store.js';
 import { pedalView } from './ui/pedal-view.js';
@@ -79,10 +79,53 @@ export function removeBlock(id) {
   reconnect();
   live.get(id)?.audio?.dispose();
   live.delete(id);
-  for (const f of Object.values(block.files)) releaseFile(f.key);
   renderBoard();
   save();
+  // Dá 10 s para desfazer (no palco, um toque errado no ✕ não pode custar o pedal e a captura dele).
+  finishRemoval();
+  removed = { block, index: i, timer: setTimeout(finishRemoval, 10000) };
+  toast(`${byType[block.type].name} removido.`, 'Desfazer', undoRemove);
 }
+
+let removed = null;
+function finishRemoval() {
+  if (!removed) return;
+  clearTimeout(removed.timer);
+  for (const f of Object.values(removed.block.files)) releaseFile(f.key);
+  removed = null;
+  hideToast();
+}
+
+// Põe de volta o último pedal removido, no mesmo lugar (atalho: Ctrl+Z).
+export async function undoRemove() {
+  if (!removed) return;
+  const { block, index, timer } = removed;
+  clearTimeout(timer);
+  removed = null;
+  hideToast();
+  state.chain.splice(Math.min(index, state.chain.length), 0, block);
+  ensureView(block);
+  if (engine.running) createAudio(block);
+  renderBoard();
+  reconnect();
+  save();
+  status(`${byType[block.type].name} voltou para a pedaleira.`);
+  if (engine.running) await applyStoredFiles(block);
+}
+
+// Aviso no rodapé com um botão de ação.
+let toastTimer = 0;
+function toast(msg, action, fn) {
+  const t = $('toast');
+  t.querySelector('span').textContent = msg;
+  const b = t.querySelector('button');
+  b.textContent = action;
+  b.onclick = fn;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 10000);
+}
+function hideToast() { $('toast').hidden = true; }
 
 export function moveBlock(id, to) {
   const from = state.chain.findIndex(b => b.uid === id);

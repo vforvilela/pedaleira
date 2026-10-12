@@ -277,6 +277,67 @@ try {
   const ix = pages.map(n => n);
   check(pages[1] !== pages[0] && pages[2] !== pages[1] && pages[3] === pages[1], `PageDown, seta e PageUp trocam de preset (${ix.join(' → ')})`);
 
+  // Cena guarda a posição dos botões: B com o Eco 8 mais alto; A volta ao normal.
+  const sceneParams = await evaluate(`(() => {
+    const p = __pedaleira, c = p.state.chain, eco = c.find(b => b.type === 'eco-8');
+    const key = k => document.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
+    const rec = i => { document.getElementById('sceneRec').click(); document.querySelectorAll('.scene-btn')[i].click(); };
+    const base = eco.params.level;
+    rec(0);
+    eco.params.level = 9;
+    rec(1);
+    key('a'); const inA = eco.params.level;
+    key('b'); const inB = eco.params.level;
+    return { base, inA, inB };
+  })()`);
+  check(sceneParams.inB === 9 && sceneParams.inA === sceneParams.base, `cena guarda a posição dos botões (${JSON.stringify(sceneParams)})`);
+
+  // Remover um pedal por engano e desfazer: volta no mesmo lugar, com as cenas.
+  const undo = await evaluate(`(async () => {
+    const p = __pedaleira, c = () => p.state.chain.map(b => b.type).join(',');
+    const before = c(), n = p.state.chain.length;
+    document.querySelectorAll('.pedal')[2].querySelector('.remove').click();
+    const removed = p.state.chain.length === n - 1 && !document.getElementById('toast').hidden;
+    document.querySelector('#toast button').click();
+    await new Promise(r => setTimeout(r, 300));
+    return { removed, back: c() === before, hidden: getComputedStyle(document.getElementById('toast')).display === 'none' };
+  })()`);
+  check(undo.removed && undo.back && undo.hidden, `remover pedal mostra Desfazer e desfazer devolve no lugar (${JSON.stringify(undo)})`);
+
+  // Ganho de entrada.
+  const gain = await evaluate(`(async () => {
+    const i = document.getElementById('inGain'); i.value = 6; i.dispatchEvent(new Event('input'));
+    await new Promise(r => setTimeout(r, 200));
+    return [__pedaleira.state.inputGain, __pedaleira.engine.input.gain.value];
+  })()`);
+  check(gain[0] === 6 && Math.abs(gain[1] - 1.995) < 0.05, `ganho de entrada +6 dB (${gain})`);
+
+  // Modo palco: abre, mostra preset e pedais, liga/desliga pelo botão grande, mostra o afinador, sai com Esc.
+  const stage = await evaluate(`(async () => {
+    const p = __pedaleira;
+    document.getElementById('stageBtn').click();
+    const shown = !document.getElementById('stage').hidden;
+    const title = document.getElementById('stagePreset').textContent;
+    const btns = document.querySelectorAll('.stage-pedal');
+    const before = p.state.chain[1].on;
+    btns[1].click();
+    const toggled = p.state.chain[1].on !== before && document.querySelectorAll('.stage-pedal')[1].getAttribute('aria-pressed') === String(!before);
+    document.querySelectorAll('.stage-pedal')[1].click();
+    document.querySelectorAll('.stage-scene')[0].click();
+    const sceneLit = document.querySelectorAll('.stage-scene')[0].getAttribute('aria-pressed');
+    return { shown, title, pedals: btns.length, toggled, sceneLit, chain: p.state.chain.length };
+  })()`);
+  check(stage.shown && stage.title.startsWith(await evaluate('__pedaleira.state.preset')) && stage.pedals === stage.chain && stage.toggled && stage.sceneLit === 'true',
+    `modo palco mostra preset, pedais e cenas e liga/desliga (${JSON.stringify(stage)})`);
+  await evaluate(`(() => { const p = __pedaleira, t = p.state.chain.find(b => b.type === 'afinador'); if (!t.on) document.querySelector('.stage-pedal[aria-pressed="false"]') && [...document.querySelectorAll('.stage-pedal')][p.state.chain.indexOf(t)].click(); })()`);
+  await sleep(400);
+  check(await evaluate(`!document.getElementById('stageTuner').hidden`), 'afinador ligado aparece grande no modo palco');
+  await shot('8-palco-celular.png', 390, 844, true);
+  await shot('9-palco-pc.png');
+  await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+  check(await evaluate(`getComputedStyle(document.getElementById('stage')).display === 'none'`), 'Esc sai do modo palco');
+  await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
+
   // Latência: o limitador novo não atrasa nada; o DynamicsCompressorNode do navegador atrasa.
   const lat = await evaluate(`(async () => {
     const delayOf = async build => {

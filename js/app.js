@@ -9,6 +9,7 @@ import { getFile } from './store.js';
 import { installDefs } from './ui/pedal-view.js';
 import { PEDALS } from './pedals/index.js';
 import './power.js';
+import './stage.js';
 
 // ---------- Biblioteca ----------
 

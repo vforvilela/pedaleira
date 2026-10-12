@@ -79,6 +79,10 @@ export class Engine {
     this.ctx = this.stream = null;
   }
 
+  setInputGain(db) {
+    if (this.ctx) this.input.gain.setTargetAtTime(dbToGain(db), this.ctx.currentTime, 0.01);
+  }
+
   setMaster(db) {
     if (this.ctx) this.master.gain.setTargetAtTime(dbToGain(db), this.ctx.currentTime, 0.01);
   }

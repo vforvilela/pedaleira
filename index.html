@@ -20,6 +20,7 @@
   </div>
   <div class="levels">
     <div class="meter" id="meter" title="Nível da entrada"><div></div></div>
+    <label class="master" title="Ganho de entrada: ajuste até o medidor ficar verde nas notas fortes, sem vermelho">Entrada <input id="inGain" type="range" min="-12" max="24" step="0.5"> <output id="inGainV"></output></label>
     <label class="master">Volume <input id="master" type="range" min="-40" max="6" step="0.5"> <output id="masterV"></output></label>
     <span class="lat" title="Latência informada pelo navegador (sem o atraso da interface)">Latência <b id="latency">—</b></span>
   </div>
@@ -33,6 +34,7 @@
     <button id="presetDelete">Apagar</button>
     <button id="presetExport" title="Baixar um arquivo com os presets e as capturas que eles usam">Exportar</button>
     <button id="presetImport" title="Trazer presets de um arquivo exportado">Importar</button>
+    <button id="stageBtn" class="stage-btn" title="Tela para tocar ao vivo: preset, cenas e pedais em botões grandes">Palco</button>
     <button id="midi" aria-pressed="false" title="Aprender botões de um controlador MIDI" hidden>MIDI</button>
     <button id="midiClear" hidden>Apagar MIDI</button>
   </div>
@@ -46,7 +48,7 @@
     <button class="scene-btn" aria-pressed="false" title="Cena B (atalho: B)">B</button>
     <button class="scene-btn" aria-pressed="false" title="Cena C (atalho: C)">C</button>
     <button class="scene-btn" aria-pressed="false" title="Cena D (atalho: D)">D</button>
-    <button id="sceneRec" aria-pressed="false" title="Guarda quais pedais estão ligados agora numa cena">Gravar cena</button>
+    <button id="sceneRec" aria-pressed="false" title="Guarda numa cena os pedais ligados e a posição dos botões">Gravar cena</button>
   </div>
   <section class="board-wrap" aria-label="Pedaleira">
     <div id="board" class="board"></div>
@@ -62,6 +64,18 @@
   </section>
 </main>
 
+<div id="stage" class="stage-view" hidden>
+  <div class="stage-top">
+    <button id="stagePrev" class="stage-nav" aria-label="Preset anterior">◀</button>
+    <div class="stage-title"><b id="stagePreset"></b><small id="stageCount"></small></div>
+    <button id="stageNext" class="stage-nav" aria-label="Próximo preset">▶</button>
+    <button id="stageExit" class="stage-exit" aria-label="Sair do modo palco">✕</button>
+  </div>
+  <div id="stageTuner" class="stage-tuner" hidden><div class="bar"><i></i></div><b></b><small></small></div>
+  <div id="stageScenes" class="stage-scenes" role="group" aria-label="Cenas"></div>
+  <div id="stagePedals" class="stage-pedals" role="group" aria-label="Pedais"></div>
+</div>
+<div id="toast" class="toast" role="status" hidden><span></span><button></button></div>
 <input id="file" type="file" hidden>
 <script type="module" src="js/app.js"></script>
 </body>

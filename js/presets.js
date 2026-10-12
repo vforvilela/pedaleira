@@ -1,6 +1,6 @@
 // Presets, rascunhos, exportar e importar.
 import { ensureView, fileInput, renderBoard } from './board.js';
-import { $, changeListeners, createAudio, engine, live, loadIntoAudio, normalizeBlock, normalizeChain, reconnect, releaseFile, save, SCENE_NAMES, snapshot, state, status } from './core.js';
+import { $, changeListeners, sameScene, createAudio, engine, live, loadIntoAudio, normalizeBlock, normalizeChain, reconnect, releaseFile, save, SCENE_NAMES, snapshot, state, status } from './core.js';
 import { getFile, putFile } from './store.js';
 
 // ---------- Presets ----------
@@ -13,7 +13,7 @@ export function sameChain(a, b) {
   return a.every((x, i) => {
     const y = b[i];
     if (x.uid !== y.uid || x.type !== y.type || x.on !== y.on) return false;
-    if (x.scenes.some((v, i) => v !== y.scenes[i])) return false;
+    if (x.scenes.some((v, i) => !sameScene(v, y.scenes[i]))) return false;
     const pk = new Set([...Object.keys(x.params), ...Object.keys(y.params)]);
     for (const k of pk) if (x.params[k] !== y.params[k]) return false;
     const fk = new Set([...Object.keys(x.files), ...Object.keys(y.files)]);
@@ -24,7 +24,10 @@ export function sameChain(a, b) {
 
 export const presetByName = name => state.presets.find(p => p.name === name);
 // A cadeia salva com a cena i aplicada: trocar de cena não conta como mudança no preset.
-export const withScene = (chain, i) => chain.map(b => (b.scenes[i] === null ? b : { ...b, on: b.scenes[i] }));
+export const withScene = (chain, i) => chain.map(b => {
+  const s = b.scenes[i];
+  return s ? { ...b, on: s.on, params: s.params ? { ...b.params, ...s.params } : b.params } : b;
+});
 export const isDirty = () => {
   const p = presetByName(state.preset);
   if (!p || sameChain(state.chain, p.chain)) return false;

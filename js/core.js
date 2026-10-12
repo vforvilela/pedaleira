@@ -20,14 +20,31 @@ export const normalizeBlock = b => ({
   uid: b.uid, type: b.type, on: b.on !== false,
   params: { ...defaultParams(byType[b.type]), ...b.params },
   files: Object.fromEntries(Object.entries(b.files || {}).map(([k, f]) => [k, { ...f, key: f.key || `${b.uid}:${k}` }])),
-  // scenes[i]: ligado (true), desligado (false) ou fora (null) na cena i.
-  scenes: Array.from({ length: SCENES }, (_, i) => (typeof b.scenes?.[i] === 'boolean' ? b.scenes[i] : null)),
+  scenes: Array.from({ length: SCENES }, (_, i) => normalizeScene(b.scenes?.[i], b.type)),
 });
+
+// scenes[i] de um pedal: null (fora da cena i) ou { on, params } (ligado/desligado e posição dos botões).
+// Versões antigas guardavam só true/false.
+function normalizeScene(s, type) {
+  if (typeof s === 'boolean') return { on: s, params: null };
+  if (!s || typeof s !== 'object') return null;
+  return { on: !!s.on, params: s.params ? { ...defaultParams(byType[type]), ...s.params } : null };
+}
+
+// O pedal está como a cena i manda? (true também quando ele está fora da cena)
+export function sceneMatches(b, i) {
+  const s = b.scenes[i];
+  if (!s) return true;
+  return s.on === b.on && (!s.params || Object.keys(s.params).every(k => s.params[k] === b.params[k]));
+}
+
+export const sameScene = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 export const normalizeChain = chain => chain.filter(b => byType[b.type]).map(normalizeBlock);
 
 export const saved = loadState();
 export const state = {
   master: saved?.master ?? -6,
+  inputGain: saved?.inputGain ?? 0,
   deviceId: saved?.deviceId ?? '',
   chain: normalizeChain(saved?.chain || DEFAULT_CHAIN.map(newBlock)),
   presets: (saved?.presets || []).map(p => ({ name: p.name, chain: normalizeChain(p.chain) })),
