@@ -77,3 +77,40 @@ test('footswitch momentâneo dispara uma vez por pisada; de trava dispara em tod
   for (const v of [0, 127, 0, 127]) { t += 1800; latch.handle([0xB0, 80, v]); }
   assert.equal(fired, 4);
 });
+
+// ---------- Gate, compressor e limitador ----------
+import { Gate, Compressor, Limiter } from '../js/audio/dynamics.js';
+
+const sine = (hz, amp, n) => Float32Array.from({ length: n }, (_, i) => amp * Math.sin((2 * Math.PI * hz * i) / SR));
+const peakOf = (b, from = 0) => b.subarray(from).reduce((m, x) => Math.max(m, Math.abs(x)), 0);
+const run = (dsp, inp) => { const out = new Float32Array(inp.length); dsp.process(inp, out); return out; };
+const db = x => 20 * Math.log10(x);
+
+test('gate: nota passa inteira, chiado abaixo do limiar some', () => {
+  const g = new Gate(SR);
+  g.set(-60, 0.1);
+  const note = run(g, sine(220, 0.1, SR / 2)); // -20 dB, bem acima do limiar
+  assert.ok(peakOf(note, 100) > 0.099, 'a nota não pode perder volume');
+  let s = 7;
+  const hiss = Float32Array.from({ length: SR }, () => ((s = (s * 16807) % 2147483647) / 2147483647 - 0.5) * 0.001); // ~ -66 dB
+  const out = run(g, hiss);
+  assert.ok(peakOf(out, SR / 2) < 1e-6, `chiado depois que a nota acabou: ${peakOf(out, SR / 2)}`);
+});
+
+test('compressor 4:1 tira 3/4 do que passa do limiar', () => {
+  const c = new Compressor(SR);
+  c.set({ threshold: -30, ratio: 4, attack: 0.001, release: 0.1, makeup: 0 });
+  const out = run(c, sine(220, 0.5, SR)); // pico -6 dB, 24 dB acima do limiar
+  const got = db(peakOf(out, SR / 2));
+  assert.ok(Math.abs(got - (-30 + 24 / 4)) < 1.5, `pico na saída ${got.toFixed(1)} dB, esperado -24`);
+  const quiet = run(new Compressor(SR), sine(220, 0.005, SR / 4)); // -46 dB: abaixo do limiar, passa igual
+  assert.ok(Math.abs(peakOf(quiet, 1000) - 0.005) < 1e-4);
+});
+
+test('limitador nunca passa de -1 dB e não atrasa o som', () => {
+  const l = new Limiter(SR, -1);
+  const imp = new Float32Array(256); imp[10] = 0.5;
+  assert.equal(run(l, imp)[10], 0.5, 'sinal abaixo do teto sai igual e na mesma amostra');
+  const loud = run(new Limiter(SR, -1), sine(110, 3, SR / 4));
+  assert.ok(peakOf(loud) <= 10 ** (-1 / 20) + 1e-6, `pico ${peakOf(loud)}`);
+});

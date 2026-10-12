@@ -40,6 +40,14 @@
 </header>
 
 <main>
+  <div id="scenes" class="scenes" role="group" aria-label="Cenas">
+    <span class="scenes-label" title="Cada cena liga e desliga vários pedais de uma vez (atalhos: A, B, C, D)">Cenas</span>
+    <button class="scene-btn" aria-pressed="false" title="Cena A (atalho: A)">A</button>
+    <button class="scene-btn" aria-pressed="false" title="Cena B (atalho: B)">B</button>
+    <button class="scene-btn" aria-pressed="false" title="Cena C (atalho: C)">C</button>
+    <button class="scene-btn" aria-pressed="false" title="Cena D (atalho: D)">D</button>
+    <button id="sceneRec" aria-pressed="false" title="Guarda quais pedais estão ligados agora numa cena">Gravar cena</button>
+  </div>
   <section class="board-wrap" aria-label="Pedaleira">
     <div id="board" class="board"></div>
     <p id="empty" class="empty" hidden>Pedaleira vazia. Adicione um pedal abaixo.</p>
@@ -48,8 +56,9 @@
   <section class="lib-wrap">
     <h2>Adicionar pedal</h2>
     <div id="library" class="library"></div>
-    <p class="hint">O sinal vai da esquerda para a direita. Arraste pelo ⠿ para mudar a ordem. Gire os botões arrastando para cima ou para baixo; dois cliques voltam ao padrão. Clique no pedal para ligar e desligar.</p>
-    <p class="hint">Atalhos: <kbd>1</kbd>–<kbd>9</kbd> ligam e desligam o pedal naquela posição, <kbd>T</kbd> é o tap tempo do delay, <kbd>[</kbd> e <kbd>]</kbd> trocam de preset. Um controlador MIDI pode fazer o mesmo pelo botão MIDI (no Chrome e no Edge).</p>
+    <p class="hint">O sinal vai da esquerda para a direita. <b>Arraste pelo ⠿ para mudar a ordem</b> (ex.: delay antes do drive). Gire os botões arrastando para cima ou para baixo; dois cliques voltam ao padrão. Clique no pedal para ligar e desligar.</p>
+    <p class="hint">Atalhos: <kbd>1</kbd>–<kbd>9</kbd> ligam e desligam o pedal naquela posição, <kbd>A</kbd>–<kbd>D</kbd> chamam as cenas, <kbd>T</kbd> é o tap tempo do delay, <kbd>[</kbd> <kbd>]</kbd>, as setas e PageUp/PageDown trocam de preset.</p>
+    <p class="hint">Footswitch: um controlador MIDI faz tudo isso pelo botão MIDI (no Chrome e no Edge). No celular, inclusive no iPhone, um footswitch Bluetooth de virar página troca de preset sem configurar. Não toque com fone Bluetooth: o atraso passa de 150 ms.</p>
   </section>
 </main>
 

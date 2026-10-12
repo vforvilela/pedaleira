@@ -1,7 +1,7 @@
 // Peças comuns aos pedais.
-import { dbToGain } from '../audio/engine.js';
+import { dbToGain, monoWorklet } from '../audio/engine.js';
 
-export { dbToGain };
+export { dbToGain, monoWorklet };
 
 export function smooth(ctx, param, value, tc = 0.015) {
   param.setTargetAtTime(value, ctx.currentTime, tc);
@@ -43,10 +43,7 @@ export function cabFilters(ctx) {
 // Nó que roda uma captura .nam no AudioWorklet.
 export class NamSlot {
   constructor(ctx, wasmBytes) {
-    this.node = new AudioWorkletNode(ctx, 'nam', {
-      numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1],
-      channelCount: 1, channelCountMode: 'explicit',
-    });
+    this.node = monoWorklet(ctx, 'nam');
     if (wasmBytes) this.node.port.postMessage({ type: 'wasm', bytes: wasmBytes });
     this.loaded = false;
   }

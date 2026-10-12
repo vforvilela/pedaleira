@@ -1,6 +1,6 @@
 // Pedaleira: monta a cadeia de pedais, liga ao áudio e salva o estado.
 import { Engine, loadWasmBytes } from './audio/engine.js';
-import { PEDALS, byType, DEFAULT_CHAIN, defaultParams } from './pedals/index.js';
+import { PEDALS, byType, DEFAULT_CHAIN, ORDER, defaultParams } from './pedals/index.js';
 import { noteOf } from './audio/pitch.js';
 import { pedalView, installDefs } from './ui/pedal-view.js';
 import { loadState, saveState, putFile, getFile, deleteFile } from './store.js';
@@ -9,12 +9,13 @@ import { Midi, midiSupported } from './midi.js';
 const $ = id => document.getElementById(id);
 const engine = new Engine();
 const uid = () => Math.random().toString(36).slice(2, 10);
+const SCENES = 4, SCENE_NAMES = ['A', 'B', 'C', 'D'];
 
 // ---------- Estado ----------
 
 function newBlock(type) {
   const def = byType[type];
-  return { uid: uid(), type, on: def.defaultOn !== false, params: defaultParams(def), files: {} };
+  return { uid: uid(), type, on: def.defaultOn !== false, params: defaultParams(def), files: {}, scenes: Array(SCENES).fill(null) };
 }
 
 // Completa um bloco salvo com os padrões do pedal (o pedal pode ter ganhado controles novos).
@@ -22,6 +23,8 @@ const normalizeBlock = b => ({
   uid: b.uid, type: b.type, on: b.on !== false,
   params: { ...defaultParams(byType[b.type]), ...b.params },
   files: Object.fromEntries(Object.entries(b.files || {}).map(([k, f]) => [k, { ...f, key: f.key || `${b.uid}:${k}` }])),
+  // scenes[i]: ligado (true), desligado (false) ou fora (null) na cena i.
+  scenes: Array.from({ length: SCENES }, (_, i) => (typeof b.scenes?.[i] === 'boolean' ? b.scenes[i] : null)),
 });
 const normalizeChain = chain => chain.filter(b => byType[b.type]).map(normalizeBlock);
 
@@ -36,7 +39,7 @@ const state = {
   drafts: Object.fromEntries(Object.entries(saved?.drafts || {}).map(([k, c]) => [k, normalizeChain(c)])),
   midi: saved?.midi || [],
 };
-const save = () => { saveState(state); refreshDirty(); };
+const save = () => { saveState(state); refreshDirty(); renderScenes(); };
 const snapshot = chain => JSON.parse(JSON.stringify(chain));
 
 // Um arquivo (.nam, IR) só sai do IndexedDB quando nem a pedaleira nem algum preset usa mais.
@@ -144,11 +147,11 @@ function renderBoard() {
 
 function addBlock(type) {
   const block = newBlock(type);
-  // Afinador entra no começo, drives antes do amp, o resto no fim.
-  const ampAt = state.chain.findIndex(b => byType[b.type].category === 'amp');
-  const cat = byType[type].category;
-  const at = cat === 'tuner' ? 0 : cat === 'drive' && ampAt >= 0 ? ampAt : state.chain.length;
-  state.chain.splice(at, 0, block);
+  // Entra na posição de costume: afinador, gate, compressor, drives, amp, delay e reverb.
+  // Depois dá para arrastar para onde quiser.
+  const rank = b => ORDER[byType[b.type].category] ?? 9;
+  const at = state.chain.findIndex(b => rank(b) > rank(block));
+  state.chain.splice(at < 0 ? state.chain.length : at, 0, block);
   ensureView(block);
   if (engine.running) createAudio(block);
   renderBoard();
@@ -317,7 +320,17 @@ async function start() {
   await Promise.all(state.chain.map(applyStoredFiles));
   runMeter();
   tunerTimer = setInterval(runTuners, 80);
-  const showLat = () => { $('latency').textContent = `${engine.latencyMs().toFixed(1)} ms`; };
+  let warned = false;
+  const showLat = () => {
+    const ms = engine.latencyMs();
+    $('latency').textContent = `${ms.toFixed(1)} ms`;
+    $('latency').parentElement.classList.toggle('high', ms > 80);
+    // Fone ou caixa Bluetooth somam 150 ms ou mais: dá para ouvir, não para tocar.
+    if (ms > 80 && !warned) {
+      warned = true;
+      status(`Latência alta (${Math.round(ms)} ms). Fone ou caixa Bluetooth atrasam demais para tocar: use fone com fio ou a saída da interface.`, true);
+    }
+  };
   showLat();
   latencyTimer = setInterval(showLat, 1000);
   if (!$('status').classList.contains('err')) status(`Tocando: ${track.label}`);
@@ -417,6 +430,7 @@ function sameChain(a, b) {
   return a.every((x, i) => {
     const y = b[i];
     if (x.uid !== y.uid || x.type !== y.type || x.on !== y.on) return false;
+    if (x.scenes.some((v, i) => v !== y.scenes[i])) return false;
     const pk = new Set([...Object.keys(x.params), ...Object.keys(y.params)]);
     for (const k of pk) if (x.params[k] !== y.params[k]) return false;
     const fk = new Set([...Object.keys(x.files), ...Object.keys(y.files)]);
@@ -426,9 +440,12 @@ function sameChain(a, b) {
 }
 
 const presetByName = name => state.presets.find(p => p.name === name);
+// A cadeia salva com a cena i aplicada: trocar de cena não conta como mudança no preset.
+const withScene = (chain, i) => chain.map(b => (b.scenes[i] === null ? b : { ...b, on: b.scenes[i] }));
 const isDirty = () => {
   const p = presetByName(state.preset);
-  return !!p && !sameChain(state.chain, p.chain);
+  if (!p || sameChain(state.chain, p.chain)) return false;
+  return !SCENE_NAMES.some((_, i) => sameChain(state.chain, withScene(p.chain, i)));
 };
 const hasDraft = name => !!state.drafts[name] || (name === state.preset && isDirty());
 
@@ -519,6 +536,7 @@ async function loadChain(chain, presetName) {
     const l = live.get(ex.uid);
     for (const [id, v] of Object.entries(snap.params)) if (ex.params[id] !== v) { ex.params[id] = v; l?.audio?.set(id, v); }
     if (ex.on !== snap.on) { ex.on = snap.on; l?.audio?.setOn(ex.on); }
+    ex.scenes = snap.scenes;
     const reload = [];
     for (const kind of new Set([...Object.keys(ex.files), ...Object.keys(snap.files)])) {
       if (ex.files[kind]?.key === snap.files[kind]?.key) continue;
@@ -568,6 +586,61 @@ $('presetDelete').onclick = deletePreset;
 $('presetRevert').onclick = revertPreset;
 $('presetPrev').onclick = () => stepPreset(-1);
 $('presetNext').onclick = () => stepPreset(1);
+
+// ---------- Cenas ----------
+// Uma cena liga e desliga vários pedais de uma vez (ex.: A = base, B = solo), dentro do mesmo preset.
+// Cada pedal guarda o próprio estado em cada cena; pedais adicionados depois ficam como estão.
+
+let recordingScene = false;
+const sceneButtons = [...document.querySelectorAll('.scene-btn')];
+const sceneUsed = i => state.chain.some(b => b.scenes[i] !== null);
+// Cena que bate com o que está ligado agora (para acender o botão).
+const sceneActive = i => sceneUsed(i) && state.chain.every(b => b.scenes[i] === null || b.scenes[i] === b.on);
+
+function renderScenes() {
+  sceneButtons.forEach((btn, i) => {
+    btn.classList.toggle('used', sceneUsed(i));
+    btn.setAttribute('aria-pressed', sceneActive(i));
+  });
+  $('sceneRec').setAttribute('aria-pressed', recordingScene);
+  $('scenes').classList.toggle('recording', recordingScene);
+}
+
+function sceneSummary(i) {
+  const on = state.chain.filter(b => b.scenes[i]).map(b => byType[b.type].name);
+  return on.length ? `liga ${on.join(', ')}` : 'tudo desligado';
+}
+
+function recallScene(i) {
+  if (!sceneUsed(i)) {
+    status(`Cena ${SCENE_NAMES[i]} vazia. Ligue os pedais que quer, clique em Gravar cena e depois em ${SCENE_NAMES[i]}.`);
+    return;
+  }
+  for (const b of state.chain) {
+    const want = b.scenes[i];
+    if (want === null || want === b.on) continue;
+    b.on = want;
+    const l = live.get(b.uid);
+    l?.audio?.setOn(want);
+    l?.view?.update();
+  }
+  save();
+  status(`Cena ${SCENE_NAMES[i]}: ${sceneSummary(i)}.`);
+}
+
+function storeScene(i) {
+  for (const b of state.chain) b.scenes[i] = b.on;
+  recordingScene = false;
+  save();
+  status(`Cena ${SCENE_NAMES[i]} gravada: ${sceneSummary(i)}. Salve o preset para guardar a cena nele.`);
+}
+
+sceneButtons.forEach((btn, i) => { btn.onclick = () => (recordingScene ? storeScene(i) : recallScene(i)); });
+$('sceneRec').onclick = () => {
+  recordingScene = !recordingScene;
+  renderScenes();
+  status(recordingScene ? 'Gravar cena: clique em A, B, C ou D para guardar quais pedais estão ligados agora.' : 'Gravação de cena cancelada.');
+};
 
 // ---------- Exportar e importar ----------
 // Um arquivo .json com os presets e as capturas/IRs que eles usam: serve de backup
@@ -667,6 +740,7 @@ function runAction(target, msg) {
   // msg.trigger: pisada que conta (ver midi.js). Teclado e cliques chegam sem msg.
   const fires = !msg || msg.trigger !== false;
   if (target.kind === 'preset') { if (fires) stepPreset(target.dir); return; }
+  if (target.kind === 'scene') { if (fires) recallScene(target.index); return; }
   const block = blockByUid(target.uid);
   if (!block) return;
   if (target.kind === 'knob') {
@@ -683,6 +757,7 @@ function runAction(target, msg) {
 
 function describeTarget(t) {
   if (t.kind === 'preset') return t.dir > 0 ? 'próximo preset' : 'preset anterior';
+  if (t.kind === 'scene') return `cena ${SCENE_NAMES[t.index]}`;
   const b = blockByUid(t.uid), name = b ? byType[b.type].name : 'pedal';
   if (t.kind === 'toggle') return `${name} (liga/desliga)`;
   if (t.kind === 'tap') return `${name} (TAP)`;
@@ -717,7 +792,7 @@ if (midiSupported()) {
     }
     setLearning(true);
     const names = midi.inputNames();
-    status(`${names.length ? `Controlador: ${names.join(', ')}.` : 'Nenhum controlador MIDI conectado.'} Toque no que quer controlar (pedal, TAP, botão, ◀ ▶) e depois pise no controlador.`);
+    status(`${names.length ? `Controlador: ${names.join(', ')}.` : 'Nenhum controlador MIDI conectado.'} Toque no que quer controlar (pedal, TAP, botão, cena, ◀ ▶) e depois pise no controlador.`);
   };
   $('midiClear').onclick = () => {
     state.midi.splice(0);
@@ -731,12 +806,13 @@ if (midiSupported()) {
 // No modo de aprendizado, um toque escolhe o alvo em vez de agir.
 document.addEventListener('pointerdown', e => {
   if (!learning) return;
-  const el = closest(e, '.footswitch, .tap-btn, .knob, #presetPrev, #presetNext');
+  const el = closest(e, '.footswitch, .tap-btn, .knob, .scene-btn, #presetPrev, #presetNext');
   if (!el) return;
   e.preventDefault();
   e.stopPropagation();
   let target;
   if (el.id === 'presetPrev' || el.id === 'presetNext') target = { kind: 'preset', dir: el.id === 'presetNext' ? 1 : -1 };
+  else if (el.classList.contains('scene-btn')) target = { kind: 'scene', index: sceneButtons.indexOf(el) };
   else {
     const id = el.closest('.pedal')?.dataset.uid;
     if (!id) return;
@@ -750,20 +826,26 @@ document.addEventListener('pointerdown', e => {
   status(`Agora pise no botão do controlador para: ${describeTarget(target)}.`);
 }, true);
 document.addEventListener('click', e => {
-  if (learning && closest(e, '.footswitch, .tap-btn, .knob, #presetPrev, #presetNext')) { e.preventDefault(); e.stopPropagation(); }
+  if (learning && closest(e, '.footswitch, .tap-btn, .knob, .scene-btn, #presetPrev, #presetNext')) { e.preventDefault(); e.stopPropagation(); }
 }, true);
 
-// Teclado do computador como footswitch: 1–9 liga/desliga o pedal na posição, T = tap, [ ] = presets.
+// Teclado do computador como footswitch: 1–9 liga/desliga o pedal na posição, T = tap, [ ] = presets,
+// A–D = cenas. Setas e PageUp/PageDown também trocam de preset: é o que mandam os footswitches
+// Bluetooth de virar página (que funcionam como teclado no celular, inclusive no iPhone).
+const PREV_KEYS = new Set(['[', 'ArrowLeft', 'ArrowUp', 'PageUp']);
+const NEXT_KEYS = new Set([']', 'ArrowRight', 'ArrowDown', 'PageDown']);
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey || closest(e, 'input, select, textarea, .knob')) return;
-  if (/^[1-9]$/.test(e.key)) {
+  const scene = 'abcd'.indexOf(e.key.toLowerCase());
+  if (e.key.length === 1 && scene >= 0) recallScene(scene);
+  else if (/^[1-9]$/.test(e.key)) {
     const b = state.chain[+e.key - 1];
     if (b) { toggleBlock(b); status(`${byType[b.type].name}: ${b.on ? 'ligado' : 'desligado'}`); }
   } else if (e.key === 't' || e.key === 'T') {
     const b = state.chain.find(b => byType[b.type].tap);
     if (b) tapTempo(b);
-  } else if (e.key === '[') stepPreset(-1);
-  else if (e.key === ']') stepPreset(1);
+  } else if (PREV_KEYS.has(e.key)) stepPreset(-1);
+  else if (NEXT_KEYS.has(e.key)) stepPreset(1);
   else return;
   e.preventDefault();
 });
@@ -785,6 +867,7 @@ $('library').replaceChildren(...PEDALS.map(def => {
 installDefs();
 renderBoard();
 renderPresets();
+renderScenes();
 // Acesso para depuração pelo console e para os testes no navegador.
 window.__pedaleira = { engine, get state() { return state; }, live, midi, buildExport, importPresets, getFile };
 loadWasmBytes();

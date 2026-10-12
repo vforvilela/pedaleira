@@ -13,6 +13,12 @@ export function loadWasmBytes() {
   return wasmBytesPromise;
 }
 
+// Nó mono de um dos processadores do AudioWorklet.
+export const monoWorklet = (ctx, name) => new AudioWorkletNode(ctx, name, {
+  numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1],
+  channelCount: 1, channelCountMode: 'explicit',
+});
+
 export class Engine {
   constructor() {
     this.ctx = null;
@@ -38,7 +44,8 @@ export class Engine {
       this.stream = await ask(null);
     }
     const ctx = this.ctx = new AudioContext({ latencyHint: 0, sampleRate: 48000 });
-    await ctx.audioWorklet.addModule(new URL('../nam/nam-worklet.js', import.meta.url));
+    await Promise.all(['../nam/nam-worklet.js', './dsp-worklet.js']
+      .map(f => ctx.audioWorklet.addModule(new URL(f, import.meta.url))));
     this.wasmBytes = await loadWasmBytes();
 
     this.source = ctx.createMediaStreamSource(this.stream);
@@ -54,13 +61,8 @@ export class Engine {
     this.input.connect(this.analyser);
 
     this.master = ctx.createGain();
-    // Limitador de segurança antes do fone.
-    this.limiter = ctx.createDynamicsCompressor();
-    this.limiter.threshold.value = -1;
-    this.limiter.knee.value = 0;
-    this.limiter.ratio.value = 20;
-    this.limiter.attack.value = 0.001;
-    this.limiter.release.value = 0.1;
+    // Limitador de segurança antes do fone (sem o atraso de ~6 ms do DynamicsCompressorNode).
+    this.limiter = monoWorklet(ctx, 'limiter');
     this.master.connect(this.limiter).connect(ctx.destination);
     this.outAnalyser = ctx.createAnalyser();
     this.outAnalyser.fftSize = 1024;

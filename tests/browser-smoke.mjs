@@ -223,6 +223,79 @@ try {
   const exp = before.split(','); exp.unshift(exp.splice(1, 1)[0]);
   check(after === exp.join(','), `arrastar com o dedo muda a ordem (${before} → ${after})`);
 
+  // Pedais novos entram na posição de costume: gate e compressor antes dos drives, fuzz junto dos drives.
+  await send('Emulation.setTouchEmulationEnabled', { enabled: false });
+  await shot('5-antes-dos-novos.png');
+  for (const name of ['Marimbondo', 'Aperto', 'Silêncio'])
+    await evaluate(`[...document.querySelectorAll('#library .add')].find(b => b.querySelector('b').textContent === ${JSON.stringify(name)}).click()`);
+  await sleep(500);
+  const order2 = await evaluate(`__pedaleira.state.chain.map(b => b.type).join(',')`);
+  // (o teste de toque deixou o amp em primeiro: os novos entram antes dele, na ordem gate → compressor → fuzz)
+  const at = t => order2.split(',').indexOf(t);
+  check(at('silencio') < at('aperto') && at('aperto') < at('marimbondo') && at('marimbondo') < at('amp'),
+    `gate, compressor e fuzz entram no lugar certo (${order2})`);
+  const p3 = await peakOver(1500);
+  check(p3 > 0.001, `sinal na saída com gate, compressor e fuzz ligados (pico ${p3.toFixed(4)})`);
+  await shot('6-pedais-novos.png', 1600, 900);
+
+  // Cenas: A = só o reverb e o delay; B = tudo. Trocar de cena não marca o preset com *.
+  const sceneRes = await evaluate(`(async () => {
+    const p = __pedaleira, c = p.state.chain, key = k => document.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
+    const setOn = on => c.forEach(b => { if (b.on !== on(b)) { const i = c.indexOf(b); key(String(i + 1)); } });
+    setOn(b => b.type === 'eco-8' || b.type === 'salao' || b.type === 'amp');
+    document.getElementById('sceneRec').click(); document.querySelectorAll('.scene-btn')[0].click();
+    setOn(b => b.type !== 'afinador');
+    document.getElementById('sceneRec').click(); document.querySelectorAll('.scene-btn')[1].click();
+    const i = document.getElementById('presetName'); i.value = 'Cenas'; document.getElementById('presetSave').click();
+    key('a');
+    const a = c.filter(b => b.on).map(b => b.type).join(',');
+    const starA = document.getElementById('preset').selectedOptions[0].textContent;
+    const litA = document.querySelectorAll('.scene-btn')[0].getAttribute('aria-pressed');
+    key('b');
+    const b = c.filter(b => b.on).length;
+    return { a, starA, litA, b, total: c.length };
+  })()`);
+  check(sceneRes.a === 'amp,eco-8,salao' && sceneRes.b === sceneRes.total - 1, `cenas A e B ligam os pedais gravados (${JSON.stringify(sceneRes)})`);
+  check(sceneRes.starA === 'Cenas' && sceneRes.litA === 'true', `trocar de cena não marca o preset com * e acende o botão (${sceneRes.starA})`);
+  const sceneMidi = await evaluate(`(() => {
+    const { state, midi } = __pedaleira;
+    midi.learn({ kind: 'scene', index: 0 });
+    midi.handle([0xB0, 70, 127]); midi.handle([0xB0, 70, 0]);
+    midi.handle([0xB0, 70, 127]);
+    return state.chain.filter(b => b.on).map(b => b.type).join(',');
+  })()`);
+  check(sceneMidi === 'amp,eco-8,salao', `MIDI chama a cena A (${sceneMidi})`);
+  await shot('7-cenas.png');
+
+  // Footswitch Bluetooth de virar página: PageDown e seta para a direita trocam de preset.
+  const pages = await evaluate(`(async () => {
+    const key = k => document.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
+    const seen = [__pedaleira.state.preset];
+    for (const k of ['PageDown', 'ArrowRight', 'PageUp']) { key(k); await new Promise(r => setTimeout(r, 300)); seen.push(__pedaleira.state.preset); }
+    return seen;
+  })()`);
+  const ix = pages.map(n => n);
+  check(pages[1] !== pages[0] && pages[2] !== pages[1] && pages[3] === pages[1], `PageDown, seta e PageUp trocam de preset (${ix.join(' → ')})`);
+
+  // Latência: o limitador novo não atrasa nada; o DynamicsCompressorNode do navegador atrasa.
+  const lat = await evaluate(`(async () => {
+    const delayOf = async build => {
+      const ctx = new OfflineAudioContext(1, 4800, 48000);
+      await ctx.audioWorklet.addModule('js/audio/dsp-worklet.js');
+      const buf = ctx.createBuffer(1, 4800, 48000); buf.getChannelData(0)[100] = 0.5;
+      const src = ctx.createBufferSource(); src.buffer = buf;
+      src.connect(build(ctx)).connect(ctx.destination); src.start();
+      const out = (await ctx.startRendering()).getChannelData(0);
+      let at = 0; for (let i = 0; i < out.length; i++) if (Math.abs(out[i]) > Math.abs(out[at])) at = i;
+      return (at - 100) / 48;
+    };
+    return {
+      ours: await delayOf(ctx => new AudioWorkletNode(ctx, 'limiter')),
+      native: await delayOf(ctx => ctx.createDynamicsCompressor()),
+    };
+  })()`);
+  check(lat.ours === 0, `limitador de saída sem atraso (nosso ${lat.ours} ms; o do navegador atrasaria ${lat.native} ms)`);
+
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
   console.log(`screenshots em ${out}`);
   ws.close();
