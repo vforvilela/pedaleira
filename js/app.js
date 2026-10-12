@@ -54,7 +54,7 @@ openSharedLink();
 // Instalar como app: Chrome/Edge/Android oferecem o evento; no iPhone, o caminho é pelo menu Compartilhar.
 let installPrompt = null;
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; $('install').hidden = false; });
-addEventListener('appinstalled', () => { $('install').hidden = true; status('Pedaleira instalada como app.'); });
+addEventListener('appinstalled', () => { $('install').hidden = true; status('Brasa instalada como app.'); });
 const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 const iOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 if (iOS && !standalone) $('install').hidden = false;
@@ -69,7 +69,7 @@ $('install').onclick = async () => {
 
 // Navegador sem AudioWorklet (muito antigo): avisa logo, antes de tentar ligar.
 if (!window.AudioWorkletNode || !navigator.mediaDevices?.getUserMedia)
-  status('Este navegador não tem o que a Pedaleira precisa (AudioWorklet e entrada de áudio). Use Chrome, Edge, Firefox ou Safari atualizados.', true);
+  status('Este navegador não tem o que a Brasa precisa (AudioWorklet e entrada de áudio). Use Chrome, Edge, Firefox ou Safari atualizados.', true);
 persist();
 
 $('intro').hidden = state.introDone;

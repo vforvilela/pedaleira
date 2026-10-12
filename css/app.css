@@ -6,7 +6,7 @@
 /* Escuro de propósito: palco e quarto com pouca luz. */
 :root {
   --bg: #141518; --panel: #1d1f23; --line: #2e3238; --text: #ece9e4; --muted: #9aa1a9;
-  --accent: #f0a23b; --on-accent: #1a1205; --ok: #5cc98a; --bad: #e5604f;
+  --accent: #f0a23b; --ember-deep: #e0602a; --ember-hot: #ffd27a; --on-accent: #1a1205; --ok: #5cc98a; --bad: #e5604f;
   --board: #26282c; --rail: #34373c; --cable: #111;
   --stage-bg: #0b0c0e; --toast-bg: #2b2e33; --chip-bg: #2b2410; --chip-line: #6b5420;
   /* LEDs dos pedais */
@@ -45,7 +45,13 @@ button:disabled { opacity: .6; cursor: wait; }
   position: sticky; top: 0; z-index: 5;
 }
 h1 { margin: 0; font-size: 22px; font-weight: 800; font-stretch: 125%; letter-spacing: -.01em; }
-h1 span { color: var(--accent); }
+/* Marca: um ponto aceso, como LED de pedal ou brasa de válvula. */
+h1 { display: flex; align-items: center; gap: 8px; }
+h1 .ember {
+  width: 12px; height: 12px; border-radius: 50%; flex: none;
+  background: radial-gradient(circle at 40% 35%, var(--ember-hot), var(--accent) 55%, var(--ember-deep));
+  box-shadow: 0 0 10px color-mix(in oklch, var(--accent) 70%, transparent);
+}
 .io { display: flex; gap: 8px; min-width: 0; }
 .io select { flex: 1; min-width: 0; max-width: 340px; }
 .levels { display: flex; gap: 14px; align-items: center; font-size: 13px; color: var(--muted); }
@@ -78,7 +84,6 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
   button, select, .presets input { min-height: var(--touch); }
   #presetPrev, #presetNext { min-width: var(--touch); }
   .master input { height: var(--touch); }
-  .tools button { min-width: var(--touch); }
 }
 .more-btn { display: none; }
 @media (max-width: 760px) {
@@ -183,7 +188,7 @@ main { padding: 16px 0 32px; }
 .tools { display: flex; gap: 6px; }
 /* Tirar fica afastado do resto: no toque, encostar no ⠿ não pode remover o pedal. */
 .tools .remove { margin-left: 10px; }
-.tools button { padding: 4px 10px; font-size: 12px; border-radius: 6px; background: var(--panel); }
+.tools button { padding: 4px 10px; font-size: 12px; border-radius: 6px; background: var(--panel); min-width: var(--touch); min-height: var(--touch); }
 .tools .grip { cursor: grab; touch-action: none; font-size: 15px; line-height: 1; padding: 4px 10px; }
 .tools .file-btn.has { border-color: var(--accent); color: var(--accent); }
 .tools .tap-btn { font-weight: 700; letter-spacing: .05em; }

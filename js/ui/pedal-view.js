@@ -132,7 +132,7 @@ function drawPedal(def) {
     el('rect', { x: W - 70, y: 108, width: 52, height: 30, rx: 4, fill: '#111', stroke: '#333' }, foot);
     led = el('circle', { cx: W - 56, cy: 123, r: 6, class: 'led', stroke: '#000' }, foot);
     text(foot, W - 34, 127, 'ON', { fill: '#bbb', 'font-size': 9, 'font-weight': 700 });
-    return { svg, knobs, led, foot, W, H };
+    return { svg, knobs, led, foot, zone: drawZone(svg, look, W), W, H };
   }
 
   if (look.style === 'treadle') {
@@ -147,7 +147,7 @@ function drawPedal(def) {
     el('circle', { cx: W - 26, cy: 228, r: 18, fill: 'transparent' }, foot);
     el('circle', { cx: W - 26, cy: 228, r: 12, fill: '#6d7075', stroke: '#3b3d40', 'stroke-width': 2 }, foot);
     el('circle', { cx: W - 26, cy: 228, r: 8, fill: 'url(#footGrad)', stroke: '#55585c' }, foot);
-    return { svg, knobs, led, foot, W, H };
+    return { svg, knobs, led, foot, zone: drawZone(svg, look, W), W, H };
   }
 
   // Corpo do pedal.
@@ -198,7 +198,20 @@ function drawPedal(def) {
     el('circle', { cx: W / 2, cy: 210, r: 17, fill: '#6d7075', stroke: '#3b3d40', 'stroke-width': 2 }, foot);
     el('circle', { cx: W / 2, cy: 210, r: 12, fill: 'url(#footGrad)', stroke: '#55585c' }, foot);
   }
-  return { svg, knobs, led, foot, display, W, H };
+  return { svg, knobs, led, foot, display, zone: drawZone(svg, look, W, display), W, H };
+}
+
+// Área dos controles: no toque, um toque em qualquer ponto dela (inclusive entre os botões) abre o painel
+// com os controles em tamanho de dedo. Fica atrás dos botões, que continuam girando ao arrastar.
+const ZONES = { compact: [4, 18, 58], stomp: [4, 18, 58], amp: [12, 14, 78] };
+function drawZone(svg, look, W, display) {
+  let x0, y0, h, x1;
+  if (look.style === 'treadle') [x0, y0, x1, h] = [6, 194, W - 50, 46];
+  else if (display) [x0, y0, x1, h] = [4, 14, W - 4, 78]; // afinador: o visor e as duas chaves
+  else { [x0, y0, h] = ZONES[look.style]; x1 = W - x0; if (look.style !== 'amp' && svg.querySelector('.slider')) h = 76; }
+  const zone = el('rect', { x: x0, y: y0, width: x1 - x0, height: h, class: 'knob-zone', fill: 'transparent' });
+  svg.insertBefore(zone, svg.querySelector('.knob'));
+  return zone;
 }
 
 // Visor do afinador: 11 LEDs (centro verde = afinado) e o nome da nota.
@@ -235,7 +248,7 @@ export function pedalView(block, cb) {
   const root = document.createElement('div');
   root.className = `pedal ${def.look.style}`;
   root.dataset.uid = block.uid;
-  const { svg, knobs, led, foot, display } = drawPedal(def);
+  const { svg, knobs, led, foot, display, zone } = drawPedal(def);
   root.append(svg);
 
   const caption = document.createElement('div');
@@ -364,6 +377,14 @@ export function pedalView(block, cb) {
       e.preventDefault();
     });
   }
+
+  let tap = null;
+  zone.addEventListener('pointerdown', e => { tap = e.pointerType === 'touch' ? { x: e.clientX, y: e.clientY } : null; });
+  zone.addEventListener('pointerup', e => {
+    if (tap && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) < 10) openKnobSheet(def, block, setters, def.controls[0].id);
+    tap = null;
+  });
+  zone.addEventListener('pointercancel', () => { tap = null; });
 
   update();
   const num = document.createElement('span');

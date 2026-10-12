@@ -366,7 +366,7 @@ export async function exportPresets() {
   const blob = new Blob([JSON.stringify(doc)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `pedaleira-presets-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `brasa-presets-${new Date().toISOString().slice(0, 10)}.json`;
   document.body.append(a);
   a.click();
   a.remove();
@@ -381,7 +381,7 @@ export async function importPresets(file) {
     doc = JSON.parse(await file.text());
     if (doc?.app !== 'pedaleira' || !Array.isArray(doc.presets)) throw new Error();
   } catch {
-    status(`${file.name} não é um arquivo de presets da Pedaleira.`, true);
+    status(`${file.name} não é um arquivo de presets da Brasa.`, true);
     return;
   }
   for (const [key, f] of Object.entries(doc.files || {}))

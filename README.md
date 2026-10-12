@@ -1,6 +1,6 @@
-# Pedaleira
+# Brasa
 
-Monte uma pedaleira de guitarra no navegador. Cada pedal é desenhado como o real e tem o som modelado nele.
+Sua pedaleira de guitarra no navegador. Cada pedal é desenhado como o real e tem o som modelado nele.
 Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opção "Adicionar à tela inicial").
 
 **Pedais** (19, na ordem em que costumam ficar na pedaleira)

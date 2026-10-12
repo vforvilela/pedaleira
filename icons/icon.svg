@@ -1,11 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#141518"/>
-  <rect x="146" y="70" width="220" height="372" rx="24" fill="#f2c12e"/>
-  <circle cx="204" cy="150" r="30" fill="#151515"/>
-  <circle cx="308" cy="150" r="30" fill="#151515"/>
-  <line x1="204" y1="150" x2="204" y2="126" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
-  <line x1="308" y1="150" x2="324" y2="134" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
-  <circle cx="256" cy="98" r="9" fill="#ff3b30"/>
-  <rect x="172" y="220" width="168" height="120" rx="10" fill="#1c1c1c"/>
-  <rect x="166" y="380" width="180" height="40" rx="6" fill="#151515"/>
+  <defs>
+    <linearGradient id="brasa" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6b54a"/>
+      <stop offset="1" stop-color="#e0602a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#ff7a3a" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#ff7a3a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="#16130f"/>
+  <rect x="146" y="70" width="220" height="372" rx="24" fill="url(#brasa)"/>
+  <circle cx="204" cy="150" r="30" fill="#1a1410"/>
+  <circle cx="308" cy="150" r="30" fill="#1a1410"/>
+  <line x1="204" y1="150" x2="204" y2="126" stroke="#f4ede4" stroke-width="8" stroke-linecap="round"/>
+  <line x1="308" y1="150" x2="324" y2="134" stroke="#f4ede4" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="256" cy="98" r="22" fill="url(#glow)"/>
+  <circle cx="256" cy="98" r="9" fill="#ffd27a"/>
+  <rect x="172" y="220" width="168" height="120" rx="10" fill="#1a1410"/>
+  <rect x="190" y="242" width="132" height="8" rx="4" fill="#5a2a14"/>
+  <rect x="190" y="266" width="132" height="8" rx="4" fill="#7a3416"/>
+  <rect x="190" y="290" width="132" height="8" rx="4" fill="#a8441a"/>
+  <rect x="190" y="314" width="132" height="8" rx="4" fill="#e0602a"/>
+  <rect x="166" y="380" width="180" height="40" rx="6" fill="#1a1410"/>
 </svg>

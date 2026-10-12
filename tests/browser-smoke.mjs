@@ -605,9 +605,24 @@ try {
       return res;
     })()`);
     if (!r.open || r.rows !== r.want || r.minH < 44 || !r.fits) sheetBad.push(JSON.stringify(r));
+    // Área dos controles: ≥ 44×44 px, e um toque num ponto dela fora dos botões também abre o painel.
+    const zp = await evaluate(`(() => {
+      const z = document.querySelector('.pedal[data-uid="${uid}"] .knob-zone'), r = z.getBoundingClientRect();
+      for (let y = r.top + 2; y < r.bottom; y += 3) for (let x = r.left + 2; x < r.right; x += 3)
+        if (document.elementFromPoint(x, y) === z) return { x, y, w: Math.round(r.width), h: Math.round(r.height) };
+      return { w: Math.round(r.width), h: Math.round(r.height) };
+    })()`);
+    let zoneOpen = false;
+    if (zp.x !== undefined) {
+      await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: zp.x, y: zp.y }] });
+      await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await sleep(250);
+      zoneOpen = await evaluate(`(() => { const d = document.querySelector('.knob-sheet'); const o = !!d?.open; if (o) d.querySelector('button').click(); return o; })()`);
+    }
+    if (zp.w < 44 || zp.h < 44 || !zoneOpen) sheetBad.push(JSON.stringify({ name: r.name, zone: zp, zoneOpen }));
   }
   check(uids.length >= 19 && sheetBad.length === 0,
-    `painel de toque abre em todos os ${uids.length} pedais com controles de ≥ 44 px${sheetBad.length ? ': ' + sheetBad.join(' ') : ''}`);
+    `painel de toque abre em todos os ${uids.length} pedais (pelo botão e pela área dos controles, ≥ 44 px)${sheetBad.length ? ': ' + sheetBad.join(' ') : ''}`);
 
   // Toque: todo controle HTML visível (topo, presets, cenas, mapa, ⠿ ✕ NAM TAP…) com pelo menos 44×44 px.
   const small = await evaluate(`(() => {
@@ -621,6 +636,15 @@ try {
     return { total: document.querySelectorAll('button, select, input').length, small: [...new Set(out)] };
   })()`);
   check(small.small.length === 0, `toque: todos os controles com ≥ 44 px (${small.small.length ? small.small.join(', ') : small.total + ' controles medidos'})`);
+
+  // Mouse (tela de PC): ⠿ ✕ NAM IR TAP também com 44×44 px.
+  await send('Emulation.setTouchEmulationEnabled', { enabled: false });
+  await send('Emulation.setDeviceMetricsOverride', { width: 1600, height: 900, deviceScaleFactor: 1, mobile: false });
+  await sleep(300);
+  const mouseSmall = await evaluate(`[...document.querySelectorAll('#board .tools button')].map(b => b.getBoundingClientRect())
+    .filter(r => r.width < 44 || r.height < 44).map(r => Math.round(r.width) + 'x' + Math.round(r.height))`);
+  check(!(await evaluate(`matchMedia('(pointer: coarse)').matches`)) && mouseSmall.length === 0,
+    `mouse: botões dos pedais com ≥ 44 px (${mouseSmall.length ? mouseSmall.join(', ') : 'todos'})`);
 
   // Fonte própria (Archivo) carregada do app e usada no título e nos rótulos dos botões.
   const font = await evaluate(`document.fonts.ready.then(() => {

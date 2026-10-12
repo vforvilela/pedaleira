@@ -1,7 +1,7 @@
 {
-  "name": "Pedaleira",
-  "short_name": "Pedaleira",
-  "description": "Monte sua pedaleira de guitarra: pedais desenhados como os reais, com som modelado e capturas NAM.",
+  "name": "Brasa — pedaleira de guitarra",
+  "short_name": "Brasa",
+  "description": "Brasa: sua pedaleira de guitarra no navegador, pedais desenhados como os reais, com som modelado e capturas NAM.",
   "lang": "pt-BR",
   "start_url": "./",
   "scope": "./",
