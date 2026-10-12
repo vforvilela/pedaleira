@@ -277,3 +277,13 @@ test('fuzz limpa quando o volume da guitarra baixa (como o Fuzz Face)', () => {
   assert.ok(mid < full / 2.5, `volume 30% bem menos sujo (THD ${mid.toFixed(3)})`);
   assert.ok(low < 0.02, `volume 15% limpo (THD ${low.toFixed(3)})`);
 });
+
+test('canal da interface: escolhe o canal da palhetada, não decide com canais iguais ou silêncio', async () => {
+  const { pickChannel } = await import('../js/audio/channel.js');
+  assert.equal(pickChannel(0, 0), null);
+  assert.equal(pickChannel(0.005, 0), null, 'chiado não decide');
+  assert.equal(pickChannel(0.3, 0.002), 0);
+  assert.equal(pickChannel(0.001, 0.2), 1);
+  assert.equal(pickChannel(0.3, 0.3), null, 'interface que duplica a entrada fica na mistura');
+  assert.equal(pickChannel(0.3, 0.1), null, 'menos de 12 dB de diferença: não decide');
+});

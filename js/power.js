@@ -1,6 +1,7 @@
 // Ligar e desligar o áudio, escolher a entrada, medidor, volume, latência e afinadores.
 import { setStageTuner } from './stage.js';
 import { noteOf } from './audio/pitch.js';
+import { pickChannel } from './audio/channel.js';
 import { $, applyStoredFiles, createAudio, engine, live, reconnect, save, state, status } from './core.js';
 
 export async function listDevices(selectedId) {
@@ -12,7 +13,7 @@ export async function listDevices(selectedId) {
   sel.value = selectedId || (tank && tank.deviceId) || sel.value;
 }
 
-let meterRaf = 0, latencyTimer = 0, tunerTimer = 0;
+let meterRaf = 0, latencyTimer = 0, tunerTimer = 0, channelTimer = 0;
 
 // Lê os afinadores ligados ~12 vezes por segundo; desligados, o visor apaga.
 export function runTuners() {
@@ -53,6 +54,7 @@ export async function start() {
   reconnect();
   engine.setMaster(state.master);
   engine.setInputGain(state.inputGain);
+  setupChannel();
   watchAudio(track);
   await Promise.all(state.chain.map(applyStoredFiles));
   runMeter();
@@ -83,6 +85,7 @@ export async function stop() {
   cancelAnimationFrame(meterRaf);
   clearInterval(latencyTimer);
   clearInterval(tunerTimer);
+  clearInterval(channelTimer);
   await engine.stop();
   for (const l of live.values()) { l.audio = null; l.view?.setState(''); }
   runTuners();
@@ -115,6 +118,35 @@ $('device').onchange = async () => {
   if (!engine.running) return;
   await stop();
   $('power').click();
+};
+
+// ---------- Canal da interface (2 entradas: guitarra num canal só) ----------
+
+function setupChannel() {
+  clearInterval(channelTimer);
+  $('channel').hidden = engine.channels === 1;
+  $('channel').value = state.inputChannel;
+  if (engine.channels === 1) return;
+  if (state.inputChannel !== 'auto') { engine.useChannel(+state.inputChannel); return; }
+  // Automático: até a primeira palhetada, a mistura dos dois; depois, o canal onde ela apareceu.
+  engine.useChannel(null);
+  const buf = new Float32Array(1024), max = [0, 0];
+  channelTimer = setInterval(() => {
+    engine.chAnalyser.forEach((a, i) => { max[i] = Math.max(max[i], engine.peak(buf, a)); });
+    const ch = pickChannel(max[0], max[1]);
+    if (ch === null) return;
+    clearInterval(channelTimer);
+    engine.useChannel(ch);
+    $('channel').options[0].textContent = `Canal: auto (${ch + 1})`;
+    status(`Guitarra no canal ${ch + 1} da interface.`);
+  }, 50);
+}
+
+$('channel').onchange = () => {
+  state.inputChannel = $('channel').value;
+  $('channel').options[0].textContent = 'Canal: auto';
+  save();
+  if (engine.running) setupChannel();
 };
 
 // Medir a latência real: o usuário liga um cabo da saída na entrada; a pedaleira fica muda por ~3 s.

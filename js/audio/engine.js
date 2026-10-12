@@ -33,7 +33,7 @@ export class Engine {
       audio: {
         deviceId: id ? { exact: id } : undefined,
         echoCancellation: false, noiseSuppression: false, autoGainControl: false,
-        latency: 0, channelCount: { ideal: 1 },
+        latency: 0, channelCount: { ideal: 2 },
       },
     });
     try {
@@ -49,12 +49,28 @@ export class Engine {
     this.wasmBytes = await loadWasmBytes();
 
     this.source = ctx.createMediaStreamSource(this.stream);
-    // Força mono: a guitarra é um sinal só.
-    this.input = ctx.createGain();
-    this.input.channelCount = 1;
-    this.input.channelCountMode = 'explicit';
-    this.input.channelInterpretation = 'speakers';
-    this.source.connect(this.input);
+    // A guitarra é um sinal só. Sem canal escolhido, a mistura do navegador: mono passa inteiro, estéreo vira
+    // a média dos dois. Com canal escolhido, só ele, inteiro.
+    const mono = node => Object.assign(node, { channelCount: 1, channelCountMode: 'explicit', channelInterpretation: 'speakers' });
+    this.input = mono(ctx.createGain());
+    this.mix = mono(ctx.createGain());
+    this.source.connect(this.mix).connect(this.input);
+    const split = ctx.createChannelSplitter(2);
+    this.source.connect(split);
+    this.chGain = [0, 1].map(i => {
+      const g = ctx.createGain();
+      g.gain.value = 0;
+      split.connect(g, i).connect(this.input);
+      return g;
+    });
+    this.chAnalyser = [0, 1].map(i => {
+      const a = ctx.createAnalyser();
+      a.fftSize = 1024;
+      split.connect(a, i);
+      return a;
+    });
+    this.channels = this.stream.getAudioTracks()[0].getSettings().channelCount ?? 0; // 0: o navegador não diz
+    this.useChannel(null);
 
     this.analyser = ctx.createAnalyser();
     this.analyser.fftSize = 1024;
@@ -79,6 +95,13 @@ export class Engine {
     this.stream?.getTracks().forEach(t => t.stop());
     await this.ctx?.close();
     this.ctx = this.stream = null;
+  }
+
+  // Canal da interface onde está a guitarra (0 ou 1); null mistura os dois.
+  useChannel(i) {
+    const t = this.ctx.currentTime;
+    this.mix.gain.setTargetAtTime(+(i === null), t, 0.005);
+    this.chGain.forEach((g, n) => g.gain.setTargetAtTime(+(n === i), t, 0.005));
   }
 
   setInputGain(db) {

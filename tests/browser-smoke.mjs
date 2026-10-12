@@ -84,6 +84,22 @@ try {
   const p1 = await peakOver(1500);
   check(p1 > 0.001, `sinal na saída com o circuito interno (pico ${p1.toFixed(4)})`);
 
+  // Canal da interface. O microfone falso manda o mesmo bipe nos 2 canais, ~1 por segundo: cada canal sozinho
+  // chega inteiro, a mistura também, e o automático não escolhe (canais iguais).
+  const chan = await evaluate(`(async () => {
+    const e = __pedaleira.engine, b = new Float32Array(1024), wait = () => new Promise(r => setTimeout(r, 150));
+    const peak = async () => { let p = 0; for (let i = 0; i < 10; i++) { await wait(); p = Math.max(p, e.peak(b)); } return p; };
+    e.useChannel(1); const c2 = await peak();
+    e.useChannel(0); const c1 = await peak();
+    e.useChannel(null); const mix = await peak();
+    return { c1, c2, mix, channels: e.channels, hidden: document.getElementById('channel').hidden,
+      auto: document.getElementById('channel').options[0].textContent };
+  })()`);
+  check(chan.c1 > 0.001 && Math.abs(chan.c2 - chan.c1) < chan.c1 * 0.5 && Math.abs(chan.mix - chan.c1) < chan.c1 * 0.5,
+    `canal escolhido: 1 = ${chan.c1.toFixed(4)}, 2 = ${chan.c2.toFixed(5)}, mistura = ${chan.mix.toFixed(4)}`);
+  check(chan.hidden === (chan.channels === 1), `seletor de canal some só com entrada mono (canais: ${chan.channels})`);
+  check(chan.auto === 'Canal: auto', `automático não escolhe canal quando os dois são iguais ("${chan.auto}")`);
+
   // Carrega uma captura NAM no amp.
   const loadRes = await evaluate(`(async () => {
     const { state, live } = __pedaleira;

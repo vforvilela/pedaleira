@@ -17,6 +17,9 @@
   <h1><span class="ember" aria-hidden="true"></span>Brasa</h1>
   <div class="io">
     <select id="device" aria-label="Entrada de áudio"><option value="">Entrada padrão</option></select>
+    <select id="channel" aria-label="Canal da interface onde está a guitarra" title="Em qual entrada da interface a guitarra está plugada. Automático: o app descobre na primeira palhetada." hidden>
+      <option value="auto">Canal: auto</option><option value="0">Canal 1</option><option value="1">Canal 2</option>
+    </select>
     <button id="power" class="primary" aria-pressed="false">Ligar</button>
     <button id="install" title="Instalar a Brasa como app (abre sem o navegador, funciona sem internet)" hidden>Instalar</button>
   </div>

@@ -49,6 +49,7 @@ export const state = {
   // Quem já usava o app antes do cartão de primeiros passos não precisa vê-lo.
   introDone: saved ? saved.introDone ?? true : false,
   deviceId: saved?.deviceId ?? '',
+  inputChannel: saved?.inputChannel ?? 'auto',
   chain: normalizeChain(saved?.chain || DEFAULT_CHAIN.map(newBlock)),
   presets: (saved?.presets || []).map(p => ({ name: p.name, chain: normalizeChain(p.chain) })),
   preset: saved?.preset ?? null,

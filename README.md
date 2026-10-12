@@ -49,6 +49,8 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
   Trocar de cena não marca o preset com `*`.
 - **Spillover**: ao trocar de preset, o delay e o reverb que saem continuam soando até a cauda acabar (até 8 s).
 - **Desfazer**: removeu um pedal sem querer? Clique em Desfazer (ou `Ctrl+Z`) em até 10 s.
+- **Canal da interface**: em interfaces de 2 entradas, o app descobre na primeira palhetada em qual a guitarra
+  está e usa só ela (sem perder 6 dB nem somar o chiado da outra). Dá para fixar Canal 1 ou 2.
 - **Ganho de entrada** para acertar o nível da interface (o medidor não deve ficar vermelho).
 - **Medir latência real**: com o áudio ligado, botão Medir ao lado da latência. Ligue um cabo da saída da
   interface na entrada; o app toca 6 cliques e mede quanto tempo eles levam para voltar.
