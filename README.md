@@ -35,6 +35,7 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
 - **Setlist** (botão Organizar): ordem dos presets para ◀ ▶, footswitch e Program Change; renomear e apagar
   (com Desfazer).
 - **Link**: copia um link com a pedaleira atual (pedais, botões, cenas). Quem abre recebe como preset novo.
+  Capturas e IRs carregados por link direto (GitHub, Dropbox) vão junto e são baixados por quem abre.
   Capturas `.nam` e IRs não cabem no link: para elas, use Exportar.
 - **Exportar / Importar:** um arquivo `.json` com os presets e as capturas `.nam` e IRs que eles usam.
   Serve de backup e para levar os presets do PC para o celular.

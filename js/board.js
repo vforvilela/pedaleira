@@ -202,29 +202,90 @@ export function makeDraggable(block, view) {
 // ---------- Arquivos (.nam, IR) ----------
 
 export const fileInput = $('file');
-export function pickFile(block, kind, accept) {
+
+// Guarda o arquivo (IndexedDB) e carrega no pedal. url: de onde veio, quando veio de um link
+// (vai junto no link de preset para quem recebe baixar a mesma captura).
+export async function storeFile(block, kind, data, fileName, url) {
+  const old = block.files[kind]?.key;
+  // Chave nova a cada arquivo: um preset salvo antes continua com o arquivo dele.
+  const key = `${block.uid}:${kind}:${Date.now().toString(36)}`;
+  await putFile(key, data);
+  block.files[kind] = { name: fileName.replace(/\.(nam|wav)$/i, ''), key, ...(url ? { url } : {}) };
+  if (old) releaseFile(old);
+  save();
+  if (engine.running) await loadIntoAudio(block, kind, data, fileName);
+  else status(`${fileName} guardado. Ele toca quando você clicar em Ligar.`);
+  live.get(block.uid)?.view.update();
+}
+
+const parseFile = async (kind, read) => (kind === 'nam' ? JSON.parse(await read.text()) : await read.arrayBuffer());
+
+function pickLocal(block, kind, accept) {
   fileInput.accept = accept;
   fileInput.value = '';
   fileInput.onchange = async () => {
     const f = fileInput.files[0];
     if (!f) return;
     let data;
-    try {
-      data = kind === 'nam' ? JSON.parse(await f.text()) : await f.arrayBuffer();
-    } catch {
+    try { data = await parseFile(kind, f); } catch {
       status(`${f.name} não é um arquivo ${kind === 'nam' ? '.nam' : '.wav'} válido.`, true);
       return;
     }
-    const old = block.files[kind]?.key;
-    // Chave nova a cada arquivo: um preset salvo antes continua com o arquivo dele.
-    const key = `${block.uid}:${kind}:${Date.now().toString(36)}`;
-    await putFile(key, data);
-    block.files[kind] = { name: f.name.replace(/\.(nam|wav)$/i, ''), key };
-    if (old) releaseFile(old);
-    save();
-    if (engine.running) await loadIntoAudio(block, kind, data, f.name);
-    else status(`${f.name} guardado. Ele toca quando você clicar em Ligar.`);
-    live.get(block.uid).view.update();
+    await storeFile(block, kind, data, f.name);
   };
   fileInput.click();
 }
+
+// Link de página do GitHub ou de compartilhamento do Dropbox → link direto do arquivo.
+export function directUrl(text) {
+  const u = new URL(text.trim());
+  const gh = u.hostname === 'github.com' && u.pathname.match(/^\/([^/]+)\/([^/]+)\/(?:blob|raw)\/(.+)$/);
+  if (gh) return `https://raw.githubusercontent.com/${gh[1]}/${gh[2]}/${gh[3]}`;
+  if (/(^|\.)dropbox\.com$/.test(u.hostname) && u.hostname !== 'dl.dropboxusercontent.com') {
+    u.hostname = 'dl.dropboxusercontent.com';
+    u.searchParams.delete('dl');
+  }
+  return u.href;
+}
+
+// Baixa a captura (.nam) ou IR (.wav) de um link direto. Devolve os dados ou lança um erro legível.
+export async function fetchFile(kind, url) {
+  let res;
+  try { res = await fetch(url); } catch {
+    throw new Error('o site não deixa baixar daqui (use um link direto do GitHub ou do Dropbox)');
+  }
+  if (!res.ok) throw new Error(`o site respondeu ${res.status}`);
+  try { return await parseFile(kind, res); } catch {
+    throw new Error(`não é um arquivo ${kind === 'nam' ? '.nam' : '.wav'}`);
+  }
+}
+
+export async function loadFromUrl(block, kind, text) {
+  let url;
+  try { url = directUrl(text); } catch { status('Isso não parece um link.', true); return false; }
+  const fileName = decodeURIComponent(new URL(url).pathname.split('/').pop() || kind);
+  status(`Baixando ${fileName}…`);
+  try {
+    await storeFile(block, kind, await fetchFile(kind, url), fileName, url);
+    return true;
+  } catch (err) {
+    status(`Não consegui baixar ${fileName}: ${err.message}.`, true);
+    return false;
+  }
+}
+
+// Botão NAM / IR: escolher um arquivo do aparelho ou colar um link direto.
+export function pickFile(block, kind, accept) {
+  const d = $('fileSheet');
+  const what = kind === 'nam' ? 'captura NAM (.nam)' : 'IR de caixa (.wav)';
+  $('fileSheetTitle').textContent = `${live.get(block.uid).def.name}: ${what}`;
+  $('fileUrl').value = '';
+  $('fileLocal').onclick = () => { d.close(); pickLocal(block, kind, accept); };
+  $('fileUrlForm').onsubmit = async e => {
+    e.preventDefault();
+    if (await loadFromUrl(block, kind, $('fileUrl').value)) d.close();
+  };
+  d.showModal();
+}
+
+$('fileSheetClose').onclick = () => $('fileSheet').close();

@@ -1,6 +1,6 @@
 // Pedaleira: junta os módulos e inicia o app.
 import { loadWasmBytes } from './audio/engine.js';
-import { addBlock, renderBoard } from './board.js';
+import { addBlock, directUrl, renderBoard } from './board.js';
 import { midi } from './control.js';
 import { $, engine, live, save, snapshot, state, status } from './core.js';
 import { buildExport, importPresets, loadChain, openSharedLink, renderPresets, shareLink } from './presets.js';
@@ -49,7 +49,7 @@ renderBoard();
 renderPresets();
 renderScenes();
 // Acesso para depuração pelo console e para os testes no navegador.
-window.__pedaleira = { engine, get state() { return state; }, live, midi, buildExport, importPresets, getFile, shareLink, openSharedLink, loadChain, snapshot };
+window.__pedaleira = { engine, get state() { return state; }, live, midi, buildExport, importPresets, getFile, shareLink, openSharedLink, loadChain, snapshot, directUrl };
 openSharedLink();
 // Instalar como app: Chrome/Edge/Android oferecem o evento; no iPhone, o caminho é pelo menu Compartilhar.
 let installPrompt = null;

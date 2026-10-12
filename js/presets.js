@@ -1,5 +1,5 @@
 // Presets, rascunhos, exportar e importar.
-import { ensureView, fileInput, renderBoard } from './board.js';
+import { ensureView, fetchFile, fileInput, renderBoard } from './board.js';
 import { $, changeListeners, hideToast, sameScene, toast, createAudio, engine, live, loadIntoAudio, normalizeBlock, normalizeChain, reconnect, releaseFile, save, SCENE_NAMES, snapshot, state, status } from './core.js';
 import { getFile, putFile } from './store.js';
 
@@ -202,11 +202,16 @@ function copyText(text) {
 
 export async function shareLink() {
   const name = state.preset || 'Pedaleira compartilhada';
-  const chain = snapshot(state.chain).map(b => ({ ...b, files: {} }));
+  // Arquivos só vão pelo endereço (os vindos de um link); os do aparelho ficam de fora.
+  const chain = snapshot(state.chain).map(b => ({
+    ...b,
+    files: Object.fromEntries(Object.entries(b.files).filter(([, f]) => f.url).map(([k, f]) => [k, { name: f.name, url: f.url }])),
+  }));
   const json = new TextEncoder().encode(JSON.stringify({ name, chain }));
   const packed = typeof CompressionStream === 'function' ? `1.${b64url(await pipe(json, new CompressionStream('deflate-raw')))}` : `0.${b64url(json)}`;
   const url = `${location.origin}${location.pathname}#p=${packed}`;
-  const noFiles = state.chain.some(b => Object.keys(b.files).length) ? ' Capturas .nam e IRs não vão no link (use Exportar).' : '';
+  const noFiles = state.chain.some(b => Object.values(b.files).some(f => !f.url))
+    ? ' Capturas e IRs escolhidos do aparelho não vão no link (carregue por link ou use Exportar).' : '';
   if (navigator.share && matchMedia('(pointer: coarse)').matches) {
     try { await navigator.share({ title: name, url }); return url; } catch { /* cancelado: copia */ }
   }
@@ -225,6 +230,15 @@ export async function openSharedLink() {
     const doc = JSON.parse(new TextDecoder().decode(bytes));
     const chain = normalizeChain(doc.chain || []);
     if (!chain.length) throw new Error('vazio');
+    // Capturas que vieram por endereço: baixa agora; se falhar, o pedal fica sem ela (e avisa).
+    const failed = [];
+    for (const b of chain)
+      for (const [kind, f] of Object.entries(b.files)) {
+        try {
+          if (!f.url) throw new Error('sem endereço');
+          await putFile(f.key, await fetchFile(kind, f.url));
+        } catch { failed.push(f.name); delete b.files[kind]; }
+      }
     const base = String(doc.name || 'Compartilhado').slice(0, 34);
     const same = state.presets.find(p => sameChain(p.chain, chain));
     let name = same?.name || base;
@@ -234,7 +248,7 @@ export async function openSharedLink() {
     }
     save();
     await applyPreset(name);
-    status(`Preset "${name}" recebido por link.`);
+    status(`Preset "${name}" recebido por link.${failed.length ? ` Não consegui baixar: ${failed.join(', ')}.` : ''}`, failed.length > 0);
     return true;
   } catch {
     status('O link de preset está incompleto ou corrompido.', true);

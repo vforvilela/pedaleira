@@ -573,6 +573,36 @@ try {
   await evaluate(`document.querySelector('.pedal[data-uid] .slider')?.closest('.pedal').scrollIntoView({ inline: 'center', block: 'nearest' }); scrollTo(0, 0)`);
   await shot('11-equalizador.png', 1600, 900);
 
+  // Captura por link: o botão NAM abre o painel, o link carrega, o link de preset leva o endereço
+  // e quem abre o link recebe a captura baixada.
+  const viaLink = await evaluate(`(async () => {
+    const p = __pedaleira, wait = ms => new Promise(r => setTimeout(r, ms));
+    if (!p.state.chain.some(b => b.type === 'amp')) document.querySelector('#library .add:not([hidden])') &&
+      [...document.querySelectorAll('#library .add')].find(b => b.querySelector('b').textContent === 'Amp').click();
+    const amp = p.state.chain.find(b => b.type === 'amp');
+    document.querySelector('.pedal[data-uid="' + amp.uid + '"] .file-btn[data-kind="nam"]').click();
+    const opened = document.getElementById('fileSheet').open;
+    document.getElementById('fileUrl').value = location.origin + '/tests/fixtures/A2.nam';
+    document.getElementById('fileUrlForm').requestSubmit();
+    for (let i = 0; i < 50 && !amp.files.nam?.url; i++) await wait(100);
+    const stored = !!amp.files.nam?.url && !document.getElementById('fileSheet').open;
+    const link = await p.shareLink();
+    const presets = p.state.presets.length;
+    location.hash = new URL(link).hash;
+    await p.openSharedLink();
+    const got = p.state.chain.find(b => b.type === 'amp');
+    const data = got?.files.nam ? await p.getFile(got.files.nam.key) : null;
+    const urls = [
+      p.directUrl('https://github.com/u/r/blob/main/caps/x.nam'),
+      p.directUrl('https://www.dropbox.com/s/abc/x.nam?dl=0'),
+    ];
+    return { opened, stored, newPreset: p.state.presets.length === presets + 1, received: !!data?.architecture, urls };
+  })()`);
+  check(viaLink.opened && viaLink.stored && viaLink.newPreset && viaLink.received
+    && viaLink.urls[0] === 'https://raw.githubusercontent.com/u/r/main/caps/x.nam'
+    && viaLink.urls[1] === 'https://dl.dropboxusercontent.com/s/abc/x.nam',
+    `captura por link vai junto no link de preset e chega baixada (${JSON.stringify(viaLink)})`);
+
   // Spillover: trocar para um preset sem o delay não corta a cauda; ela some depois de alguns segundos.
   const spill = await evaluate(`(async () => {
     const p = __pedaleira, e = p.engine, ctx = e.ctx, wait = ms => new Promise(r => setTimeout(r, ms));

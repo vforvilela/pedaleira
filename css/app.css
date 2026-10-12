@@ -319,16 +319,27 @@ h2 { font-size: 20px; font-weight: 700; font-stretch: 112%; letter-spacing: -.01
 }
 
 /* ---------- Controles do pedal em tamanho de dedo (toque num botão) ---------- */
-.knob-sheet {
+.knob-sheet, .file-sheet {
   margin: auto auto 0; width: 100%; max-width: 560px; border: 1px solid var(--line); border-bottom: 0;
   border-radius: 16px 16px 0 0; background: var(--panel); color: var(--text);
   padding: 14px 16px calc(16px + env(safe-area-inset-bottom));
 }
-.knob-sheet::backdrop { background: rgba(0,0,0,.55); }
+.knob-sheet::backdrop, .file-sheet::backdrop { background: rgba(0,0,0,.55); }
 .knob-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
-.knob-sheet h2 { margin: 0; }
+.knob-sheet h2, .file-sheet h2 { margin: 0; }
 .knob-sheet-rows { display: grid; gap: 4px; }
 .knob-row { display: grid; grid-template-columns: 72px 1fr 64px; align-items: center; gap: 10px; min-height: var(--touch); }
 .knob-row span { font-weight: 700; font-stretch: 75%; letter-spacing: .03em; color: var(--muted); }
 .knob-row input { width: 100%; height: var(--touch); accent-color: var(--accent); }
 .knob-row output { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* ---------- Carregar captura ou IR ---------- */
+.file-sheet { display: none; }
+.file-sheet[open] { display: grid; gap: 14px; }
+.file-url { display: grid; gap: 8px; }
+.file-url label { color: var(--muted); font-size: 13px; }
+.file-url div { display: flex; gap: 8px; }
+.file-url input {
+  flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+}
+@media (pointer: coarse) { .file-url input { min-height: var(--touch); } }
