@@ -1,5 +1,6 @@
 // Delay digital branco inspirado no Boss DD-8.
-// Modos: STD (repetições limpas), ANLG (repetições escuras e levemente saturadas), MOD (repetições com chorus).
+// Modos: STD (repetições limpas), ANLG (repetições escuras e levemente saturadas), MOD (repetições com chorus),
+// P.PONG (repetições alternando entre esquerda e direita, em estéreo).
 // Desligar o pedal corta só a entrada do delay: as repetições terminam naturalmente (trails).
 import { biquad, curve, logMap, smooth } from './common.js';
 
@@ -7,6 +8,7 @@ const MODES = {
   STD: { lp: 12000, hp: 40, depth: 0 },
   ANLG: { lp: 2600, hp: 160, depth: 0.0004 },
   MOD: { lp: 7000, hp: 80, depth: 0.0025 },
+  'P.PONG': { lp: 10000, hp: 60, depth: 0, pingPong: true },
 };
 
 // Saturação suave na realimentação: quase linear em volume baixo, segura a auto-oscilação.
@@ -49,6 +51,15 @@ export default {
     clip.connect(fb).connect(sum);
     clip.connect(wet).connect(output);
 
+    // Ping-pong: a 1ª repetição sai na esquerda, passa por um segundo atraso igual e sai na direita,
+    // e só então volta para o começo. Tudo fica ligado; o modo só muda os ganhos.
+    const delay2 = ctx.createDelay(2.1), into2 = ctx.createGain(), fbPP = ctx.createGain();
+    const merge = ctx.createChannelMerger(2), wetL = ctx.createGain(), wetR = ctx.createGain();
+    clip.connect(into2).connect(delay2).connect(fbPP).connect(sum);
+    clip.connect(wetL).connect(merge, 0, 0);
+    delay2.connect(wetR).connect(merge, 0, 1);
+    merge.connect(output);
+
     // LFO para o modo MOD (e um leve wow no ANLG).
     const lfo = ctx.createOscillator();
     lfo.frequency.value = 0.7;
@@ -60,9 +71,16 @@ export default {
     const p = { ...env.params };
     const apply = () => {
       const m = MODES[Object.keys(MODES)[p.mode]] || MODES.STD;
-      smooth(ctx, delay.delayTime, logMap(p.time, 0.02, 2.0), 0.06);
-      smooth(ctx, fb.gain, Math.min(1.05, (p.feedback / 10) * 1.05));
-      smooth(ctx, wet.gain, (p.level / 10) * 1.2);
+      const t = logMap(p.time, 0.02, 2.0), f = Math.min(1.05, (p.feedback / 10) * 1.05), w = (p.level / 10) * 1.2;
+      smooth(ctx, delay.delayTime, t, 0.06);
+      smooth(ctx, delay2.delayTime, t, 0.06);
+      const pp = !!m.pingPong;
+      smooth(ctx, fb.gain, pp ? 0 : f);
+      smooth(ctx, wet.gain, pp ? 0 : w);
+      smooth(ctx, into2.gain, pp ? Math.max(f, 0.05) : 0);
+      smooth(ctx, fbPP.gain, pp ? f : 0);
+      smooth(ctx, wetL.gain, pp ? w : 0);
+      smooth(ctx, wetR.gain, pp ? w : 0);
       smooth(ctx, lp.frequency, m.lp);
       smooth(ctx, hp.frequency, m.hp);
       smooth(ctx, depth.gain, m.depth);
