@@ -3,12 +3,14 @@
 Monte uma pedaleira de guitarra no navegador. Cada pedal é desenhado como o real e tem o som modelado nele.
 Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opção "Adicionar à tela inicial").
 
-**Pedais** (16, na ordem em que costumam ficar na pedaleira)
+**Pedais** (19, na ordem em que costumam ficar na pedaleira)
 
 | Pedal | Inspirado no | Som |
 |---|---|---|
 | Afinador | Boss TU-3 | Cromático (YIN), MUTE ou THRU, Lá de 438 a 445 Hz |
-| Uá | Dunlop Cry Baby | Wah: arraste o pedal ou use um pedal de expressão MIDI |
+| Uá | Dunlop Cry Baby | Wah: arraste o pedal ou use um pedal de expressão MIDI. Modo AUTO: auto-wah pela palhetada |
+| Baleia | DigiTech Whammy | Pitch shifter no pedal: ±1 e ±2 oitavas, quinta, quarta, DETUNE |
+| Oitava | Boss OC-2 | Uma e duas oitavas abaixo (notas soltas) |
 | Aperto | Boss CS-3 | Compressor sem atraso, LEVEL, TONE, ATTACK, SUSTAIN |
 | Turbo | Xotic EP Booster | Boost até +20 dB, BRIGHT |
 | Sol Drive | Boss SD-1 | Circuito Web Audio, ou captura NAM (botão NAM) |
@@ -16,12 +18,13 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
 | Silêncio | Boss NS-2 | Noise gate com histerese, THRES e DECAY |
 | Amp | — | 2 estágios de pré, BASS/MID/TREBLE, power amp; ou captura NAM. Caixa 1x12, 4x12, IR `.wav` ou nenhuma |
 | Equalizador | Boss GE-7 | 7 faixas de ±15 dB e volume, em faders |
-| Coro | Boss CE-2 | Chorus |
+| Coro | Boss CE-2 | Chorus estéreo |
+| Flange | Boss BF-2 | Flanger com MANUAL, DEPTH, RATE e RES |
 | Fase 90 | MXR Phase 90 | Phaser de 4 estágios, um botão |
 | Ondas | Boss TR-2 | Tremolo, de triângulo a quadrada |
 | Volume | Ernie Ball VP Jr | Pedal de volume com curva de áudio e mínimo ajustável |
-| Eco 8 | Boss DD-8 | Delay Web Audio, modos STD, ANLG e MOD, com trails |
-| Salão | TC Electronic Hall of Fame 2 | Reverb por convolução, 5 salas, com trails |
+| Eco 8 | Boss DD-8 | Delay, modos STD, ANLG, MOD e P.PONG (estéreo), com trails |
+| Salão | TC Electronic Hall of Fame 2 | Reverb estéreo por convolução, 5 salas, com trails |
 | Laço | TC Electronic Ditto | Looper de até 2 min: grava, toca, sobrepõe; 2 pisadas param |
 
 **Para tocar ao vivo**

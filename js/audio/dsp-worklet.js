@@ -3,7 +3,7 @@
 import { Gate, Compressor, Limiter } from './dynamics.js';
 import { Looper } from './looper.js';
 import { LatencyProbe } from './latency.js';
-import { OctaveDown, Flanger, Envelope } from './modulation.js';
+import { OctaveDown, Flanger, Envelope, PitchShifter } from './modulation.js';
 
 class DspProcessor extends AudioWorkletProcessor {
   constructor(make) {
@@ -77,6 +77,11 @@ registerProcessor('flanger', class extends DspProcessor {
 registerProcessor('envelope', class extends DspProcessor {
   constructor() { super(() => new Envelope(sampleRate)); }
   configure({ sens }) { this.dsp.sens = sens; }
+});
+
+registerProcessor('pitch', class extends DspProcessor {
+  constructor() { super(() => new PitchShifter(sampleRate)); }
+  configure(p) { this.dsp.set(p); }
 });
 
 registerProcessor('limiter', class extends DspProcessor {

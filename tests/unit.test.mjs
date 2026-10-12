@@ -192,7 +192,25 @@ test('sem cabo, a medição avisa que o clique não voltou', () => {
 });
 
 // ---------- Oitava, flanger, envelope ----------
-import { OctaveDown, Flanger, Envelope } from '../js/audio/modulation.js';
+import { OctaveDown, Flanger, Envelope, PitchShifter } from '../js/audio/modulation.js';
+
+test('pitch shifter: 220 Hz vira 440 (+1 oitava), 110 (-1) e 330 (+5ª)', () => {
+  for (const [ratio, want] of [[2, 440], [0.5, 110], [2 ** (7 / 12), 329.6]]) {
+    const ps = new PitchShifter(SR);
+    ps.set({ ratio });
+    ps.ratio = ratio; // sem a rampa de 10 ms
+    const out = run(ps, sine(220, 0.5, SR));
+    // Conta a frequência dominante pela FFT simples (DFT nas vizinhanças).
+    let best = 0, bestHz = 0;
+    for (let hz = 80; hz < 600; hz += 0.5) {
+      let re = 0, im = 0;
+      for (let i = SR / 4; i < SR; i += 2) { re += out[i] * Math.cos(2 * Math.PI * hz * i / SR); im += out[i] * Math.sin(2 * Math.PI * hz * i / SR); }
+      const m = re * re + im * im;
+      if (m > best) { best = m; bestHz = hz; }
+    }
+    assert.ok(Math.abs(bestHz - want) / want < 0.01, `ratio ${ratio.toFixed(3)} → ${bestHz} Hz`);
+  }
+});
 
 // Frequência dominante por cruzamentos de zero (subindo) depois do transiente.
 function zeroCrossHz(b, sr, from) {
