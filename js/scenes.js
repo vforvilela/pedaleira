@@ -30,7 +30,7 @@ export function sceneSummary(i) {
 
 export function recallScene(i) {
   if (!sceneUsed(i)) {
-    status(`Cena ${SCENE_NAMES[i]} vazia. Ligue os pedais que quer, clique em Gravar cena e depois em ${SCENE_NAMES[i]}.`);
+    status(`Cena ${SCENE_NAMES[i]} vazia: ligue os pedais, toque em Gravar e em ${SCENE_NAMES[i]}.`);
     return;
   }
   for (const b of state.chain) {
@@ -50,12 +50,12 @@ export function storeScene(i) {
   for (const b of state.chain) b.scenes[i] = { on: b.on, params: { ...b.params } };
   recordingScene = false;
   save();
-  status(`Cena ${SCENE_NAMES[i]} gravada: ${sceneSummary(i)}. Salve o preset para guardar a cena nele.`);
+  status(`Cena ${SCENE_NAMES[i]} gravada: ${sceneSummary(i)}. Salve o preset para guardá-la.`);
 }
 
 sceneButtons.forEach((btn, i) => { btn.onclick = () => (recordingScene ? storeScene(i) : recallScene(i)); });
 $('sceneRec').onclick = () => {
   recordingScene = !recordingScene;
   renderScenes();
-  status(recordingScene ? 'Gravar cena: clique em A, B, C ou D para guardar os pedais ligados e a posição dos botões.' : 'Gravação de cena cancelada.');
+  status(recordingScene ? 'Toque em A, B, C ou D para guardar os pedais como estão.' : '');
 };

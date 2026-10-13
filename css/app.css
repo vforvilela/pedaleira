@@ -105,6 +105,8 @@ body:has(#power[aria-pressed="true"]) h1 .ember { animation: ember 3.2s ease-in-
 .master input { width: 110px; accent-color: var(--accent); }
 .master output, .lat b { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 500; }
 .lat.high b { color: var(--bad); }
+/* Desligado não há latência para mostrar. */
+body:not(:has(#power[aria-pressed="true"])) .lat { display: none; }
 
 /* Painel da frente */
 /* Uma fileira no tablet deitado e no PC; em pé, o visor fica com a primeira e cenas + ações descem. */
@@ -177,7 +179,7 @@ body:has(#power[aria-pressed="true"]) h1 .ember { animation: ember 3.2s ease-in-
   flex: none; padding: 4px 10px; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
   background: transparent; color: var(--lcd-ink); border: 1px solid var(--lcd-dim); border-radius: 4px; box-shadow: none;
 }
-.status { margin: 0; min-height: 17px; font-size: 12.5px; color: var(--lcd-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.status { margin: 0; min-height: 18px; font-size: 12.5px; line-height: 18px; color: var(--lcd-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
 .status.full { white-space: normal; }
 .status.err { color: var(--lcd-err); }
 
@@ -210,7 +212,6 @@ body.midi-learn .scene-btn { outline: 2px dashed color-mix(in oklch, var(--accen
 .face .more-btn { font-size: 20px; line-height: 1; }
 .face .more-btn[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
 .face #presetSave.attention { color: var(--accent); border-color: color-mix(in oklch, var(--accent) 60%, var(--key-edge)); }
-#presetSave.attention::after { content: " *"; }
 
 /* ⋯ Mais: uma fileira de teclas embaixo do painel, só quando aberta (ou gravando, para o relógio ficar à vista). */
 .more-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px; }

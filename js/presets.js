@@ -44,7 +44,6 @@ export function renderPresets() {
   sel.value = state.preset ?? '';
   if (document.activeElement !== $('presetName')) $('presetName').value = state.preset ?? '';
   const dirty = isDirty();
-  $('presetDelete').disabled = !state.preset;
   $('presetRevert').hidden = !dirty;
   $('presetSave').classList.toggle('attention', dirty);
   renderNow(dirty);
@@ -90,10 +89,6 @@ export function savePreset() {
   save();
   renderPresets();
   status(`Preset "${name}" salvo.`);
-}
-
-export function deletePreset() {
-  deletePresetAt(state.presets.findIndex(p => p.name === state.preset));
 }
 
 // Apaga com 10 s para desfazer; os arquivos do preset só saem do armazenamento depois.
@@ -289,7 +284,7 @@ export async function applyPreset(name) {
   const target = name === '' ? state.drafts[''] : state.drafts[name] || presetByName(name)?.chain;
   if (!target) { state.preset = name || null; save(); renderPresets(); return; }
   await loadChain(target, name || null);
-  status(name ? `Preset: ${name}${state.drafts[name] ? ' (com mudanças não salvas)' : ''}` : 'Sem preset.');
+  status('');
 }
 
 // Carrega uma cadeia reaproveitando o áudio dos pedais que continuam
@@ -360,7 +355,6 @@ export function stepPreset(dir) {
 $('preset').onchange = () => applyPreset($('preset').value);
 $('presetSave').onclick = savePreset;
 $('presetName').onkeydown = e => { if (e.key === 'Enter') savePreset(); };
-$('presetDelete').onclick = deletePreset;
 $('presetRevert').onclick = revertPreset;
 $('presetPrev').onclick = () => stepPreset(-1);
 $('presetNext').onclick = () => stepPreset(1);
