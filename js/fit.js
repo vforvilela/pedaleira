@@ -17,3 +17,22 @@ export function largestSqueeze(keeps, max, steps = 8) {
   for (let i = 0; i < steps; i++) { const m = (lo + hi) / 2; if (keeps(m)) lo = m; else hi = m; }
   return Math.floor(lo);
 }
+
+// Trocar o número de fileiras só quando compensa: com mais fileiras os pedais mudam todos de lugar, então só vale
+// se ficarem bem maiores. zBest: zoom da melhor arrumação; zKeep: o maior zoom mantendo as fileiras de agora.
+// Sem isso, ao redimensionar perto do ponto de troca, os pedais pulam de fileira a cada pixel.
+export const ROW_SWITCH_GAIN = 1.08;
+export function keepRows(zBest, zKeep, gain = ROW_SWITCH_GAIN) {
+  return zKeep > 0 && zKeep * gain >= zBest;
+}
+
+// Número de fileiras de uma lista de caixas {top, height} na ordem do fluxo: uma fileira nova começa quando a
+// caixa começa abaixo do fundo das caixas da fileira atual (vale para fileiras da esquerda ou da direita).
+export function countRows(boxes) {
+  let rows = 0, bottom = -Infinity;
+  for (const b of boxes) {
+    if (b.top >= bottom - 1) { rows++; bottom = b.top + b.height; }
+    else bottom = Math.max(bottom, b.top + b.height);
+  }
+  return rows;
+}

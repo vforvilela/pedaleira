@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import { largestSqueeze, largestZoom } from '../js/fit.js';
+import { countRows, keepRows, largestSqueeze, largestZoom } from '../js/fit.js';
 
 // ---------- Encaixe da pedaleira (js/fit.js) ----------
 
@@ -54,6 +54,19 @@ test('encaixe: fileiras equilibradas (6 pedais iguais viram 3 + 3, não 5 + 1)',
 test('encaixe: aperto nunca negativo, nem com área zerada', () => {
   assert.equal(largestSqueeze(() => false, 300), 0);
   assert.equal(largestSqueeze(() => true, -10), 0);
+});
+
+test('fileiras: só troca para mais fileiras se os pedais crescerem ao menos 8 %', () => {
+  assert.equal(keepRows(.80, .76), true);   // 5 % maior: não vale mexer em tudo
+  assert.equal(keepRows(.80, .70), false);  // 14 % maior: troca
+  assert.equal(keepRows(.80, 0), false);    // não dá para manter
+});
+
+test('fileiras: conta pelo layout, com pedais de alturas diferentes e nas duas direções', () => {
+  // 3 + 2 com o amp mais baixo no meio da primeira fileira
+  assert.equal(countRows([{ top: 20, height: 300 }, { top: 60, height: 220 }, { top: 20, height: 300 }, { top: 340, height: 300 }, { top: 340, height: 300 }]), 2);
+  assert.equal(countRows([{ top: 0, height: 100 }]), 1);
+  assert.equal(countRows([]), 0);
 });
 
 // ---------- Ligações HTML ↔ JS ----------

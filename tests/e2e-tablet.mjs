@@ -108,6 +108,24 @@ try {
   await ev(`(() => { const s = document.getElementById('preset'); const o = [...s.options].find(o => /Crunch/.test(o.textContent)); s.value = o.value; s.dispatchEvent(new Event('change')); })()`);
   await sleep(600);
   await fitAll('6 pedais (Crunch)');
+  // Redimensionar devagar (arrastar a janela, dividir a tela do iPad): o topo tem só duas formas e os pedais
+  // não ficam pulando de fileira a cada pixel.
+  const layoutAt = () => ev(`(() => { const b = document.getElementById('board'); let rows = 0, bot = -1e9;
+    for (const c of b.children) { if (c.offsetTop >= bot - 1) { rows++; bot = c.offsetTop + c.offsetHeight; } else bot = Math.max(bot, c.offsetTop + c.offsetHeight); }
+    return { top: Math.round(document.querySelector('.top').getBoundingClientRect().height), rows }; })()`);
+  for (const dir of [1, -1]) {
+    const tops = new Set(); let flips = 0, prev = null;
+    for (let i = 0; i <= 40; i++) {
+      const w = dir > 0 ? 770 + i * 16 : 1410 - i * 16;
+      await viewport(w, 800); await sleep(40);
+      const m = await layoutAt();
+      tops.add(m.top);
+      if (prev && m.rows !== prev.rows) flips++;
+      prev = m;
+    }
+    check(tops.size <= 2 && flips <= 2, `redimensionando ${dir > 0 ? 'para mais largo' : 'para mais estreito'}: topo com ${tops.size} forma(s), fileiras trocam ${flips} vez(es)`);
+  }
+  await viewport(1024, 768); await sleep(350);
   const zLand = await ev(`document.getElementById('board').style.zoom`);
   await viewport(768, 1024); await sleep(350);
   const zPort = await ev(`document.getElementById('board').style.zoom`);

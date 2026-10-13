@@ -3,7 +3,7 @@ import { $, applyStoredFiles, changeListeners, createAudio, setParam, engine, li
 import { ORDER, byType } from './pedals/index.js';
 import { putFile } from './store.js';
 import { pedalView } from './ui/pedal-view.js';
-import { largestSqueeze, largestZoom } from './fit.js';
+import { countRows, keepRows, largestSqueeze, largestZoom } from './fit.js';
 import { SUGGESTIONS } from './suggestions.js';
 
 // ---------- Pedaleira ----------
@@ -99,25 +99,63 @@ function setZoom(z) {
   board.style.zoom = z;
   board.style.setProperty('--z', z);
 }
-export function fitBoard() {
+const rowsNow = () => countRows([...board.children].map(c => ({ top: c.offsetTop, height: c.offsetHeight })));
+let lastRows = 0;
+const calm = matchMedia('(prefers-reduced-motion: reduce)');
+export function fitBoard({ animate = false } = {}) {
+  // Para animar (FLIP): onde cada peça estava antes do ajuste.
+  const pieces = [...board.children];
+  const before = animate && !calm.matches && !board.classList.contains('arrive') ? pieces.map(p => p.getBoundingClientRect()) : null;
+  const rowsBefore = lastRows, zBefore = zoom();
   board.style.removeProperty('--squeeze');
-  if (!wide.matches) { board.style.zoom = ''; board.style.removeProperty('--z'); return; }
-  const avail = board.parentElement.clientHeight;
+  if (!wide.matches) { board.style.zoom = ''; board.style.removeProperty('--z'); board.parentElement.style.overflow = ''; lastRows = 0; return; }
+  // Sem barra de rolagem enquanto mede: no PC ela aparece no meio da busca, rouba 15 px de largura, um pedal desce
+  // de fileira e a barra fica (um estado estável, mas errado). Ela só volta se nem no zoom mínimo couber.
+  const wrap = board.parentElement;
+  wrap.style.overflow = 'hidden';
+  const avail = wrap.clientHeight;
   if (!avail) return;
   const height = () => board.getBoundingClientRect().height;
+  const fits = z => (setZoom(z), height() <= avail + .5);
   // Nem no mínimo cabe (cadeia muito longa): fica no mínimo e a área da pedaleira rola.
-  setZoom(largestZoom(z => (setZoom(z), height() <= avail + .5), Z_MIN, Z_MAX));
+  let z = largestZoom(fits, Z_MIN, Z_MAX);
+  setZoom(z);
+  // Ficaria com mais fileiras do que agora: só troca se os pedais crescerem bastante (ver keepRows).
+  if (lastRows && rowsNow() > lastRows) {
+    const zKeep = largestZoom(zz => fits(zz) && rowsNow() <= lastRows, Z_MIN, z);
+    setZoom(zKeep);
+    if (rowsNow() <= lastRows && keepRows(z, zKeep)) z = zKeep;
+    setZoom(z);
+  }
+  lastRows = rowsNow();
   // Fileiras equilibradas (3 + 3, não 5 + 1): aperta as laterais da pedaleira enquanto o número de fileiras
   // não muda, e os pedais ficam centralizados.
   const h = height();
   const squeeze = px => board.style.setProperty('--squeeze', `${px}px`);
   squeeze(largestSqueeze(px => (squeeze(px), height() <= h + .5), board.clientWidth / 2));
+  wrap.style.overflow = height() > avail + .5 ? 'auto' : 'hidden';
+  // Mudou o número de fileiras ou o tamanho deu um salto (o topo trocou de forma): cada peça desliza e muda de
+  // tamanho do lugar antigo para o novo, em vez de pular. Mudanças pequenas e contínuas não precisam disso.
+  if (before && rowsBefore && (lastRows !== rowsBefore || Math.abs(zoom() / zBefore - 1) > .05)) glide(pieces, before);
+}
+function glide(pieces, before) {
+  const z = zoom();
+  pieces.forEach((p, i) => {
+    const a = before[i], b = p.getBoundingClientRect();
+    if (!a.width || !b.width) return;
+    const dx = (a.left - b.left) / z, dy = (a.top - b.top) / z, s = a.width / b.width;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(s - 1) < .01) return;
+    p.animate([
+      { transform: `translate(${dx}px, ${dy}px) scale(${s})`, transformOrigin: '0 0' },
+      { transform: 'none', transformOrigin: '0 0' },
+    ], { duration: 320, easing: 'cubic-bezier(.25, 1, .5, 1)' });
+  });
 }
 let fitQueued = false;
 const queueFit = () => {
   if (fitQueued) return;
   fitQueued = true;
-  requestAnimationFrame(() => { fitQueued = false; fitBoard(); });
+  requestAnimationFrame(() => { fitQueued = false; fitBoard({ animate: true }); });
 };
 // Muda a área (girar o tablet, abrir os primeiros passos) ou a pedaleira passou da área (carregou uma captura e
 // a legenda cresceu): ajusta de novo. Só o "passou" para não entrar em laço com o próprio zoom.
