@@ -5,6 +5,7 @@ import { putFile } from './store.js';
 import { pedalView } from './ui/pedal-view.js';
 import { countRows, frozenZoom, keepRows, largestSqueeze, largestZoom } from './fit.js';
 import { SUGGESTIONS } from './suggestions.js';
+import { t } from './i18n.js';
 
 // ---------- Pedaleira ----------
 
@@ -68,14 +69,14 @@ export function setFloorView(on) {
 
 let arrived = false;
 export function renderBoard() {
-  const nodes = [jack('Guitarra', '🎸')];
+  const nodes = [jack(t('board.jackGuitar'), '🎸')];
   state.chain.forEach((b, i) => {
     const v = ensureView(b);
     v.setNumber(i < 9 ? i + 1 : 0); // número = tecla que liga e desliga
     nodes.push(slot(v.root, i));
   });
   // A saída anda junto com o último pedal: nunca sobra sozinha numa fileira (o que gastaria uma fileira inteira de altura).
-  const out = slot(jack('Saída', '🎧'), state.chain.length);
+  const out = slot(jack(t('board.jackOutput'), '🎧'), state.chain.length);
   if (state.chain.length) nodes.at(-1).append(...out.childNodes); else nodes.push(out);
   board.replaceChildren(...nodes);
   // Na primeira montagem os pedais pousam na pedaleira, da guitarra para a saída (o caminho do sinal).
@@ -262,7 +263,7 @@ export function removeBlock(id) {
   // Dá 10 s para desfazer (no palco, um toque errado no ✕ não pode custar o pedal e a captura dele).
   finishRemoval();
   removed = { block, index: i, timer: setTimeout(finishRemoval, 10000) };
-  toast(`${byType[block.type].name} removido.`, 'Desfazer', undoRemove);
+  toast(t('board.removed', { name: byType[block.type].name }), t('board.undo'), undoRemove);
 }
 
 let removed = null;
@@ -287,7 +288,7 @@ export async function undoRemove() {
   renderBoard();
   reconnect();
   save();
-  status(`${byType[block.type].name} voltou para a pedaleira.`);
+  status(t('board.restored', { name: byType[block.type].name }));
   if (engine.running) await applyStoredFiles(block);
 }
 
@@ -379,17 +380,17 @@ export function makeDraggable(block, view) {
     if (to < 0 || to >= state.chain.length) return;
     moveBlock(block.uid, dir > 0 ? to + 1 : to);
     grip.focus();
-    status(`${byType[block.type].name} agora é o ${to + 1}º da cadeia.`);
+    status(t('board.moved', { name: byType[block.type].name, n: to + 1 }));
   });
   root.addEventListener('pointerdown', e => {
     if (e.pointerType !== 'mouse' || e.button !== 0) return;
     if (e.target.closest('.knob, .footswitch, button')) return;
     begin(e);
   });
-  for (const t of [grip, root]) {
-    t.addEventListener('pointermove', move);
-    t.addEventListener('pointerup', end);
-    t.addEventListener('pointercancel', end);
+  for (const el of [grip, root]) {
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
   }
 }
 
@@ -410,7 +411,7 @@ export async function storeFile(block, kind, data, fileName, url) {
   if (kind === 'ir') selectOption(block, 'cab', 'IR');
   save();
   if (engine.running) await loadIntoAudio(block, kind, data, fileName);
-  else status(`${fileName} guardado. Ele toca quando você clicar em Ligar.`);
+  else status(t('board.storedOff', { file: fileName }));
   live.get(block.uid)?.view.update();
 }
 
@@ -429,7 +430,7 @@ function pickLocal(block, kind, accept) {
     if (!f) return;
     let data;
     try { data = await parseFile(kind, f); } catch {
-      status(`${f.name} não é um arquivo ${kind === 'nam' ? '.nam' : '.wav'} válido.`, true);
+      status(t('board.invalidFile', { file: f.name, ext: kind === 'nam' ? '.nam' : '.wav' }), true);
       return;
     }
     await storeFile(block, kind, data, f.name);
@@ -453,28 +454,28 @@ export function directUrl(text) {
 export async function fetchFile(kind, url) {
   let res;
   try { res = await fetch(url); } catch {
-    throw new Error('o site não deixa baixar daqui (use um link direto do GitHub ou do Dropbox)');
+    throw new Error(t('board.errBlocked'));
   }
-  if (!res.ok) throw new Error(`o site respondeu ${res.status}`);
+  if (!res.ok) throw new Error(t('board.errStatus', { code: res.status }));
   const lfs = new URL(url).hostname === 'raw.githubusercontent.com' && res.headers.get('content-length') < 1024
     && (await res.clone().text()).startsWith('version https://git-lfs');
   // Arquivo no Git LFS: o raw só tem um ponteiro; o conteúdo está no media.githubusercontent.com.
   if (lfs) return fetchFile(kind, url.replace('https://raw.githubusercontent.com/', 'https://media.githubusercontent.com/media/'));
   try { return await parseFile(kind, res); } catch {
-    throw new Error(`não é um arquivo ${kind === 'nam' ? '.nam' : '.wav'}`);
+    throw new Error(t('board.errNotFile', { ext: kind === 'nam' ? '.nam' : '.wav' }));
   }
 }
 
 export async function loadFromUrl(block, kind, text, label) {
   let url;
-  try { url = directUrl(text); } catch { status('Isso não parece um link.', true); return false; }
+  try { url = directUrl(text); } catch { status(t('board.notLink'), true); return false; }
   const fileName = label || decodeURIComponent(new URL(url).pathname.split('/').pop() || kind);
-  status(`Baixando ${fileName}…`);
+  status(t('board.downloading', { file: fileName }));
   try {
     await storeFile(block, kind, await fetchFile(kind, url), fileName, url);
     return true;
   } catch (err) {
-    status(`Não consegui baixar ${fileName}: ${err.message}.`, true);
+    status(t('board.downloadFailed', { file: fileName, reason: err.message }), true);
     return false;
   }
 }
@@ -482,8 +483,7 @@ export async function loadFromUrl(block, kind, text, label) {
 // Botão NAM / IR: escolher um arquivo do aparelho ou colar um link direto.
 export function pickFile(block, kind, accept) {
   const d = $('fileSheet');
-  const what = kind === 'nam' ? 'captura NAM (.nam)' : 'IR de caixa (.wav)';
-  $('fileSheetTitle').textContent = `${live.get(block.uid).def.name}: ${what}`;
+  $('fileSheetTitle').textContent = t(kind === 'nam' ? 'board.sheetTitleNam' : 'board.sheetTitleIr', { name: live.get(block.uid).def.name });
   $('fileUrl').value = '';
   // Sugestões grátis (só no amp por enquanto).
   const sug = block.type === 'amp' && SUGGESTIONS[kind];

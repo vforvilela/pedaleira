@@ -4,6 +4,7 @@ import { $, changeListeners, live, SCENE_NAMES, setParam, state, toggleBlock } f
 import { byType } from './pedals/index.js';
 import { stepPreset, isDirty } from './presets.js';
 import { recallScene, sceneActive, sceneUsed } from './scenes.js';
+import { t } from './i18n.js';
 
 const stage = $('stage');
 const isOn = () => document.body.classList.contains('stage');
@@ -29,9 +30,9 @@ export function exitStage() {
 
 changeListeners.push(() => { if (isOn()) renderStage(); });
 export function renderStage() {
-  $('stagePreset').textContent = state.preset ? `${state.preset}${isDirty() ? ' *' : ''}` : 'Sem preset';
+  $('stagePreset').textContent = state.preset ? `${state.preset}${isDirty() ? ' *' : ''}` : t('stage.noPreset');
   const idx = state.presets.findIndex(p => p.name === state.preset);
-  $('stageCount').textContent = state.presets.length ? `${idx + 1 || '–'} de ${state.presets.length}` : '';
+  $('stageCount').textContent = state.presets.length ? t('stage.count', { pos: idx + 1 || '–', n: state.presets.length }) : '';
   [...$('stageScenes').children].forEach((b, i) => {
     b.classList.toggle('used', sceneUsed(i));
     b.setAttribute('aria-pressed', sceneActive(i));
@@ -49,7 +50,7 @@ export function renderStage() {
     btn.style.setProperty('--body', def.look.body);
     btn.innerHTML = `<span class="led"></span><b></b><small></small>`;
     btn.querySelector('b').textContent = def.name;
-    btn.querySelector('small').textContent = def.press && loop ? { empty: 'vazio', rec: 'GRAVANDO', play: 'tocando', dub: 'SOBREPONDO', stop: 'parado' }[loop] : i < 9 ? String(i + 1) : '';
+    btn.querySelector('small').textContent = def.press && loop ? t(`stage.loop.${loop}`) : i < 9 ? String(i + 1) : '';
     btn.onclick = () => toggleBlock(b);
     return btn;
   }));
@@ -72,7 +73,7 @@ function renderExpression() {
       label.innerHTML = '<input type="range" min="0" max="10" step="0.1"><span></span>';
       label.querySelector('span').textContent = def.name;
       const input = label.querySelector('input');
-      input.setAttribute('aria-label', `${def.name}: ${c.label}`);
+      input.setAttribute('aria-label', t('stage.exprLabel', { name: def.name, label: c.label }));
       input.oninput = () => setParam(b, c.id, +input.value);
       return label;
     }));
@@ -88,15 +89,15 @@ function renderExpression() {
 
 // Chamado pelos afinadores: com algum ligado, a nota aparece grande no meio da tela.
 export function setStageTuner(r, active) {
-  const t = $('stageTuner');
-  t.hidden = !active;
+  const box = $('stageTuner');
+  box.hidden = !active;
   if (!active) return;
   const inTune = r && Math.abs(r.cents) < 3;
-  t.classList.toggle('ok', !!inTune);
-  t.querySelector('b').textContent = r ? `${r.note}${r.octave}` : '–';
-  t.querySelector('small').textContent = r ? `${r.cents > 0 ? '+' : ''}${Math.round(r.cents)}¢` : '';
+  box.classList.toggle('ok', !!inTune);
+  box.querySelector('b').textContent = r ? `${r.note}${r.octave}` : '–';
+  box.querySelector('small').textContent = r ? `${r.cents > 0 ? '+' : ''}${Math.round(r.cents)}¢` : '';
   // A agulha ocupa a barra inteira: deslocar c% dela põe o ponteiro a c% do centro (±50¢ = ponta).
-  t.querySelector('i').style.transform = `translateX(${r ? Math.max(-50, Math.min(50, r.cents)) : 0}%)`;
+  box.querySelector('i').style.transform = `translateX(${r ? Math.max(-50, Math.min(50, r.cents)) : 0}%)`;
 }
 
 $('stageBtn').onclick = enterStage;
@@ -107,7 +108,7 @@ $('stageScenes').replaceChildren(...SCENE_NAMES.map((n, i) => {
   const b = document.createElement('button');
   b.className = 'stage-scene';
   b.textContent = n;
-  b.setAttribute('aria-label', `Cena ${n}`);
+  b.setAttribute('aria-label', t('stage.scene', { name: n }));
   b.onclick = () => recallScene(i);
   return b;
 }));

@@ -85,6 +85,8 @@ try {
     z: document.getElementById('board').style.zoom }))()`);
 
   await send('Runtime.enable'); await send('Page.enable');
+  // Português nos testes (o headless sai em inglês e ignora --lang); a seção de idiomas troca pela escolha guardada.
+  await send('Page.addScriptToEvaluateOnNewDocument', { source: `try { if (!localStorage.getItem('brasa.lang')) localStorage.setItem('brasa.lang', 'pt'); } catch {}` });
   await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
   await viewport(1024, 768);
   await send('Page.navigate', { url: `http://127.0.0.1:${PORT}/` });
@@ -329,6 +331,41 @@ try {
   await viewport(1024, 768); await sleep(300);
 
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
+
+  // ---------- Idiomas: inglês e espanhol (o espanhol é o mais comprido) ----------
+  for (const L of ['en', 'es']) {
+    // Do zero, como alguém que abre pela primeira vez com o sistema nesse idioma.
+    await ev(`localStorage.clear(); localStorage.setItem('brasa.lang', '${L}')`);
+    await viewport(1024, 768);
+    await send('Page.reload'); await sleep(1800);
+    if (!(await ev(`document.getElementById('intro').hidden`))) await tapEl(`document.getElementById('introOk')`);
+    const info = await ev(`(() => ({
+      lang: document.documentElement.lang, power: document.getElementById('power').textContent.trim(),
+      presets: [...document.getElementById('preset').options].map(o => o.textContent).join(' | '),
+      groups: [...document.querySelectorAll('.lib-group h3')].map(h => h.textContent).join(' | '),
+      ptLeft: [...document.querySelectorAll('.top button, .top label, .top small, .top span, .lib-group h3, .caption, #intro')]
+        .filter(e => e.offsetParent && /\b(Ligar|Salvar|Palco|Cenas?|Gravar|Entrada padrão|inspirado no|Dinâmica|Primeiros passos)\b/.test(e.textContent))
+        .map(e => e.textContent.trim().slice(0, 30)) }))()`);
+    check(info.lang === L && info.power && !/Ligar/.test(info.power), `${L}: página no idioma (lang=${info.lang}, LIGAR = "${info.power}")`);
+    check(!/Limpo com chorus|Crunch: base e solo/.test(info.presets), `${L}: presets de fábrica com nome no idioma (${info.presets.slice(0, 90)}…)`);
+    check(info.ptLeft.length === 0, `${L}: nenhum texto em português na tela${info.ptLeft.length ? ': ' + info.ptLeft.join(' / ') : ''}`);
+    for (const [w, h] of [[1024, 768], [768, 1024], [390, 844]]) {
+      await viewport(w, h); await sleep(900);
+      const lay = await ev(`(() => {
+        const cut = [...document.querySelectorAll('.top button, .top label, .scenes button, .actions button')]
+          .filter(e => e.offsetParent && e.scrollWidth > e.clientWidth + 1 && !e.closest('.pick'))
+          .map(e => (e.id || e.className) + ' "' + e.textContent.trim().slice(0, 20) + '"');
+        return { cut, scroll: document.documentElement.scrollHeight > innerHeight || document.documentElement.scrollWidth > innerWidth,
+          top: Math.round(document.querySelector('.top').getBoundingClientRect().height) };
+      })()`);
+      check(!lay.scroll && lay.cut.length === 0, `${L} ${w}×${h}: sem rolagem e nenhum rótulo cortado (topo ${lay.top} px)${lay.cut.length ? ': ' + lay.cut.join(', ') : ''}`);
+      await shot(`idioma-${L}-${w}x${h}.png`);
+    }
+  }
+  await ev(`localStorage.setItem('brasa.lang', 'pt')`);
+  await viewport(1024, 768);
+  await send('Page.reload'); await sleep(1500);
+  check(await ev(`document.documentElement.lang === 'pt-BR' && document.getElementById('power').textContent.trim() === 'Ligar'`), 'voltando para português pelo seletor guardado');
 
   // ---------- Guarda de inicialização ----------
   // Intercepta arquivos do app (Fetch) e serve o que cada caso precisa; o resto vai para o servidor.

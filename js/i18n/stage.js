@@ -1,0 +1,36 @@
+// Textos de stage (ver js/i18n.js para a sintaxe).
+export default {
+  pt: {
+    'stage.noPreset': 'Sem preset',
+    'stage.count': '{pos} de {n}',
+    'stage.loop.empty': 'vazio',
+    'stage.loop.rec': 'GRAVANDO',
+    'stage.loop.play': 'tocando',
+    'stage.loop.dub': 'SOBREPONDO',
+    'stage.loop.stop': 'parado',
+    'stage.exprLabel': '{name}: {label}',
+    'stage.scene': 'Cena {name}',
+  },
+  en: {
+    'stage.noPreset': 'No preset',
+    'stage.count': '{pos} of {n}',
+    'stage.loop.empty': 'empty',
+    'stage.loop.rec': 'RECORDING',
+    'stage.loop.play': 'playing',
+    'stage.loop.dub': 'OVERDUBBING',
+    'stage.loop.stop': 'stopped',
+    'stage.exprLabel': '{name}: {label}',
+    'stage.scene': 'Scene {name}',
+  },
+  es: {
+    'stage.noPreset': 'Sin preset',
+    'stage.count': '{pos} de {n}',
+    'stage.loop.empty': 'vacío',
+    'stage.loop.rec': 'GRABANDO',
+    'stage.loop.play': 'reproduciendo',
+    'stage.loop.dub': 'SOBREGRABANDO',
+    'stage.loop.stop': 'detenido',
+    'stage.exprLabel': '{name}: {label}',
+    'stage.scene': 'Escena {name}',
+  },
+};

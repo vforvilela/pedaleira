@@ -1,6 +1,7 @@
 // Cenas dentro do preset.
 import { $, changeListeners, live, save, SCENE_NAMES, sceneMatches, state, status } from './core.js';
 import { byType } from './pedals/index.js';
+import { t } from './i18n.js';
 
 // ---------- Cenas ----------
 // Uma cena liga e desliga vários pedais e muda a posição dos botões de uma vez (ex.: A = base, B = solo
@@ -25,12 +26,12 @@ export function renderScenes() {
 
 export function sceneSummary(i) {
   const on = state.chain.filter(b => b.scenes[i]?.on).map(b => byType[b.type].name);
-  return on.length ? `liga ${on.join(', ')}` : 'tudo desligado';
+  return on.length ? t('scenes.turnsOn', { names: on.join(', ') }) : t('scenes.allOff');
 }
 
 export function recallScene(i) {
   if (!sceneUsed(i)) {
-    status(`Cena ${SCENE_NAMES[i]} vazia: ligue os pedais, toque em Gravar e em ${SCENE_NAMES[i]}.`);
+    status(t('scenes.empty', { name: SCENE_NAMES[i] }));
     return;
   }
   for (const b of state.chain) {
@@ -43,19 +44,19 @@ export function recallScene(i) {
     l?.view?.update();
   }
   save();
-  status(`Cena ${SCENE_NAMES[i]}: ${sceneSummary(i)}.`);
+  status(t('scenes.recalled', { name: SCENE_NAMES[i], summary: sceneSummary(i) }));
 }
 
 export function storeScene(i) {
   for (const b of state.chain) b.scenes[i] = { on: b.on, params: { ...b.params } };
   recordingScene = false;
   save();
-  status(`Cena ${SCENE_NAMES[i]} gravada: ${sceneSummary(i)}. Salve o preset para guardá-la.`);
+  status(t('scenes.stored', { name: SCENE_NAMES[i], summary: sceneSummary(i) }));
 }
 
 sceneButtons.forEach((btn, i) => { btn.onclick = () => (recordingScene ? storeScene(i) : recallScene(i)); });
 $('sceneRec').onclick = () => {
   recordingScene = !recordingScene;
   renderScenes();
-  status(recordingScene ? 'Toque em A, B, C ou D para guardar os pedais como estão.' : '');
+  status(recordingScene ? t('scenes.recordHowTo') : '');
 };

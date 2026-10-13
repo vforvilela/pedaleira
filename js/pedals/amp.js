@@ -1,6 +1,7 @@
 // Amplificador: circuito interno (dois estágios de pré, tone stack, power amp) ou uma captura NAM.
 // BASS/MID/TREBLE agem também sobre a captura. Caixa 1x12 ou 4x12 (filtros), IR .wav ou nenhuma.
 import { Bypass, NamSlot, biquad, cabFilters, chain, curve, dbToGain, namMakeupDb, smooth } from './common.js';
+import { t } from '../i18n.js';
 
 // Ordem mantida por compatibilidade com presets salvos (0 era a caixa interna, 1 o IR, 2 sem caixa).
 const CABS = ['1x12', 'IR', 'OFF', '4x12'];
@@ -35,8 +36,8 @@ export default {
     { id: 'cab', label: 'CAB', type: 'select', options: CABS, default: 0 },
   ],
   files: {
-    nam: { label: 'Captura .nam', accept: '.nam' },
-    ir: { label: 'IR de caixa .wav', accept: '.wav,audio/wav' },
+    nam: { get label() { return t('pedals.fileNam'); }, accept: '.nam' },
+    ir: { get label() { return t('pedals.fileIr'); }, accept: '.wav,audio/wav' },
   },
 
   create(ctx, env) {

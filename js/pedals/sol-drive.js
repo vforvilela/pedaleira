@@ -2,6 +2,7 @@
 // Circuito: o drive só satura acima de ~720 Hz (o grave passa limpo), com clipagem assimétrica
 // (dois diodos de um lado, um do outro), seguido de tom e volume.
 import { Bypass, NamSlot, biquad, curve, dbToGain, namMakeupDb, smooth } from './common.js';
+import { t } from '../i18n.js';
 
 // Lado positivo satura no dobro do negativo, como 2 diodos contra 1.
 const asymClip = curve(x => (x >= 0 ? Math.tanh(4 * x) / Math.tanh(4) : 0.5 * Math.tanh(8 * x) / Math.tanh(8)));
@@ -20,7 +21,7 @@ export default {
     { id: 'tone', label: 'TONE', default: 5 },
     { id: 'drive', label: 'DRIVE', default: 5 },
   ],
-  files: { nam: { label: 'Captura .nam', accept: '.nam' } },
+  files: { nam: { get label() { return t('pedals.fileNam'); }, accept: '.nam' } },
 
   create(ctx, env) {
     const bp = new Bypass(ctx);

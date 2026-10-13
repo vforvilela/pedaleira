@@ -1,5 +1,6 @@
 // Peças comuns aos pedais.
 import { dbToGain, monoWorklet } from '../audio/engine.js';
+import { t } from '../i18n.js';
 
 export { dbToGain, monoWorklet };
 
@@ -50,7 +51,7 @@ export class NamSlot {
 
   load(nam) {
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('o motor de áudio não respondeu')), 15000);
+      const timer = setTimeout(() => reject(new Error(t('pedals.engineTimeout'))), 15000);
       const done = fn => arg => { clearTimeout(timer); fn(arg); };
       this.node.port.onmessage = ({ data }) => {
         if (data.type === 'loaded') { this.loaded = true; done(resolve)(data); }

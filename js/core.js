@@ -3,6 +3,7 @@ import { Engine } from './audio/engine.js';
 import { DEFAULT_CHAIN, byType, defaultParams } from './pedals/index.js';
 import { deleteFile, getFile, loadState, saveState } from './store.js';
 import { FACTORY_VERSION, factoryPresets } from './factory.js';
+import { t } from './i18n.js';
 
 export const $ = id => document.getElementById(id);
 export const engine = new Engine();
@@ -63,7 +64,8 @@ export const state = {
 };
 // Presets de fábrica que a pessoa ainda não tem (pelo nome: um preset dela com o mesmo nome fica).
 if (state.factory < FACTORY_VERSION) {
-  const add = factoryPresets().filter(f => !state.presets.some(p => p.name === f.name));
+  // (Pelos nomes nos três idiomas: quem trocou de idioma não ganha cópias.)
+  const add = factoryPresets().filter(f => !state.presets.some(p => (f.aliases || [f.name]).includes(p.name)));
   state.presets.push(...add.map(p => ({ name: p.name, chain: normalizeChain(p.chain) })));
   state.factory = FACTORY_VERSION;
 }
@@ -111,12 +113,12 @@ export async function loadIntoAudio(block, kind, data, name) {
   if (!audio) return;
   try {
     const info = await audio.loadFile(kind, data);
-    const engineName = info?.engine === 'js' ? ' (motor JS, mais pesado)' : '';
+    const heavy = info?.engine === 'js';
     if (info?.sampleRate && info.sampleRate !== engine.ctx.sampleRate)
-      status(`${name}: captura feita a ${info.sampleRate} Hz, o áudio está a ${engine.ctx.sampleRate} Hz. O som pode mudar.`, true);
-    else status(`${name} carregado${engineName}.`);
+      status(t('core.rateMismatch', { name, rate: info.sampleRate, ctxRate: engine.ctx.sampleRate }), true);
+    else status(t(heavy ? 'core.loadedJs' : 'core.loaded', { name }));
   } catch (err) {
-    status(`Não consegui carregar ${name}: ${err.message}`, true);
+    status(t('core.loadFailed', { name, msg: err.message }), true);
     const key = block.files[kind]?.key;
     delete block.files[kind];
     if (key) releaseFile(key);
@@ -137,15 +139,15 @@ export function tapTempo(block) {
   const def = byType[block.type];
   if (!def.tap) return;
   const now = performance.now();
-  const t = (taps.get(block.uid) || []).filter(x => now - x < 2500);
-  t.push(now);
-  taps.set(block.uid, t.slice(-4));
-  if (t.length < 2) { status(`${def.name}: toque mais uma vez no ritmo.`); return; }
-  const gaps = t.slice(1).map((x, i) => x - t[i]);
+  const times = (taps.get(block.uid) || []).filter(x => now - x < 2500);
+  times.push(now);
+  taps.set(block.uid, times.slice(-4));
+  if (times.length < 2) { status(t('core.tapAgain', { name: def.name })); return; }
+  const gaps = times.slice(1).map((x, i) => x - times[i]);
   const sec = gaps.reduce((a, b) => a + b, 0) / gaps.length / 1000;
   const v = Math.round(Math.max(0, Math.min(10, def.tap.fromSeconds(sec))) * 10) / 10;
   setParam(block, def.tap.param, v);
-  status(`${def.name}: ${Math.round(sec * 1000)} ms (${Math.round(60 / sec)} BPM).`);
+  status(t('core.tapTempo', { name: def.name, ms: Math.round(sec * 1000), bpm: Math.round(60 / sec) }));
 }
 
 export function setParam(block, id, v) {
@@ -161,7 +163,7 @@ export function toggleBlock(block) {
   // Pedais com pisada própria (looper): a pisada vai para o pedal, ele não liga nem desliga.
   if (l?.def.press) {
     if (l.audio) l.audio.press();
-    else status(`${l.def.name}: clique em Ligar primeiro.`);
+    else status(t('core.turnOnFirst', { name: l.def.name }));
     return;
   }
   block.on = !block.on;
@@ -177,12 +179,12 @@ export const closest = (e, sel) => (e.target instanceof Element ? e.target.close
 // Aviso no rodapé com um botão de ação.
 let toastTimer = 0;
 export function toast(msg, action, fn) {
-  const t = $('toast');
-  t.querySelector('span').textContent = msg;
-  const b = t.querySelector('button');
+  const box = $('toast');
+  box.querySelector('span').textContent = msg;
+  const b = box.querySelector('button');
   b.textContent = action;
   b.onclick = fn;
-  t.hidden = false;
+  box.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(hideToast, 10000);
 }

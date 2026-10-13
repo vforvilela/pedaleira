@@ -1,6 +1,7 @@
 // Presets, rascunhos, exportar e importar.
 import { ensureView, fetchFile, fileInput, renderBoard } from './board.js';
 import { $, changeListeners, hideToast, sameScene, toast, createAudio, engine, live, loadIntoAudio, normalizeBlock, normalizeChain, reconnect, releaseFile, save, SCENE_NAMES, snapshot, state, status } from './core.js';
+import { t } from './i18n.js';
 import { getFile, putFile } from './store.js';
 
 // ---------- Presets ----------
@@ -38,7 +39,7 @@ export const hasDraft = name => !!state.drafts[name] || (name === state.preset &
 export function renderPresets() {
   const sel = $('preset');
   sel.replaceChildren(
-    new Option('— sem preset —', ''),
+    new Option(t('presets.noPreset'), ''),
     ...state.presets.map(p => new Option(hasDraft(p.name) ? `${p.name} *` : p.name, p.name)),
   );
   sel.value = state.preset ?? '';
@@ -47,17 +48,17 @@ export function renderPresets() {
   $('presetRevert').hidden = !dirty;
   $('presetSave').classList.toggle('attention', dirty);
   renderNow(dirty);
-  $('presetSave').title = dirty ? 'Há mudanças não salvas neste preset' : 'Salvar preset';
+  $('presetSave').title = dirty ? t('presets.saveTitleDirty') : t('presets.saveTitle');
 }
 
 // Nome do preset em letras grandes acima da pedaleira (o que está tocando, legível de longe).
 function renderNow(dirty) {
   const c = $('nowCount'), idx = state.presets.findIndex(p => p.name === state.preset);
-  c.textContent = idx >= 0 ? `Preset ${idx + 1} de ${state.presets.length}` : 'Preset';
+  c.textContent = idx >= 0 ? t('presets.countOf', { i: idx + 1, total: state.presets.length }) : t('presets.countNone');
   if (dirty) {
     const tag = document.createElement('span');
     tag.className = 'dirty';
-    tag.textContent = 'Alterado';
+    tag.textContent = t('presets.dirtyTag');
     c.append(tag);
   }
 }
@@ -74,7 +75,7 @@ export function refreshDirty() {
 
 export function savePreset() {
   const name = $('presetName').value.trim();
-  if (!name) { status('Dê um nome ao preset (ex.: o nome da música).', true); $('presetName').focus(); return; }
+  if (!name) { status(t('presets.nameRequired'), true); $('presetName').focus(); return; }
   const existing = presetByName(name);
   const old = existing?.chain;
   if (existing) existing.chain = snapshot(state.chain);
@@ -88,7 +89,7 @@ export function savePreset() {
   lastDirty = null;
   save();
   renderPresets();
-  status(`Preset "${name}" salvo.`);
+  status(t('presets.saved', { name }));
 }
 
 // Apaga com 10 s para desfazer; os arquivos do preset só saem do armazenamento depois.
@@ -104,8 +105,8 @@ export function deletePresetAt(i) {
   save();
   renderPresets();
   renderSetlist();
-  status(`Preset "${p.name}" apagado. A pedaleira continua como está.`);
-  toast(`Preset "${p.name}" apagado.`, 'Desfazer', undoDelete);
+  status(t('presets.deletedStatus', { name: p.name }));
+  toast(t('presets.deletedToast', { name: p.name }), t('presets.undo'), undoDelete);
 }
 
 function finishDelete() {
@@ -129,7 +130,7 @@ function undoDelete() {
   save();
   renderPresets();
   renderSetlist();
-  status(`Preset "${name}" de volta.`);
+  status(t('presets.restored', { name }));
 }
 
 // ---------- Setlist: ordem, nomes e apagar ----------
@@ -140,8 +141,12 @@ export function renderSetlist() {
   if (!list) return;
   list.replaceChildren(...state.presets.map((p, i) => {
     const li = document.createElement('li');
-    li.innerHTML = `<span class="pc"></span><input type="text" maxlength="40" aria-label="Nome do preset">
-      <button class="up" aria-label="Subir">▲</button><button class="down" aria-label="Descer">▼</button><button class="del" aria-label="Apagar">✕</button>`;
+    li.innerHTML = `<span class="pc"></span><input type="text" maxlength="40">
+      <button class="up">▲</button><button class="down">▼</button><button class="del">✕</button>`;
+    li.querySelector('input').setAttribute('aria-label', t('presets.nameLabel'));
+    li.querySelector('.up').setAttribute('aria-label', t('presets.moveUp'));
+    li.querySelector('.down').setAttribute('aria-label', t('presets.moveDown'));
+    li.querySelector('.del').setAttribute('aria-label', t('presets.delete'));
     li.querySelector('.pc').textContent = String(i + 1);
     li.querySelector('.pc').title = `Program Change ${i}`;
     const input = li.querySelector('input');
@@ -159,7 +164,7 @@ export function renderSetlist() {
 
 function renamePreset(p, name) {
   if (!name || name === p.name) return false;
-  if (presetByName(name)) { status(`Já existe um preset "${name}".`, true); return false; }
+  if (presetByName(name)) { status(t('presets.nameExists', { name }), true); return false; }
   if (state.drafts[p.name]) { state.drafts[name] = state.drafts[p.name]; delete state.drafts[p.name]; }
   if (state.preset === p.name) state.preset = name;
   p.name = name;
@@ -197,19 +202,19 @@ async function pipe(bytes, stream) {
 function copyText(text) {
   const viaApi = !!navigator.clipboard?.writeText;
   navigator.clipboard?.writeText(text).catch(() => {});
-  const t = document.createElement('textarea');
-  t.value = text;
-  t.style.cssText = 'position:fixed;opacity:0';
-  document.body.append(t);
-  t.select();
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;opacity:0';
+  document.body.append(ta);
+  ta.select();
   let ok = false;
   try { ok = document.execCommand('copy'); } catch { /* sem suporte */ }
-  t.remove();
+  ta.remove();
   return ok || viaApi;
 }
 
 export async function shareLink() {
-  const name = state.preset || 'Pedaleira compartilhada';
+  const name = state.preset || t('presets.sharedBoardName');
   // Arquivos só vão pelo endereço (os vindos de um link); os do aparelho ficam de fora.
   const chain = snapshot(state.chain).map(b => ({
     ...b,
@@ -219,11 +224,11 @@ export async function shareLink() {
   const packed = typeof CompressionStream === 'function' ? `1.${b64url(await pipe(json, new CompressionStream('deflate-raw')))}` : `0.${b64url(json)}`;
   const url = `${location.origin}${location.pathname}#p=${packed}`;
   const noFiles = state.chain.some(b => Object.values(b.files).some(f => !f.url))
-    ? ' Capturas e IRs escolhidos do aparelho não vão no link (carregue por link ou use Exportar).' : '';
+    ? ` ${t('presets.linkNoFiles')}` : '';
   if (navigator.share && matchMedia('(pointer: coarse)').matches) {
     try { await navigator.share({ title: name, url }); return url; } catch { /* cancelado: copia */ }
   }
-  status(copyText(url) ? `Link de "${name}" copiado.${noFiles}` : `Não consegui copiar. Link: ${url}`);
+  status(copyText(url) ? t('presets.linkCopied', { name }) + noFiles : t('presets.copyFailed', { url }));
   return url;
 }
 
@@ -243,11 +248,11 @@ export async function openSharedLink() {
     for (const b of chain)
       for (const [kind, f] of Object.entries(b.files)) {
         try {
-          if (!f.url) throw new Error('sem endereço');
+          if (!f.url) throw new Error('no-url'); // interno: cai no catch e entra na lista de falhas
           await putFile(f.key, await fetchFile(kind, f.url));
         } catch { failed.push(f.name); delete b.files[kind]; }
       }
-    const base = String(doc.name || 'Compartilhado').slice(0, 34);
+    const base = String(doc.name || t('presets.sharedDefaultName')).slice(0, 34);
     const same = state.presets.find(p => sameChain(p.chain, chain));
     let name = same?.name || base;
     if (!same) {
@@ -256,15 +261,15 @@ export async function openSharedLink() {
     }
     save();
     await applyPreset(name);
-    status(`Preset "${name}" recebido por link.${failed.length ? ` Não consegui baixar: ${failed.join(', ')}.` : ''}`, failed.length > 0);
+    status(t('presets.receivedByLink', { name }) + (failed.length ? ` ${t('presets.downloadFailed', { files: failed.join(', ') })}` : ''), failed.length > 0);
     return true;
   } catch {
-    status('O link de preset está incompleto ou corrompido.', true);
+    status(t('presets.linkBroken'), true);
     return false;
   }
 }
 
-$('presetShare').onclick = () => shareLink().catch(e => status(`Não consegui criar o link: ${e.message}`, true));
+$('presetShare').onclick = () => shareLink().catch(e => status(t('presets.linkCreateFailed', { error: e.message }), true));
 
 // Volta o preset atual para a versão salva, descartando o rascunho.
 export async function revertPreset() {
@@ -272,7 +277,7 @@ export async function revertPreset() {
   if (!presetByName(name)) return;
   delete state.drafts[name];
   await loadChain(presetByName(name).chain, name);
-  status(`"${name}" voltou para a versão salva.`);
+  status(t('presets.reverted', { name }));
 }
 
 // Troca de preset. O ajuste não salvo do preset atual vira rascunho dele.
@@ -346,7 +351,7 @@ export async function loadChain(chain, presetName) {
 }
 
 export function stepPreset(dir) {
-  if (!state.presets.length) { status('Nenhum preset salvo ainda.'); return; }
+  if (!state.presets.length) { status(t('presets.noPresetsYet')); return; }
   const i = state.presets.findIndex(p => p.name === state.preset);
   const n = state.presets.length;
   applyPreset(state.presets[(i < 0 ? (dir > 0 ? 0 : n - 1) : (i + dir + n) % n)].name);
@@ -379,7 +384,7 @@ export function fromBase64(b64) {
 
 export async function buildExport() {
   // Sem presets salvos, exporta a pedaleira atual como um preset.
-  const presets = state.presets.length ? state.presets : [{ name: 'Minha pedaleira', chain: state.chain }];
+  const presets = state.presets.length ? state.presets : [{ name: t('presets.myBoard'), chain: state.chain }];
   const files = {};
   for (const p of presets)
     for (const b of p.chain)
@@ -404,7 +409,7 @@ export async function exportPresets() {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 10000);
   const unsaved = state.presets.some(p => hasDraft(p.name));
-  status(`${presets.length} preset(s) exportado(s)${unsaved ? '. Mudanças não salvas (*) não vão no arquivo' : ''}.`);
+  status(t('presets.exported', { n: presets.length }) + (unsaved ? ` ${t('presets.exportUnsavedNote')}` : ''));
 }
 
 export async function importPresets(file) {
@@ -413,7 +418,7 @@ export async function importPresets(file) {
     doc = JSON.parse(await file.text());
     if (doc?.app !== 'pedaleira' || !Array.isArray(doc.presets)) throw new Error();
   } catch {
-    status(`${file.name} não é um arquivo de presets da Brasa.`, true);
+    status(t('presets.notPresetFile', { file: file.name }), true);
     return;
   }
   for (const [key, f] of Object.entries(doc.files || {}))
@@ -424,17 +429,17 @@ export async function importPresets(file) {
     if (!chain.length) continue;
     const existing = presetByName(p.name);
     if (existing && sameChain(existing.chain, chain)) { same++; continue; }
-    let name = String(p.name || 'Preset').slice(0, 40);
+    let name = String(p.name || t('presets.defaultName')).slice(0, 40);
     for (let i = 2; presetByName(name); i++) name = `${String(p.name).slice(0, 34)} (${i})`;
     state.presets.push({ name, chain });
     added++;
   }
   save();
   renderPresets();
-  status(`${added} preset(s) importado(s)${same ? `, ${same} já existia(m) igual` : ''}.`);
+  status(t('presets.imported', { n: added }) + (same ? t('presets.importedSame', { n: same }) : '') + '.');
 }
 
-$('presetExport').onclick = () => exportPresets().catch(e => status(`Não consegui exportar: ${e.message}`, true));
+$('presetExport').onclick = () => exportPresets().catch(e => status(t('presets.exportFailed', { error: e.message }), true));
 $('presetImport').onclick = () => {
   fileInput.accept = '.json,application/json';
   fileInput.value = '';

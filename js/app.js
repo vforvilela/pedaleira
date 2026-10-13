@@ -1,4 +1,6 @@
 // Pedaleira: junta os módulos e inicia o app.
+import './i18n-apply.js';
+import { LANGS, lang, setLang, t } from './i18n.js';
 import { loadWasmBytes } from './audio/engine.js';
 import { addBlock, directUrl, renderBoard, setFloorView } from './board.js';
 import { midi } from './control.js';
@@ -15,11 +17,11 @@ import './stage.js';
 
 // Agrupada pela posição na cadeia, na ordem em que o sinal passa.
 const GROUPS = [
-  ['Afinar e filtrar', ['tuner', 'filter']],
-  ['Dinâmica', ['comp', 'gate', 'volume']],
-  ['Drive e amp', ['drive', 'amp', 'eq']],
-  ['Modulação', ['mod']],
-  ['Delay, reverb e looper', ['time', 'looper']],
+  ['app.groupTune', ['tuner', 'filter']],
+  ['app.groupDynamics', ['comp', 'gate', 'volume']],
+  ['app.groupDrive', ['drive', 'amp', 'eq']],
+  ['app.groupMod', ['mod']],
+  ['app.groupTime', ['time', 'looper']],
 ];
 const addButton = def => {
   const b = document.createElement('button');
@@ -27,7 +29,7 @@ const addButton = def => {
   b.innerHTML = `<span class="swatch ${def.look.style}" aria-hidden="true"></span><span><b></b><small></small></span>`;
   b.querySelector('.swatch').style.setProperty('--body', def.look.body);
   b.querySelector('b').textContent = def.name;
-  b.querySelector('small').textContent = def.inspiredBy ? `inspirado no ${def.inspiredBy}` : 'amp + caixa, aceita captura NAM';
+  b.querySelector('small').textContent = def.inspiredBy ? t('app.inspired', { name: def.inspiredBy }) : t('app.ampDesc');
   // Fecha a gaveta para o pedal novo ser visto pousando na pedaleira.
   b.onclick = () => { $('libSheet').close(); addBlock(def.type); };
   return b;
@@ -36,7 +38,7 @@ $('library').replaceChildren(...GROUPS.map(([title, cats]) => {
   const group = document.createElement('section');
   group.className = 'lib-group';
   const h = document.createElement('h3');
-  h.textContent = title;
+  h.textContent = t(title);
   const grid = document.createElement('div');
   grid.className = 'lib-grid';
   grid.append(...PEDALS.filter(d => cats.includes(d.category)).map(addButton));
@@ -66,7 +68,7 @@ openSharedLink();
 // Instalar como app: Chrome/Edge/Android oferecem o evento; no iPhone, o caminho é pelo menu Compartilhar.
 let installPrompt = null;
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; $('install').hidden = false; });
-addEventListener('appinstalled', () => { $('install').hidden = true; status('Brasa instalada como app.'); });
+addEventListener('appinstalled', () => { $('install').hidden = true; status(t('app.installed')); });
 const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 const iOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 if (iOS && !standalone) $('install').hidden = false;
@@ -79,10 +81,10 @@ const inFs = () => !!(document.fullscreenElement || document.webkitFullscreenEle
 $('fullscreen').hidden = !enterFs || standalone;
 const syncFs = () => {
   $('fullscreen').setAttribute('aria-pressed', inFs());
-  $('fullscreen').setAttribute('aria-label', inFs() ? 'Sair da tela cheia' : 'Tela cheia');
+  $('fullscreen').setAttribute('aria-label', t(inFs() ? 'app.fsExit' : 'app.fsEnter'));
 };
 $('fullscreen').onclick = () => Promise.resolve(inFs() ? exitFs.call(document) : enterFs.call(root))
-  .catch(e => status(`O navegador não deixou abrir em tela cheia: ${e.message}`, true));
+  .catch(e => status(t('app.fsDenied', { msg: e.message }), true));
 document.addEventListener('fullscreenchange', syncFs);
 document.addEventListener('webkitfullscreenchange', syncFs);
 $('install').onclick = async () => {
@@ -91,12 +93,12 @@ $('install').onclick = async () => {
     await installPrompt.userChoice.catch(() => {});
     installPrompt = null;
     $('install').hidden = true;
-  } else if (iOS) status('Para instalar no iPhone/iPad: toque em Compartilhar (□↑) e depois em "Adicionar à Tela de Início".');
+  } else if (iOS) status(t('app.iosInstall'));
 };
 
 // Navegador sem AudioWorklet (muito antigo): avisa logo, antes de tentar ligar.
 if (!window.AudioWorkletNode || !navigator.mediaDevices?.getUserMedia)
-  status('Este navegador não tem o que a Brasa precisa (AudioWorklet e entrada de áudio). Use Chrome, Edge, Firefox ou Safari atualizados.', true);
+  status(t('app.unsupported'), true);
 persist();
 
 $('intro').hidden = state.introDone;
@@ -110,7 +112,7 @@ addEventListener('hashchange', openSharedLink);
 loadWasmBytes();
 if ('serviceWorker' in navigator && location.protocol !== 'file:')
   navigator.serviceWorker.register('sw.js').catch(() => {});
-$('floorView').onclick = () => { setFloorView(!state.floorView); save(); status(state.floorView ? 'Como no chão: a guitarra entra pela direita e o sinal vai para a esquerda.' : 'Sinal da esquerda para a direita, como nas pedaleiras digitais.'); };
+$('floorView').onclick = () => { setFloorView(!state.floorView); save(); status(t(state.floorView ? 'app.floorOn' : 'app.floorOff')); };
 
 // Telefone: gaveta de entrada e volume (no tablet e no PC essa faixa fica sempre à vista no topo).
 const setRack = on => { document.body.classList.toggle('rack-on', on); $('rackOpen').setAttribute('aria-expanded', on); };
@@ -121,6 +123,10 @@ document.addEventListener('pointerdown', e => {
   if (document.body.classList.contains('rack-on') && !e.target.closest('#rack, #rackOpen')) setRack(false);
 });
 addEventListener('keydown', e => { if (e.key === 'Escape') setRack(false); });
+
+// Idioma: escolhido no ⋯ (padrão: o do sistema). Trocar recarrega a página.
+$('lang').replaceChildren(...Object.entries(LANGS).map(([code, name]) => new Option(name, code, false, code === lang)));
+$('lang').onchange = e => setLang(e.target.value);
 
 // Aviso cortado em uma linha (tablet e PC): um toque mostra inteiro.
 $('status').onclick = e => e.currentTarget.classList.toggle('full');

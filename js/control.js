@@ -1,5 +1,6 @@
 // Controle pelo pé: MIDI e teclado (inclusive footswitch Bluetooth de virar página).
 import { undoRemove } from './board.js';
+import { t } from './i18n.js';
 import { $, blockByUid, closest, save, SCENE_NAMES, setParam, state, status, tapTempo, toggleBlock } from './core.js';
 import { Midi, midiSupported } from './midi.js';
 import { byType } from './pedals/index.js';
@@ -33,19 +34,19 @@ export function runAction(target, msg) {
   }
 }
 
-export function describeTarget(t) {
-  if (t.kind === 'preset') return t.dir > 0 ? 'próximo preset' : 'preset anterior';
-  if (t.kind === 'scene') return `cena ${SCENE_NAMES[t.index]}`;
-  const b = blockByUid(t.uid), name = b ? byType[b.type].name : 'pedal';
-  if (t.kind === 'toggle') return `${name} (liga/desliga)`;
-  if (t.kind === 'tap') return `${name} (TAP)`;
-  return `${name} → ${t.param.toUpperCase()}`;
+export function describeTarget(tg) {
+  if (tg.kind === 'preset') return tg.dir > 0 ? t('control.nextPreset') : t('control.prevPreset');
+  if (tg.kind === 'scene') return t('control.scene', { name: SCENE_NAMES[tg.index] });
+  const b = blockByUid(tg.uid), name = b ? byType[b.type].name : t('control.pedal');
+  if (tg.kind === 'toggle') return t('control.toggle', { name });
+  if (tg.kind === 'tap') return `${name} (TAP)`;
+  return `${name} → ${tg.param.toUpperCase()}`;
 }
 
 export const midi = new Midi(state.midi, {
   onAction: runAction,
   onChange: save,
-  onLearned(target, msg) { status(`MIDI: ${msg.label} → ${describeTarget(target)}. Escolha outro alvo ou clique em MIDI para sair.`); },
+  onLearned(target, msg) { status(t('control.learned', { msg: msg.label, target: describeTarget(target) })); },
 });
 
 let learning = false;
@@ -61,21 +62,21 @@ export function setLearning(on) {
 if (midiSupported()) {
   $('midi').hidden = false;
   $('midi').onclick = async () => {
-    if (learning) { setLearning(false); status('MIDI pronto.'); return; }
+    if (learning) { setLearning(false); status(t('control.midiReady')); return; }
     try {
       await midi.enable();
     } catch {
-      status('O navegador não deu acesso ao MIDI.', true);
+      status(t('control.midiDenied'), true);
       return;
     }
     setLearning(true);
     const names = midi.inputNames();
-    status(`${names.length ? `Controlador: ${names.join(', ')}.` : 'Nenhum controlador MIDI conectado.'} Toque no que quer controlar (pedal, TAP, botão, cena, ◀ ▶) e depois pise no controlador.`);
+    status(`${names.length ? t('control.controllers', { names: names.join(', ') }) : t('control.noController')} ${t('control.learnHowTo')}`);
   };
   $('midiClear').onclick = () => {
     state.midi.splice(0);
     save();
-    status('Todos os mapeamentos MIDI foram apagados.');
+    status(t('control.midiCleared'));
   };
   // Liga o MIDI sozinho se já houver mapeamentos (o navegador lembra a permissão).
   if (state.midi.length) midi.enable().catch(() => {});
@@ -101,7 +102,7 @@ document.addEventListener('pointerdown', e => {
   document.querySelectorAll('.learn-target').forEach(x => x.classList.remove('learn-target'));
   el.classList.add('learn-target');
   midi.learn(target);
-  status(`Agora pise no botão do controlador para: ${describeTarget(target)}.`);
+  status(t('control.pressNow', { target: describeTarget(target) }));
 }, true);
 document.addEventListener('click', e => {
   if (learning && closest(e, '.footswitch, .tap-btn, .knob, .scene-btn, #presetPrev, #presetNext')) { e.preventDefault(); e.stopPropagation(); }
@@ -123,7 +124,7 @@ document.addEventListener('keydown', e => {
   if (e.key.length === 1 && scene >= 0) recallScene(scene);
   else if (/^[1-9]$/.test(e.key)) {
     const b = state.chain[+e.key - 1];
-    if (b) { toggleBlock(b); if (!byType[b.type].press) status(`${byType[b.type].name}: ${b.on ? 'ligado' : 'desligado'}`); }
+    if (b) { toggleBlock(b); if (!byType[b.type].press) status(t(b.on ? 'control.pedalOn' : 'control.pedalOff', { name: byType[b.type].name })); }
   } else if (e.key === 't' || e.key === 'T') {
     const b = state.chain.find(b => byType[b.type].tap);
     if (b) tapTempo(b);

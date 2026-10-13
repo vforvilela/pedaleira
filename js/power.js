@@ -2,12 +2,13 @@
 import { setStageTuner } from './stage.js';
 import { noteOf } from './audio/pitch.js';
 import { pickChannel } from './audio/channel.js';
+import { t, fmtNum } from './i18n.js';
 import { $, applyStoredFiles, createAudio, engine, live, reconnect, save, state, status } from './core.js';
 
 export async function listDevices(selectedId) {
   const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput');
   const sel = $('device');
-  sel.replaceChildren(...devs.map((d, i) => new Option(d.label || `Entrada ${i + 1}`, d.deviceId)));
+  sel.replaceChildren(...devs.map((d, i) => new Option(d.label || t('power.inputN', { i: i + 1 }), d.deviceId)));
   // Na primeira vez, tenta achar o Tank Mini pelo nome.
   const tank = devs.find(d => /tank/i.test(d.label));
   sel.value = selectedId || (tank && tank.deviceId) || sel.value;
@@ -46,11 +47,11 @@ export function runMeter() {
 }
 
 export async function start() {
-  status('Ligando…');
+  status(t('power.starting'));
   const track = await engine.start($('device').value || state.deviceId);
   state.deviceId = track.getSettings().deviceId || state.deviceId;
   await listDevices(state.deviceId);
-  if (!engine.wasmBytes) status('Motor WebAssembly indisponível: capturas NAM vão usar o motor JS, mais pesado.', true);
+  if (!engine.wasmBytes) status(t('power.noWasm'), true);
   for (const b of state.chain) createAudio(b);
   reconnect();
   engine.setMaster(state.master);
@@ -63,20 +64,20 @@ export async function start() {
   let warned = false;
   const showLat = () => {
     const ms = engine.latencyMs();
-    $('latency').textContent = `${ms.toFixed(1)} ms`;
+    $('latency').textContent = t('power.latencyMs', { ms: fmtNum(ms, 1) });
     $('latency').parentElement.classList.toggle('high', ms > 80);
     // Fone ou caixa Bluetooth somam 150 ms ou mais: dá para ouvir, não para tocar.
     if (ms > 80 && !warned) {
       warned = true;
-      status(`Latência alta (${Math.round(ms)} ms). Fone ou caixa Bluetooth atrasam demais para tocar: use fone com fio ou a saída da interface.`, true);
+      status(t('power.latencyHigh', { ms: fmtNum(Math.round(ms)) }), true);
     }
   };
   showLat();
   latencyTimer = setInterval(showLat, 1000);
-  if (!$('status').classList.contains('err')) status(`Tocando: ${track.label}`);
+  if (!$('status').classList.contains('err')) status(t('power.playing', { device: track.label }));
   $('measure').hidden = false;
   $('record').hidden = false;
-  $('power').textContent = 'Desligar';
+  $('power').textContent = t('power.turnOff');
   $('power').setAttribute('aria-pressed', 'true');
   save();
 }
@@ -94,10 +95,10 @@ export async function stop() {
   runTuners();
   $('meter').firstElementChild.style.clipPath = '';
   $('latency').textContent = '—';
-  status('Desligado.');
+  status(t('power.stopped'));
   $('measure').hidden = true;
   $('record').hidden = true;
-  $('power').textContent = 'Ligar';
+  $('power').textContent = t('power.turnOn');
   $('power').setAttribute('aria-pressed', 'false');
 }
 
@@ -107,10 +108,10 @@ $('power').onclick = async () => {
     engine.running ? await stop() : await start();
   } catch (e) {
     await stop();
-    const msg = e.name === 'NotAllowedError' ? 'O navegador não deu acesso à entrada de áudio.'
-      : e.name === 'NotFoundError' ? 'Nenhuma entrada de áudio encontrada. Conecte a interface.'
+    const msg = e.name === 'NotAllowedError' ? t('power.errNoPermission')
+      : e.name === 'NotFoundError' ? t('power.errNoInput')
       : `${e.name}: ${e.message}`;
-    status(`Erro: ${msg}`, true);
+    status(t('power.error', { msg }), true);
   } finally {
     $('power').disabled = false;
   }
@@ -141,14 +142,14 @@ function setupChannel() {
     if (ch === null) return;
     clearInterval(channelTimer);
     engine.useChannel(ch);
-    $('channel').options[0].textContent = `Canal: auto (${ch + 1})`;
-    status(`Guitarra no canal ${ch + 1} da interface.`);
+    $('channel').options[0].textContent = t('power.channelAutoPicked', { ch: ch + 1 });
+    status(t('power.guitarOnChannel', { ch: ch + 1 }));
   }, 50);
 }
 
 $('channel').onchange = () => {
   state.inputChannel = $('channel').value;
-  $('channel').options[0].textContent = 'Canal: auto';
+  $('channel').options[0].textContent = t('power.channelAuto');
   save();
   if (engine.running) setupChannel();
 };
@@ -156,6 +157,9 @@ $('channel').onchange = () => {
 // ---------- Gravar o que sai ----------
 
 let finishRec = null, recTimer = 0;
+// Números com vírgula decimal em pt/es; inteiros ficam sem casas, como antes.
+const fmtMs = ms => fmtNum(ms, Number.isInteger(ms) ? 0 : 1);
+const fmtDb = db => fmtNum(db, Number.isInteger(db) ? 0 : 1);
 const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 async function stopRecording() {
@@ -163,7 +167,7 @@ async function stopRecording() {
   const finish = finishRec;
   finishRec = null;
   clearInterval(recTimer);
-  $('record').textContent = 'Gravar áudio';
+  $('record').textContent = t('power.recordAudio');
   $('record').setAttribute('aria-pressed', 'false');
   const blob = await finish();
   const d = new Date(), p2 = n => String(n).padStart(2, '0');
@@ -172,7 +176,7 @@ async function stopRecording() {
   const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: name });
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 60000);
-  status(`Gravação salva: ${name}`);
+  status(t('power.recordingSaved', { name }));
 }
 
 $('record').onclick = async () => {
@@ -181,12 +185,12 @@ $('record').onclick = async () => {
   try {
     finishRec = engine.record();
   } catch (e) {
-    status(`Este navegador não grava áudio: ${e.message}`, true);
+    status(t('power.recordUnsupported', { msg: e.message }), true);
     return;
   }
   const t0 = Date.now();
   $('record').setAttribute('aria-pressed', 'true');
-  const tick = () => { $('record').textContent = `● ${mmss((Date.now() - t0) / 1000)} Parar`; };
+  const tick = () => { $('record').textContent = t('power.recordingStop', { time: mmss((Date.now() - t0) / 1000) }); };
   tick();
   recTimer = setInterval(tick, 500);
 };
@@ -196,36 +200,37 @@ $('measure').onclick = async () => {
   if (!engine.running) return;
   if ($('measure').dataset.ready !== '1') {
     $('measure').dataset.ready = '1';
-    $('measure').textContent = 'Começar';
-    status('Ligue um cabo da SAÍDA da interface na ENTRADA (ou encoste o fone no microfone), abaixe o volume do fone e clique em Começar.');
+    $('measure').textContent = t('power.measureStart');
+    status(t('power.measureHowTo'));
     return;
   }
   $('measure').dataset.ready = '';
-  $('measure').textContent = 'Medindo…';
+  $('measure').textContent = t('power.measuring');
   $('measure').disabled = true;
   try {
     const r = await engine.measureRoundTrip();
-    if (r.ms === null) status('O clique não voltou pela entrada. Confira o cabo da saída para a entrada e o ganho de entrada.', true);
+    if (r.ms === null) status(t('power.measureNoReturn'), true);
     else {
       state.measuredMs = Math.round(r.ms * 10) / 10;
       save();
-      status(`Latência real, de ida e volta: ${state.measuredMs} ms (${r.hits} de ${r.clicks} cliques). ${state.measuredMs <= 12 ? 'Ótima para tocar.' : state.measuredMs <= 20 ? 'Boa para tocar.' : 'Alta: dá para sentir o atraso. Tente outra interface ou fone com fio.'}`, state.measuredMs > 20);
+      const verdict = state.measuredMs <= 12 ? t('power.measureGreat') : state.measuredMs <= 20 ? t('power.measureGood') : t('power.measureHigh');
+      status(t('power.measureResult', { ms: fmtMs(state.measuredMs), hits: r.hits, n: r.clicks, verdict }), state.measuredMs > 20);
       showMeasured();
     }
   } catch (e) {
-    status(`Não consegui medir: ${e.message}`, true);
+    status(t('power.measureFailed', { msg: e.message }), true);
   } finally {
-    $('measure').textContent = 'Medir latência';
+    $('measure').textContent = t('power.measureLatency');
     $('measure').disabled = false;
   }
 };
 const showMeasured = () => {
-  if (state.measuredMs) $('measure').title = `Última medição: ${state.measuredMs} ms de ida e volta. Clique para medir de novo.`;
+  if (state.measuredMs) $('measure').title = t('power.measureLast', { ms: fmtMs(state.measuredMs) });
 };
 showMeasured();
 
 $('inGain').value = state.inputGain;
-const showInput = () => { $('inGainV').textContent = `${state.inputGain > 0 ? '+' : ''}${state.inputGain} dB`; };
+const showInput = () => { $('inGainV').textContent = `${state.inputGain > 0 ? '+' : ''}${fmtDb(state.inputGain)} dB`; };
 showInput();
 $('inGain').oninput = () => {
   state.inputGain = +$('inGain').value;
@@ -250,8 +255,8 @@ async function resumeAudio() {
   const ctx = engine.ctx;
   if (!ctx || ctx.state === 'running' || ctx.state === 'closed') return;
   try { await ctx.resume(); } catch { /* precisa de um toque */ }
-  if (ctx.state === 'running') status('Áudio de volta.');
-  else status('O sistema pausou o áudio. Toque na tela para voltar.', true);
+  if (ctx.state === 'running') status(t('power.audioBack'));
+  else status(t('power.audioPaused'), true);
 }
 
 function watchAudio(track) {
@@ -260,7 +265,7 @@ function watchAudio(track) {
   track.addEventListener('ended', async () => {
     if (!engine.running) return;
     await stop();
-    status('A entrada de áudio sumiu (interface desconectada?). Conecte de novo e clique em Ligar.', true);
+    status(t('power.inputLost'), true);
   });
 }
 
@@ -273,7 +278,7 @@ document.addEventListener('pointerdown', resumeAudio, true);
 navigator.mediaDevices?.addEventListener?.('devicechange', () => listDevices(state.deviceId).catch(() => {}));
 
 $('master').value = state.master;
-export const showMaster = () => { $('masterV').textContent = `${state.master} dB`; };
+export const showMaster = () => { $('masterV').textContent = `${fmtDb(state.master)} dB`; };
 showMaster();
 $('master').oninput = () => {
   state.master = +$('master').value;

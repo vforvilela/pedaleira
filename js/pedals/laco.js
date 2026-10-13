@@ -1,13 +1,15 @@
 // Looper inspirado no TC Electronic Ditto: pise para gravar, pise para tocar, pise para sobrepor.
 // Duas pisadas rápidas param. STOP e APAGAR também ficam embaixo do pedal.
 import { monoWorklet } from './common.js';
+import { t } from '../i18n.js';
 
+// Getters: o texto sai no idioma da página quando é mostrado.
 const LABELS = {
-  empty: 'vazio · pise para gravar',
-  rec: 'GRAVANDO · pise para tocar',
-  play: 'TOCANDO · pise para sobrepor',
-  dub: 'SOBREPONDO · pise para parar de sobrepor',
-  stop: 'PARADO · pise para tocar',
+  get empty() { return t('pedals.loopEmpty'); },
+  get rec() { return t('pedals.loopRec'); },
+  get play() { return t('pedals.loopPlay'); },
+  get dub() { return t('pedals.loopDub'); },
+  get stop() { return t('pedals.loopStop'); },
 };
 
 export default {
@@ -20,8 +22,8 @@ export default {
   look: { style: 'stomp', body: '#cfd2d6', ink: '#202225', accent: '#202225', subtitle: 'Looper', led: '#3aa0ff' },
   controls: [{ id: 'level', label: 'LOOP LVL', default: 7 }],
   actions: [
-    { id: 'stop', label: 'STOP', title: 'Para o loop (ou pise duas vezes rápido)' },
-    { id: 'clear', label: 'APAGAR', title: 'Apaga o loop' },
+    { id: 'stop', get label() { return t('pedals.loopStopLabel'); }, get title() { return t('pedals.loopStopTitle'); } },
+    { id: 'clear', get label() { return t('pedals.loopClearLabel'); }, get title() { return t('pedals.loopClearTitle'); } },
   ],
 
   create(ctx, env) {

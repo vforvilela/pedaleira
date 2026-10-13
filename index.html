@@ -22,123 +22,124 @@
   <!-- Faixa de cima: ligação com a interface. Ajusta-se uma vez e some do caminho. -->
   <div class="rack" id="rack">
     <h1><span class="ember" aria-hidden="true"></span>Brasa</h1>
-    <button id="rackClose" class="rack-close" aria-label="Fechar entrada e volume">✕</button>
+    <button id="rackClose" class="rack-close" data-i18n-attr="aria-label:html.rackClose" aria-label="Fechar entrada e volume">✕</button>
     <div class="io">
-      <select id="device" aria-label="Entrada de áudio"><option value="">Entrada padrão</option></select>
-      <select id="channel" aria-label="Canal da interface onde está a guitarra" title="Em qual entrada da interface a guitarra está plugada. Automático: o app descobre na primeira palhetada." hidden>
-        <option value="auto">Canal: auto</option><option value="0">Canal 1</option><option value="1">Canal 2</option>
+      <select id="device" aria-label="Entrada de áudio" data-i18n-attr="aria-label:html.device"><option value="" data-i18n="html.deviceDefault">Entrada padrão</option></select>
+      <select id="channel" aria-label="Canal da interface onde está a guitarra" title="Em qual entrada da interface a guitarra está plugada. Automático: o app descobre na primeira palhetada." data-i18n-attr="aria-label:html.channel;title:html.channelTitle" hidden>
+        <option value="auto" data-i18n="html.channelAuto">Canal: auto</option><option value="0" data-i18n="html.channel1">Canal 1</option><option value="1" data-i18n="html.channel2">Canal 2</option>
       </select>
-      <button id="install" title="Instalar a Brasa como app (abre sem o navegador, funciona sem internet)" hidden>Instalar</button>
-      <button id="fullscreen" class="icon-key" aria-pressed="false" aria-label="Tela cheia" title="Tela cheia: esconde as barras do navegador" hidden><span class="fs-icon" aria-hidden="true"></span></button>
+      <button id="install" title="Instalar a Brasa como app (abre sem o navegador, funciona sem internet)" data-i18n="html.install" data-i18n-attr="title:html.installTitle" hidden>Instalar</button>
+      <button id="fullscreen" class="icon-key" aria-pressed="false" aria-label="Tela cheia" title="Tela cheia: esconde as barras do navegador" data-i18n-attr="title:html.fullscreenTitle" hidden><span class="fs-icon" aria-hidden="true"></span></button>
     </div>
     <div class="levels">
-      <div class="meter" id="meter" title="Nível da entrada"><div></div></div>
-      <label class="master" title="Ganho de entrada: ajuste até o medidor ficar verde nas notas fortes, sem vermelho">Entrada <input id="inGain" type="range" min="-12" max="24" step="0.5"> <output id="inGainV"></output></label>
-      <label class="master">Volume <input id="master" type="range" min="-40" max="6" step="0.5"> <output id="masterV"></output></label>
+      <div class="meter" id="meter" title="Nível da entrada" data-i18n-attr="title:html.meter"><div></div></div>
+      <label class="master" title="Ganho de entrada: ajuste até o medidor ficar verde nas notas fortes, sem vermelho" data-i18n-attr="title:html.inGainTitle"><span data-i18n="html.input">Entrada</span> <input id="inGain" type="range" min="-12" max="24" step="0.5"> <output id="inGainV"></output></label>
+      <label class="master"><span data-i18n="html.volume">Volume</span> <input id="master" type="range" min="-40" max="6" step="0.5"> <output id="masterV"></output></label>
     </div>
   </div>
   <!-- Painel da frente: liga, visor do preset, cenas e ações. Como a cabeça de uma pedaleira digital. -->
   <div class="face">
-    <button id="power" class="power" aria-pressed="false">Ligar</button>
+    <button id="power" class="power" aria-pressed="false" data-i18n="html.power">Ligar</button>
     <div class="display">
-      <button id="presetPrev" class="nav" aria-label="Preset anterior" title="Preset anterior (atalho: [)">◀</button>
+      <button id="presetPrev" class="nav" aria-label="Preset anterior" title="Preset anterior (atalho: [)" data-i18n-attr="aria-label:html.prev;title:html.prevTitle">◀</button>
       <div class="screen">
         <div class="screen-top">
-          <small id="nowCount">Preset</small>
-          <label class="pick" title="Escolher na lista de presets">Lista<select id="preset" aria-label="Escolher preset da lista"></select></label>
+          <small id="nowCount" data-i18n="html.nowCount">Preset</small>
+          <label class="pick" title="Escolher na lista de presets" data-i18n-attr="title:html.pickTitle"><span data-i18n="html.pick">Lista</span><select id="preset" aria-label="Escolher preset da lista" data-i18n-attr="aria-label:html.pickLabel"></select></label>
         </div>
         <!-- O nome do preset é o maior texto da tela e é também onde se escreve o nome para salvar. -->
-        <div class="now-row"><input id="presetName" type="text" placeholder="Preset sem nome" aria-label="Nome do preset" maxlength="40" autocomplete="off" title="Nome do preset: escreva aqui e toque em Salvar"><button id="presetRevert" title="Descartar as mudanças e voltar para a versão salva" hidden>Reverter</button></div>
-        <p id="status" class="status" role="status">Plugue a guitarra e toque em Ligar.</p>
+        <div class="now-row"><input id="presetName" type="text" placeholder="Preset sem nome" aria-label="Nome do preset" maxlength="40" autocomplete="off" title="Nome do preset: escreva aqui e toque em Salvar" data-i18n-attr="placeholder:html.namePlaceholder;aria-label:html.nameLabel;title:html.nameTitle"><button id="presetRevert" title="Descartar as mudanças e voltar para a versão salva" data-i18n="html.revert" data-i18n-attr="title:html.revertTitle" hidden>Reverter</button></div>
+        <p id="status" class="status" role="status" data-i18n="html.statusStart">Plugue a guitarra e toque em Ligar.</p>
       </div>
-      <button id="presetNext" class="nav" aria-label="Próximo preset" title="Próximo preset (atalho: ])">▶</button>
+      <button id="presetNext" class="nav" aria-label="Próximo preset" title="Próximo preset (atalho: ])" data-i18n-attr="aria-label:html.next;title:html.nextTitle">▶</button>
     </div>
-    <div id="scenes" class="scenes" role="group" aria-label="Cenas">
-      <button class="scene-btn" aria-pressed="false" title="Cena A (atalho: A)">A</button>
-      <button class="scene-btn" aria-pressed="false" title="Cena B (atalho: B)">B</button>
-      <button class="scene-btn" aria-pressed="false" title="Cena C (atalho: C)">C</button>
-      <button class="scene-btn" aria-pressed="false" title="Cena D (atalho: D)">D</button>
-      <button id="sceneRec" aria-pressed="false" aria-label="Gravar cena" title="Guarda numa cena os pedais ligados e a posição dos botões (cada cena liga e desliga vários pedais de uma vez; atalhos: A, B, C, D)">Gravar<small>cena</small></button>
+    <div id="scenes" class="scenes" role="group" aria-label="Cenas" data-i18n-attr="aria-label:html.scenes">
+      <button class="scene-btn" aria-pressed="false" title="Cena A (atalho: A)" data-i18n-attr="title:html.sceneA">A</button>
+      <button class="scene-btn" aria-pressed="false" title="Cena B (atalho: B)" data-i18n-attr="title:html.sceneB">B</button>
+      <button class="scene-btn" aria-pressed="false" title="Cena C (atalho: C)" data-i18n-attr="title:html.sceneC">C</button>
+      <button class="scene-btn" aria-pressed="false" title="Cena D (atalho: D)" data-i18n-attr="title:html.sceneD">D</button>
+      <button id="sceneRec" aria-pressed="false" aria-label="Gravar cena" title="Guarda numa cena os pedais ligados e a posição dos botões (cada cena liga e desliga vários pedais de uma vez; atalhos: A, B, C, D)" data-i18n-html="html.sceneRec" data-i18n-attr="aria-label:html.sceneRecLabel;title:html.sceneRecTitle">Gravar<small>cena</small></button>
     </div>
     <div class="actions">
-      <button id="rackOpen" class="rack-open" aria-expanded="false" aria-controls="rack" title="Entrada de áudio, ganho, volume e medidor">Entrada</button>
-      <button id="presetSave">Salvar</button>
-      <button id="stageBtn" class="stage-btn" title="Tela para tocar ao vivo: preset, cenas e pedais em botões grandes">Palco</button>
-      <button id="libOpen" class="lib-open" aria-haspopup="dialog" aria-controls="libSheet">+ Pedal</button>
-      <button id="moreBtn" class="more-btn" aria-expanded="false" aria-controls="presetsRow" aria-label="Mais opções">⋯</button>
+      <button id="rackOpen" class="rack-open" aria-expanded="false" aria-controls="rack" title="Entrada de áudio, ganho, volume e medidor" data-i18n="html.rackOpen" data-i18n-attr="title:html.rackOpenTitle">Entrada</button>
+      <button id="presetSave" data-i18n="html.save">Salvar</button>
+      <button id="stageBtn" class="stage-btn" title="Tela para tocar ao vivo: preset, cenas e pedais em botões grandes" data-i18n="html.stage" data-i18n-attr="title:html.stageTitle">Palco</button>
+      <button id="libOpen" class="lib-open" aria-haspopup="dialog" aria-controls="libSheet" data-i18n="html.addPedal">+ Pedal</button>
+      <button id="moreBtn" class="more-btn" aria-expanded="false" aria-controls="presetsRow" aria-label="Mais opções" data-i18n-attr="aria-label:html.more">⋯</button>
     </div>
   </div>
   <div class="presets more-row" id="presetsRow">
-    <button class="more-item" id="presetOrganize" title="Ordem dos presets (setlist), nomes e apagar">Organizar</button>
-    <button class="more-item" id="presetShare" title="Copia um link com a pedaleira atual para mandar para alguém ou para o celular">Link</button>
-    <button class="more-item" id="presetExport" title="Baixar um arquivo com os presets e as capturas que eles usam">Exportar</button>
-    <button class="more-item" id="presetImport" title="Trazer presets de um arquivo exportado">Importar</button>
-    <button class="more-item" id="floorView" aria-pressed="false" title="Mostra a pedaleira como ela fica no chão, vista de quem pisa: a guitarra entra pela direita e o sinal vai para a esquerda, até o amp. Desligado, o sinal vai da esquerda para a direita, como nas pedaleiras digitais.">Como no chão</button>
-    <button class="more-item" id="record" aria-pressed="false" title="Grava o que sai da pedaleira e baixa o arquivo quando você parar" hidden>Gravar áudio</button>
-    <span class="more-item lat" title="Latência informada pelo navegador (sem o atraso da interface)">Latência <b id="latency">—</b></span>
-    <button class="more-item" id="measure" title="Mede a latência real, de ida e volta. Ligue um cabo da saída da interface na entrada antes." hidden>Medir latência</button>
-    <button class="more-item" id="midi" aria-pressed="false" title="Aprender botões de um controlador MIDI" hidden>MIDI</button>
-    <button class="more-item" id="midiClear" hidden>Apagar MIDI</button>
+    <button class="more-item" id="presetOrganize" title="Ordem dos presets (setlist), nomes e apagar" data-i18n="html.presetOrganize" data-i18n-attr="title:html.presetOrganizeTitle">Organizar</button>
+    <button class="more-item" id="presetShare" title="Copia um link com a pedaleira atual para mandar para alguém ou para o celular" data-i18n="html.presetShare" data-i18n-attr="title:html.presetShareTitle">Link</button>
+    <button class="more-item" id="presetExport" title="Baixar um arquivo com os presets e as capturas que eles usam" data-i18n="html.presetExport" data-i18n-attr="title:html.presetExportTitle">Exportar</button>
+    <button class="more-item" id="presetImport" title="Trazer presets de um arquivo exportado" data-i18n="html.presetImport" data-i18n-attr="title:html.presetImportTitle">Importar</button>
+    <button class="more-item" id="floorView" aria-pressed="false" title="Mostra a pedaleira como ela fica no chão, vista de quem pisa: a guitarra entra pela direita e o sinal vai para a esquerda, até o amp. Desligado, o sinal vai da esquerda para a direita, como nas pedaleiras digitais." data-i18n="html.floorView" data-i18n-attr="title:html.floorViewTitle">Como no chão</button>
+    <button class="more-item" id="record" aria-pressed="false" title="Grava o que sai da pedaleira e baixa o arquivo quando você parar" data-i18n="html.record" data-i18n-attr="title:html.recordTitle" hidden>Gravar áudio</button>
+    <span class="more-item lat" title="Latência informada pelo navegador (sem o atraso da interface)" data-i18n-attr="title:html.latTitle"><span data-i18n="html.latency">Latência</span> <b id="latency">—</b></span>
+    <button class="more-item" id="measure" title="Mede a latência real, de ida e volta. Ligue um cabo da saída da interface na entrada antes." data-i18n="html.measure" data-i18n-attr="title:html.measureTitle" hidden>Medir latência</button>
+    <button class="more-item" id="midi" aria-pressed="false" title="Aprender botões de um controlador MIDI" data-i18n="html.midi" data-i18n-attr="title:html.midiTitle" hidden>MIDI</button>
+    <label class="more-item lang"><span data-i18n="html.language">Idioma</span> <select id="lang" aria-label="Idioma" data-i18n-attr="aria-label:html.languageLabel"></select></label>
+    <button class="more-item" id="midiClear" data-i18n="html.midiClear" hidden>Apagar MIDI</button>
   </div>
 </header>
 
 <main>
   <section id="intro" class="intro" aria-labelledby="introTitle" hidden>
-    <h2 id="introTitle">Primeiros passos</h2>
+    <h2 id="introTitle" data-i18n="html.introTitle">Primeiros passos</h2>
     <ol>
-      <li>Plugue a guitarra numa <b>interface de áudio USB</b> (para testar, o microfone serve) e use <b>fone com fio</b>: Bluetooth atrasa.</li>
-      <li>Toque em <b>Ligar</b>. Ajuste <b>Entrada</b> até o medidor ficar verde nas notas fortes.</li>
-      <li>Toque num pedal para ligar e desligar, num botão para girar. Arraste para mudar a ordem.</li>
+      <li data-i18n-html="html.intro1">Plugue a guitarra numa <b>interface de áudio USB</b> (para testar, o microfone serve) e use <b>fone com fio</b>: Bluetooth atrasa.</li>
+      <li data-i18n-html="html.intro2">Toque em <b>Ligar</b>. Ajuste <b>Entrada</b> até o medidor ficar verde nas notas fortes.</li>
+      <li data-i18n="html.intro3">Toque num pedal para ligar e desligar, num botão para girar. Arraste para mudar a ordem.</li>
     </ol>
-    <button id="introOk" class="primary">Entendi</button>
+    <button id="introOk" class="primary" data-i18n="html.introOk">Entendi</button>
   </section>
-  <nav id="chainMap" class="chain-map" aria-label="Ordem dos pedais"></nav>
-  <section class="board-wrap" aria-label="Pedaleira">
+  <nav id="chainMap" class="chain-map" aria-label="Ordem dos pedais" data-i18n-attr="aria-label:html.chainMap"></nav>
+  <section class="board-wrap" aria-label="Pedaleira" data-i18n-attr="aria-label:html.board">
     <div id="board" class="board"></div>
-    <p id="empty" class="empty" hidden>Pedaleira vazia. Toque em <b>+ Pedal</b> para começar.</p>
+    <p id="empty" class="empty" data-i18n-html="html.empty" hidden>Pedaleira vazia. Toque em <b>+ Pedal</b> para começar.</p>
   </section>
 
 </main>
 
-<div id="stage" class="stage-view" role="dialog" aria-modal="true" aria-label="Modo palco" hidden>
+<div id="stage" class="stage-view" role="dialog" aria-modal="true" aria-label="Modo palco" data-i18n-attr="aria-label:html.stageMode" hidden>
   <div class="stage-top">
-    <button id="stagePrev" class="stage-nav" aria-label="Preset anterior">◀</button>
+    <button id="stagePrev" class="stage-nav" aria-label="Preset anterior" data-i18n-attr="aria-label:html.prev">◀</button>
     <div class="stage-title"><b id="stagePreset"></b><small id="stageCount"></small></div>
-    <button id="stageNext" class="stage-nav" aria-label="Próximo preset">▶</button>
-    <button id="stageExit" class="stage-exit" aria-label="Sair do modo palco">✕</button>
+    <button id="stageNext" class="stage-nav" aria-label="Próximo preset" data-i18n-attr="aria-label:html.next">▶</button>
+    <button id="stageExit" class="stage-exit" aria-label="Sair do modo palco" data-i18n-attr="aria-label:html.stageExit">✕</button>
   </div>
   <div id="stageTuner" class="stage-tuner" hidden><div class="bar"><i></i></div><b></b><small></small></div>
-  <div id="stageScenes" class="stage-scenes" role="group" aria-label="Cenas"></div>
+  <div id="stageScenes" class="stage-scenes" role="group" aria-label="Cenas" data-i18n-attr="aria-label:html.scenes"></div>
   <div class="stage-bottom">
-    <div id="stageExpr" class="stage-exprs" role="group" aria-label="Pedais de expressão" hidden></div>
-    <div id="stagePedals" class="stage-pedals" role="group" aria-label="Pedais"></div>
+    <div id="stageExpr" class="stage-exprs" role="group" aria-label="Pedais de expressão" data-i18n-attr="aria-label:html.stageExpr" hidden></div>
+    <div id="stagePedals" class="stage-pedals" role="group" aria-label="Pedais" data-i18n-attr="aria-label:html.stagePedals"></div>
   </div>
 </div>
 <dialog id="setlist" class="setlist" aria-labelledby="setlistTitle">
   <h2 id="setlistTitle">Setlist</h2>
-  <p class="hint">A ordem vale para ◀ ▶, para o footswitch e para o Program Change MIDI (1 = PC 0).</p>
+  <p class="hint" data-i18n="html.setlistHint">A ordem vale para ◀ ▶, para o footswitch e para o Program Change MIDI (1 = PC 0).</p>
   <ol id="setlistItems"></ol>
-  <p id="setlistEmpty" class="hint" hidden>Nenhum preset salvo ainda.</p>
-  <button id="setlistClose" class="primary">Fechar</button>
+  <p id="setlistEmpty" class="hint" data-i18n="html.setlistEmpty" hidden>Nenhum preset salvo ainda.</p>
+  <button id="setlistClose" class="primary" data-i18n="html.close">Fechar</button>
 </dialog>
 <dialog id="fileSheet" class="file-sheet" aria-labelledby="fileSheetTitle">
-  <div class="knob-sheet-head"><h2 id="fileSheetTitle"></h2><button id="fileSheetClose" aria-label="Fechar">✕</button></div>
-  <button id="fileLocal" class="primary">Escolher arquivo do aparelho</button>
+  <div class="knob-sheet-head"><h2 id="fileSheetTitle"></h2><button id="fileSheetClose" aria-label="Fechar" data-i18n-attr="aria-label:html.close">✕</button></div>
+  <button id="fileLocal" class="primary" data-i18n="html.fileLocal">Escolher arquivo do aparelho</button>
   <section id="fileSuggest" class="file-suggest" hidden>
-    <h3 id="fileSuggestTitle">Capturas grátis</h3>
+    <h3 id="fileSuggestTitle" data-i18n="html.fileSuggest">Capturas grátis</h3>
     <div id="fileSuggestList" class="file-suggest-list"></div>
-    <p class="hint"><span id="fileSuggestHint"></span> De <a id="fileCredit" target="_blank" rel="noopener"></a>, <span id="fileLicense"></span>.</p>
+    <p class="hint"><span id="fileSuggestHint"></span> <span data-i18n="html.from">De</span> <a id="fileCredit" target="_blank" rel="noopener"></a>, <span id="fileLicense"></span>.</p>
   </section>
   <form id="fileUrlForm" class="file-url">
-    <label for="fileUrl">Ou cole um link direto do arquivo (GitHub, Dropbox). Ele vai junto quando você compartilha o preset.</label>
-    <div><input id="fileUrl" type="url" required placeholder="https://github.com/…/captura.nam" autocomplete="off"><button type="submit">Carregar</button></div>
+    <label for="fileUrl" data-i18n="html.fileUrl">Ou cole um link direto do arquivo (GitHub, Dropbox). Ele vai junto quando você compartilha o preset.</label>
+    <div><input id="fileUrl" type="url" required placeholder="https://github.com/…/captura.nam" autocomplete="off"><button type="submit" data-i18n="html.load">Carregar</button></div>
   </form>
 </dialog>
 <dialog id="libSheet" class="lib-sheet" aria-labelledby="libTitle">
-  <div class="knob-sheet-head"><h2 id="libTitle">Adicionar pedal</h2><button id="libClose" aria-label="Fechar">✕</button></div>
+  <div class="knob-sheet-head"><h2 id="libTitle" data-i18n="html.libTitle">Adicionar pedal</h2><button id="libClose" aria-label="Fechar" data-i18n-attr="aria-label:html.close">✕</button></div>
   <div id="library" class="library"></div>
-  <p class="hint">O pedal novo entra no lugar de costume; arraste para mudar. A ordem muda o som.</p>
-  <p class="hint">Teclado: <kbd>1</kbd>–<kbd>9</kbd> pedais, <kbd>A</kbd>–<kbd>D</kbd> cenas, <kbd>T</kbd> tap, <kbd>[</kbd> <kbd>]</kbd> presets. Footswitch: MIDI (em ⋯) ou um pedal Bluetooth de virar página.</p>
+  <p class="hint" data-i18n="html.libHint1">O pedal novo entra no lugar de costume; arraste para mudar. A ordem muda o som.</p>
+  <p class="hint" data-i18n-html="html.libHint2">Teclado: <kbd>1</kbd>–<kbd>9</kbd> pedais, <kbd>A</kbd>–<kbd>D</kbd> cenas, <kbd>T</kbd> tap, <kbd>[</kbd> <kbd>]</kbd> presets. Footswitch: MIDI (em ⋯) ou um pedal Bluetooth de virar página.</p>
 </dialog>
 <div id="toast" class="toast" role="status" hidden><span></span><button></button></div>
 <input id="file" type="file" hidden>

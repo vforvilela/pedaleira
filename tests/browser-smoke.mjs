@@ -62,6 +62,8 @@ try {
   };
 
   await send('Runtime.enable'); await send('Log.enable'); await send('Page.enable');
+  // Português nos testes (o headless sai em inglês e ignora --lang); a seção de idiomas troca pela escolha guardada.
+  await send('Page.addScriptToEvaluateOnNewDocument', { source: `try { if (!localStorage.getItem('brasa.lang')) localStorage.setItem('brasa.lang', 'pt'); } catch {}` });
   await send('Page.navigate', { url: `http://127.0.0.1:${PORT}/` });
   await sleep(1500);
 

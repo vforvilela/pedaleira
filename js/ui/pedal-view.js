@@ -1,4 +1,5 @@
 // Desenha cada pedal em SVG (réplica desenhada) e liga botões, chaves e footswitch.
+import { t, fmtNum } from '../i18n.js';
 const NS = 'http://www.w3.org/2000/svg';
 
 function el(tag, attrs = {}, parent) {
@@ -9,9 +10,9 @@ function el(tag, attrs = {}, parent) {
 }
 
 function text(parent, x, y, str, attrs = {}) {
-  const t = el('text', { x, y, 'text-anchor': 'middle', ...attrs }, parent);
-  t.textContent = str;
-  return t;
+  const node = el('text', { x, y, 'text-anchor': 'middle', ...attrs }, parent);
+  node.textContent = str;
+  return node;
 }
 
 const SIZES = { compact: [140, 250], stomp: [140, 250], amp: [250, 160], treadle: [140, 270] };
@@ -39,7 +40,7 @@ function drawKnob(svg, c, x, y, r, ink, hit = Math.max(r + 6, 20)) {
     render(v) {
       ptr.setAttribute('transform', `rotate(${knobAngle(c, v)} ${x} ${y})`);
       g.setAttribute('aria-valuenow', v);
-      const shown = c.type === 'select' ? c.options[v] : c.show ? c.show(v) : v.toFixed(1);
+      const shown = c.type === 'select' ? c.options[v] : c.show ? c.show(v) : fmtNum(v, 1);
       g.setAttribute('aria-valuetext', shown);
       if (val) val.textContent = shown;
     },
@@ -62,7 +63,7 @@ function drawSlider(svg, c, x, y0, y1, ink) {
     render(v) {
       cap.setAttribute('y', y1 - ((y1 - y0) * v) / 10 - 3);
       g.setAttribute('aria-valuenow', v);
-      g.setAttribute('aria-valuetext', v.toFixed(1));
+      g.setAttribute('aria-valuetext', fmtNum(v, 1));
     },
   };
 }
@@ -83,7 +84,7 @@ function drawTreadle(svg, c, W, look) {
     render(v) {
       ptr.setAttribute('transform', `translate(${W - 10} ${186 - 16.4 * v})`);
       g.setAttribute('aria-valuenow', v);
-      g.setAttribute('aria-valuetext', v.toFixed(1));
+      g.setAttribute('aria-valuetext', fmtNum(v, 1));
     },
   };
 }
@@ -115,7 +116,7 @@ function drawPedal(def) {
   const [W, H] = SIZES[look.style];
   const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, class: `pedal-svg ${look.style}`, role: 'group', 'aria-label': def.name });
   const knobs = {};
-  const footAttrs = { class: 'footswitch', role: 'button', tabindex: 0, 'aria-label': `${def.name}: ligar ou desligar` };
+  const footAttrs = { class: 'footswitch', role: 'button', tabindex: 0, 'aria-label': t('pedal.footswitch', { name: def.name }) };
   let led, foot;
 
   if (look.style === 'amp') {
@@ -218,7 +219,7 @@ function drawZone(svg, look, W, display) {
 // Visor do afinador: 11 LEDs (centro verde = afinado) e o nome da nota.
 function drawTunerDisplay(svg, W) {
   // Sem aria-live: a leitura muda a cada quadro e inundaria o leitor de tela. O rótulo fica atualizado.
-  const g = el('g', { class: 'tuner-display', role: 'img', 'aria-label': 'Afinador desligado' }, svg);
+  const g = el('g', { class: 'tuner-display', role: 'img', 'aria-label': t('pedal.tunerOff') }, svg);
   el('rect', { x: 14, y: 19, width: W - 28, height: 37, rx: 3, fill: '#0a0d0b', stroke: 'rgba(0,0,0,.6)' }, g);
   const segs = [];
   const sw = 7, gap = 2.2, total = 11 * sw + 10 * gap, x0 = W / 2 - total / 2;
@@ -236,7 +237,7 @@ function drawTunerDisplay(svg, W) {
       note.textContent = active ? (r ? `${r.note}${r.octave}` : '–') : '';
       note.classList.toggle('ok', !!inTune);
       cents.textContent = active && r ? `${r.cents > 0 ? '+' : ''}${Math.round(r.cents)}¢` : '';
-      const label = !active ? 'Afinador desligado' : r ? `Afinador: ${note.textContent} ${cents.textContent}` : 'Afinador: sem nota';
+      const label = !active ? t('pedal.tunerOff') : r ? t('pedal.tunerNote', { note: note.textContent, cents: cents.textContent }) : t('pedal.tunerNoNote');
       if (g.getAttribute('aria-label') !== label) g.setAttribute('aria-label', label);
     },
   };
@@ -256,22 +257,22 @@ export function pedalView(block, cb) {
   caption.className = 'caption';
   caption.innerHTML = `<span class="pname"></span><span class="inspired"></span><span class="files"></span>`;
   caption.querySelector('.pname').textContent = def.name;
-  caption.querySelector('.inspired').textContent = caption.querySelector('.inspired').title = def.inspiredBy ? `inspirado no ${def.inspiredBy}` : '';
+  caption.querySelector('.inspired').textContent = caption.querySelector('.inspired').title = def.inspiredBy ? t('pedal.inspiredBy', { name: def.inspiredBy }) : '';
   root.append(caption);
 
   const tools = document.createElement('div');
   tools.className = 'tools';
   const grip = document.createElement('button');
   grip.className = 'grip';
-  grip.title = 'Arrastar para mudar a ordem (no teclado: setas)';
-  grip.setAttribute('aria-label', `Mudar ${def.name} de lugar: arraste ou use as setas`);
+  grip.title = t('pedal.gripTitle');
+  grip.setAttribute('aria-label', t('pedal.gripLabel', { name: def.name }));
   grip.textContent = '⠿';
   tools.append(grip);
   for (const [kind, f] of Object.entries(def.files || {})) {
     const b = document.createElement('button');
     b.className = 'file-btn';
     b.dataset.kind = kind;
-    b.title = `Carregar ${f.label}`;
+    b.title = t('pedal.loadFile', { label: f.label });
     b.textContent = kind.toUpperCase();
     b.onclick = () => cb.file(kind, f.accept);
     tools.append(b);
@@ -279,7 +280,7 @@ export function pedalView(block, cb) {
   if (def.tap) {
     const tap = document.createElement('button');
     tap.className = 'tap-btn';
-    tap.title = 'Tap tempo: toque no ritmo da música (atalho: T)';
+    tap.title = t('pedal.tapTitle');
     tap.textContent = 'TAP';
     tap.onclick = () => cb.tap();
     tools.append(tap);
@@ -295,8 +296,8 @@ export function pedalView(block, cb) {
   }
   const rm = document.createElement('button');
   rm.className = 'remove';
-  rm.title = 'Tirar da pedaleira';
-  rm.setAttribute('aria-label', `Tirar ${def.name} da pedaleira`);
+  rm.title = t('pedal.removeTitle');
+  rm.setAttribute('aria-label', t('pedal.removeLabel', { name: def.name }));
   rm.textContent = '✕';
   rm.onclick = () => cb.remove();
   tools.append(rm);
@@ -312,7 +313,7 @@ export function pedalView(block, cb) {
     for (const [kind, f] of Object.entries(block.files || {})) {
       const chip = document.createElement('button');
       chip.className = 'chip';
-      chip.title = `Remover ${f.name}`;
+      chip.title = t('pedal.removeFile', { name: f.name });
       chip.textContent = `${kind.toUpperCase()}: ${f.name} ✕`;
       chip.onclick = () => cb.clearFile(kind);
       fileSpan.append(chip);
@@ -394,7 +395,7 @@ export function pedalView(block, cb) {
   update();
   const num = document.createElement('span');
   num.className = 'num';
-  num.title = 'Tecla do teclado que liga e desliga este pedal';
+  num.title = t('pedal.numTitle');
   root.prepend(num);
   return {
     root, grip, update,
@@ -403,7 +404,7 @@ export function pedalView(block, cb) {
     // Estado próprio do pedal (ex.: looper gravando/tocando): muda a cor do LED e a legenda.
     setState(s, label) {
       root.dataset.state = s || '';
-      caption.querySelector('.inspired').textContent = label || (def.inspiredBy ? `inspirado no ${def.inspiredBy}` : '');
+      caption.querySelector('.inspired').textContent = label || (def.inspiredBy ? t('pedal.inspiredBy', { name: def.inspiredBy }) : '');
     },
   };
 }
@@ -416,7 +417,8 @@ function openKnobSheet(def, block, setters, focusId) {
     sheet = document.createElement('dialog');
     sheet.className = 'knob-sheet';
     sheet.setAttribute('aria-labelledby', 'knobSheetTitle');
-    sheet.innerHTML = '<div class="knob-sheet-head"><h2 id="knobSheetTitle"></h2><button class="primary">Pronto</button></div><div class="knob-sheet-rows"></div>';
+    sheet.innerHTML = '<div class="knob-sheet-head"><h2 id="knobSheetTitle"></h2><button class="primary"></button></div><div class="knob-sheet-rows"></div>';
+    sheet.querySelector('button').textContent = t('pedal.sheetDone');
     sheet.querySelector('button').onclick = () => sheet.close();
     // Toque fora do painel (no fundo escurecido) fecha. pointerdown, não click: o click sintético do próprio
     // toque que abriu o painel cairia no fundo e fecharia na hora.
@@ -442,14 +444,14 @@ function openKnobSheet(def, block, setters, focusId) {
     input.dataset.param = c.id;
     const show = () => {
       const v = +input.value;
-      out.textContent = c.type === 'select' ? c.options[v] : c.show ? c.show(v) : v.toFixed(1);
+      out.textContent = c.type === 'select' ? c.options[v] : c.show ? c.show(v) : fmtNum(v, 1);
     };
     show();
     input.oninput = () => { setters[c.id](+input.value); show(); };
     // No toque não há duplo clique: o ↺ faz o papel dele (volta o botão ao padrão).
     const reset = label.querySelector('.reset');
-    reset.title = 'Voltar ao padrão';
-    reset.setAttribute('aria-label', `${c.label}: voltar ao padrão`);
+    reset.title = t('pedal.resetTitle');
+    reset.setAttribute('aria-label', t('pedal.resetLabel', { label: c.label }));
     reset.onclick = () => { input.value = c.default; setters[c.id](c.default); show(); };
     return label;
   });
