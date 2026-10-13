@@ -49,22 +49,30 @@ export function ensureView(block) {
 
 // Cada pedal leva junto o cabo que chega nele: quando a pedaleira quebra em fileiras (tablet, PC),
 // o pedal que abre a fileira mostra o cabo vindo da anterior, e nenhum cabo fica solto no fim da linha.
-function slot(node) {
+function slot(node, i) {
   const s = document.createElement('div');
   s.className = 'slot';
+  s.style.setProperty('--i', i);
   s.append(cable(), node);
   return s;
 }
 
+let arrived = false;
 export function renderBoard() {
   const nodes = [jack('Guitarra', '🎸')];
   state.chain.forEach((b, i) => {
     const v = ensureView(b);
     v.setNumber(i < 9 ? i + 1 : 0); // número = tecla que liga e desliga
-    nodes.push(slot(v.root));
+    nodes.push(slot(v.root, i));
   });
-  nodes.push(slot(jack('Saída', '🎧')));
+  nodes.push(slot(jack('Saída', '🎧'), state.chain.length));
   board.replaceChildren(...nodes);
+  // Na primeira montagem os pedais pousam na pedaleira, da guitarra para a saída (o caminho do sinal).
+  if (!arrived) {
+    arrived = true;
+    board.classList.add('arrive');
+    setTimeout(() => board.classList.remove('arrive'), 600 + 70 * nodes.length);
+  }
   $('empty').hidden = state.chain.length > 0;
   renderChainMap();
 }

@@ -24,7 +24,8 @@ const GROUPS = [
 const addButton = def => {
   const b = document.createElement('button');
   b.className = 'add';
-  b.innerHTML = `<span class="swatch" style="background:${def.look.body}"></span><span><b></b><small></small></span>`;
+  b.innerHTML = `<span class="swatch ${def.look.style}" aria-hidden="true"></span><span><b></b><small></small></span>`;
+  b.querySelector('.swatch').style.setProperty('--body', def.look.body);
   b.querySelector('b').textContent = def.name;
   b.querySelector('small').textContent = def.inspiredBy ? `inspirado no ${def.inspiredBy}` : 'amp + caixa, aceita captura NAM';
   b.onclick = () => addBlock(def.type);

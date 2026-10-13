@@ -63,6 +63,8 @@
     <p>Clique num pedal para ligar e desligar, gire os botões arrastando (no tablet e no celular, um toque no botão abre os controles grandes) e monte a ordem arrastando pelo ⠿. Salve cada som como um preset. No <b>Amp</b>, o botão <b>NAM</b> tem capturas grátis de amps reais.</p>
     <button id="introOk" class="primary">Entendi</button>
   </section>
+  <div class="deck">
+  <p class="now"><small id="nowCount">Preset</small><b id="nowPreset"></b></p>
   <div id="scenes" class="scenes" role="group" aria-label="Cenas">
     <span class="scenes-label" title="Cada cena liga e desliga vários pedais de uma vez (atalhos: A, B, C, D)">Cenas</span>
     <button class="scene-btn" aria-pressed="false" title="Cena A (atalho: A)">A</button>
@@ -70,6 +72,7 @@
     <button class="scene-btn" aria-pressed="false" title="Cena C (atalho: C)">C</button>
     <button class="scene-btn" aria-pressed="false" title="Cena D (atalho: D)">D</button>
     <button id="sceneRec" aria-pressed="false" title="Guarda numa cena os pedais ligados e a posição dos botões">Gravar cena</button>
+  </div>
   </div>
   <nav id="chainMap" class="chain-map" aria-label="Ordem dos pedais"></nav>
   <section class="board-wrap" aria-label="Pedaleira">

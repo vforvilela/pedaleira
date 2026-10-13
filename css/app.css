@@ -7,17 +7,23 @@
 @font-face {
   font-family: Damion; src: url(../fonts/damion-latin.woff2) format('woff2'); font-display: swap;
 }
-/* Escuro de propósito: palco e quarto com pouca luz. */
+/* Escuro de propósito: palco e quarto com pouca luz. Neutros puxados para o quente (brasa, válvula acesa),
+   nunca o cinza-azulado de painel de sistema. */
 :root {
-  --bg: #141518; --panel: #1d1f23; --line: #2e3238; --text: #ece9e4; --muted: #9aa1a9;
+  --bg: #16120f; --panel: #201a17; --line: #3b342f; --text: #ece9e4; --muted: #b4a99c;
   --accent: #f0a23b; --ember-deep: #e0602a; --ember-hot: #ffd27a; --on-accent: #1a1205; --ok: #5cc98a; --bad: #e5604f;
-  --board: #26282c; --rail: #34373c; --cable: #111;
-  --stage-bg: #0b0c0e; --toast-bg: #2b2e33; --chip-bg: #2b2410; --chip-line: #6b5420;
+  --board: #27221e; --rail: #322c29; --cable: #0f0d0c;
+  --stage-bg: #0b0907; --toast-bg: #2d2824; --chip-bg: #2b2410; --chip-line: #6b5420;
   /* LEDs dos pedais */
   --led-red: #ff3b30; --led-red-off: #3a1512; --led-green: #3dff6e; --led-amber: #ffc531;
   --led-blue: #3aa0ff; --led-amp: #ff5a36; --led-green-off: #2a4a33;
   /* Visor do afinador */
   --seg-off: #2a0f0d; --seg-mid-off: #0e2a14; --tuner-red: #ff4a3a; --tuner-dim: #c9d2cc; --tuner-zone: #3a3f45;
+  /* Brasa apagada (carvão), cabo e plugue P10 */
+  --coal-hi: #5a4a3e; --coal: #2c241f; --cable-hi: #2a2420; --metal-hi: #e2ddd5; --metal: #8d8780; --metal-lo: #5f5a54;
+  /* Miniaturas da biblioteca */
+  --mini-knob: #151515; --mini-foot-hi: #d9d6d0; --mini-foot: #77736d; --mini-plate: #1c1c1c; --mini-amp: #c9a85a;
+  --mini-rubber: #1a1a1a; --mini-rubber-hi: #2a2a2a;
   --font-script: Damion, "Brush Script MT", cursive;
   --font: Archivo, system-ui, -apple-system, "Segoe UI", sans-serif;
   --touch: 44px;
@@ -56,6 +62,14 @@ h1 .ember {
   width: 12px; height: 12px; border-radius: 50%; flex: none;
   background: radial-gradient(circle at 40% 35%, var(--ember-hot), var(--accent) 55%, var(--ember-deep));
   box-shadow: 0 0 10px color-mix(in oklch, var(--accent) 70%, transparent);
+}
+/* Desligado, a brasa é carvão; ligado, ela acende e respira devagar, como válvula esquentando. */
+body:not(:has(#power[aria-pressed="true"])) h1 .ember {
+  background: radial-gradient(circle at 40% 35%, var(--coal-hi), var(--coal) 70%); box-shadow: none;
+}
+body:has(#power[aria-pressed="true"]) h1 .ember { animation: ember 3.2s ease-in-out infinite; }
+@keyframes ember {
+  50% { box-shadow: 0 0 16px 2px color-mix(in oklch, var(--ember-deep) 80%, transparent); }
 }
 .io { display: flex; gap: 8px; min-width: 0; }
 .io select { flex: 1; min-width: 0; max-width: 340px; }
@@ -109,9 +123,10 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
 @media (max-width: 760px) {
   .top { grid-template-columns: 1fr; position: static; padding: 10px 12px; gap: 8px; }
   .presets input { order: 5; flex-basis: 100%; max-width: none; }
-  .scenes { padding: 0 12px 8px; gap: 6px; flex-wrap: nowrap; }
+  .deck { padding: 0 12px 10px; }
+  .scenes { gap: 6px; flex-wrap: nowrap; flex: 1 1 100%; }
   .scenes-label { display: none; }
-  .scene-btn { min-width: 0; flex: 1; padding: 8px 0; }
+  .scene-btn { min-width: 0; min-height: 44px; flex: 1; padding: 8px 0; font-size: 17px; }
   #sceneRec { white-space: nowrap; }
   .levels { flex-wrap: wrap; }
   .io { flex-wrap: wrap; }
@@ -124,10 +139,25 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
 .intro ol { margin: 0 0 8px; padding-left: 20px; display: grid; gap: 4px; }
 .intro p { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
 
-/* ---------- Cenas ---------- */
-.scenes { display: flex; gap: 6px; align-items: center; padding: 0 16px 12px; flex-wrap: wrap; }
+/* ---------- Preset em destaque + cenas ---------- */
+/* O que importa no meio da música é "em que som estou": o nome do preset é o maior texto da tela. */
+.deck { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 10px 24px; padding: 4px 16px 16px; }
+.now { margin: 0; min-width: 0; flex: 1 1 320px; display: grid; gap: 2px; }
+.now small {
+  font-size: 12px; font-weight: 600; font-stretch: 112%; letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
+}
+.now b {
+  font-size: clamp(28px, 4.2vw, 52px); line-height: 1; font-weight: 850; font-stretch: 118%; letter-spacing: -.025em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.now b.none { color: var(--muted); font-weight: 700; }
+.now .dirty {
+  font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--accent); margin-left: 10px; vertical-align: middle;
+}
+.scenes { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.scene-btn { min-width: 52px; min-height: 52px; font-size: 20px; font-weight: 800; font-stretch: 112%; border-radius: 10px; }
 .scenes-label { font-size: 13px; color: var(--muted); margin-right: 4px; text-transform: uppercase; letter-spacing: .08em; }
-.scene-btn { min-width: 44px; font-weight: 700; color: var(--muted); }
+.scene-btn { color: var(--muted); }
 .scene-btn.used { color: var(--text); }
 .scene-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .scenes.recording .scene-btn { border-style: dashed; border-color: var(--bad); }
@@ -140,14 +170,20 @@ main { padding: 16px 0 32px; }
 .board-wrap { overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; padding: 0 16px; }
 .board {
   display: flex; align-items: center; width: max-content; min-width: 100%;
-  padding: 28px 22px 18px; border-radius: 14px;
+  padding: 32px 20px 22px; border-radius: 14px;
+  /* Luz de palco quente vindo de cima, sobre réguas de alumínio pintado (fresta escura + aresta clara). */
   background:
-    repeating-linear-gradient(180deg, transparent 0 46px, rgba(0,0,0,.35) 46px 50px),
+    radial-gradient(120% 70% at 50% -12%, color-mix(in oklch, var(--ember-hot) 16%, transparent), transparent 62%),
+    repeating-linear-gradient(180deg, transparent 0 44px, rgba(255,235,210,.06) 44px 45px, rgba(0,0,0,.5) 45px 50px),
     linear-gradient(180deg, var(--rail), var(--board));
-  box-shadow: inset 0 2px 0 rgba(255,255,255,.06), 0 10px 30px rgba(0,0,0,.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255,235,210,.10), inset 0 -6px 0 rgba(0,0,0,.35),
+    0 1px 0 rgba(255,235,210,.05), 0 24px 48px -12px rgba(0,0,0,.7);
 }
 .board.drop-end > .slot:last-child .jack { box-shadow: -4px 0 0 var(--accent); }
 .slot { display: flex; align-items: center; }
+.board.arrive .slot { animation: arrive .55s cubic-bezier(.25, 1, .5, 1) both; animation-delay: calc(var(--i) * 70ms); }
+@keyframes arrive { from { opacity: 0; transform: translateY(-22px); } }
 /* Tablet e PC: a pedaleira quebra em fileiras, como as duas réguas de uma pedaleira de verdade,
    e cabe na largura da tela sem rolar de lado. No celular ela continua numa fileira só (ver abaixo). */
 @media (min-width: 761px) {
@@ -159,17 +195,29 @@ main { padding: 16px 0 32px; }
 }
 .jack-icon { font-size: 26px; filter: grayscale(.2); }
 .cable {
-  width: 26px; height: 6px; border-radius: 3px; background: var(--cable); flex: none;
-  box-shadow: 0 1px 0 rgba(255,255,255,.08), 0 2px 4px rgba(0,0,0,.5);
-  align-self: center; margin-top: -40px;
+  position: relative; width: 30px; height: 6px; border-radius: 3px; flex: none; margin: -40px 0 0;
+  background: linear-gradient(180deg, var(--cable-hi), var(--cable) 60%);
+  box-shadow: 0 3px 5px rgba(0,0,0,.55);
 }
+/* Plugues P10 nas duas pontas: corpo de metal escovado. */
+.cable::before, .cable::after {
+  content: ""; position: absolute; top: -3px; width: 9px; height: 12px; border-radius: 2px;
+  background: linear-gradient(180deg, var(--metal-hi), var(--metal) 55%, var(--metal-lo));
+  box-shadow: 0 2px 3px rgba(0,0,0,.5);
+}
+.cable::before { left: -3px; }
+.cable::after { right: -3px; }
 
 .pedal {
   flex: none; display: grid; gap: 6px; justify-items: center; scroll-snap-align: center;
   transition: transform .12s ease, opacity .2s; touch-action: pan-x pan-y; user-select: none; -webkit-user-select: none;
 }
 /* Sombra com box-shadow, não com filter: drop-shadow, que redesenhava o pedal inteiro a cada giro de botão. */
-.pedal-svg { width: 150px; height: auto; overflow: visible; border-radius: 10px; box-shadow: 0 8px 16px rgba(0,0,0,.5); }
+.pedal-svg {
+  width: 150px; height: auto; overflow: visible; border-radius: 10px;
+  /* Sombra de contato curta e escura + sombra longa e macia: o pedal pesa sobre a régua. */
+  box-shadow: 0 2px 2px rgba(0,0,0,.6), 0 14px 24px -6px rgba(0,0,0,.75);
+}
 .pedal.stomp .pedal-svg { border-radius: 15px; }
 .pedal.treadle .pedal-svg { border-radius: 13px; }
 .pedal.amp .pedal-svg { border-radius: 9px; }
@@ -303,15 +351,29 @@ body.stage { overflow: hidden; }
 
 /* ---------- Biblioteca ---------- */
 .lib-wrap { padding: 8px 16px 0; max-width: 980px; }
-h2 { font-size: 20px; font-weight: 700; font-stretch: 112%; letter-spacing: -.01em; color: var(--text); margin: 18px 0 4px; }
+h2 { font-size: 26px; font-weight: 850; font-stretch: 118%; letter-spacing: -.02em; color: var(--text); margin: 28px 0 14px; }
 .library { display: grid; gap: 14px; }
-.lib-group h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; font-stretch: 80%; letter-spacing: .04em; color: var(--muted); }
 .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
 .add { display: flex; gap: 10px; align-items: center; text-align: left; padding: 10px 12px; background: var(--panel); }
 @media (hover: hover) { .add:hover { border-color: var(--accent); } }
 .add b { display: block; font-weight: 600; }
 .add small { color: var(--muted); font-size: 12px; }
-.swatch { width: 22px; height: 34px; border-radius: 4px; flex: none; border: 1px solid rgba(0,0,0,.4); box-shadow: inset 0 0 0 1px rgba(255,255,255,.2); }
+/* Miniatura do pedal: corpo na cor dele, botões e footswitch desenhados com gradientes. */
+.swatch {
+  width: 28px; height: 44px; border-radius: 4px; flex: none;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.35), 0 3px 6px rgba(0,0,0,.5);
+  --knobs: radial-gradient(circle at 25% 18%, var(--mini-knob) 2.6px, transparent 3.2px), radial-gradient(circle at 75% 18%, var(--mini-knob) 2.6px, transparent 3.2px);
+  background: var(--knobs), radial-gradient(circle at 50% 74%, var(--mini-foot-hi) 4px, var(--mini-foot) 5px, transparent 5.6px), var(--body);
+}
+/* Estilo Boss: placa preta articulada. */
+.swatch.compact { background: var(--knobs), linear-gradient(var(--mini-plate), var(--mini-plate)) 50% 66% / 70% 34% no-repeat, var(--body); }
+/* Amp: deitado, painel dourado. */
+.swatch.amp { width: 44px; height: 28px; margin: 8px 0; border-radius: 3px; background: linear-gradient(var(--mini-amp), var(--mini-amp)) 50% 22% / 84% 38% no-repeat, var(--body); }
+/* Pedal de expressão: borracha com frisos. */
+.swatch.treadle { border-radius: 5px; background: repeating-linear-gradient(180deg, var(--mini-rubber) 0 2px, var(--mini-rubber-hi) 2px 4px) 50% 40% / 70% 66% no-repeat, var(--body); }
+.lib-group h3 {
+  margin: 0 0 10px; font-size: 12px; font-weight: 700; font-stretch: 118%; letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
+}
 .hint { color: var(--muted); font-size: 13px; max-width: 720px; }
 
 /* ---------- Mapa da cadeia (celular) ---------- */
@@ -338,7 +400,7 @@ h2 { font-size: 20px; font-weight: 700; font-stretch: 112%; letter-spacing: -.01
   .pedal-svg { width: 136px; }
   .pedal.amp .pedal-svg { width: 230px; }
   .pedal.treadle .pedal-svg { width: 136px; }
-  .cable { width: 14px; }
+  .cable { width: 22px; }
   .jack { min-width: 52px; }
   .lib-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
   .add { padding: 8px 10px; gap: 8px; }

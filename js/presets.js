@@ -47,7 +47,22 @@ export function renderPresets() {
   $('presetDelete').disabled = !state.preset;
   $('presetRevert').hidden = !dirty;
   $('presetSave').classList.toggle('attention', dirty);
+  renderNow(dirty);
   $('presetSave').title = dirty ? 'Há mudanças não salvas neste preset' : 'Salvar preset';
+}
+
+// Nome do preset em letras grandes acima da pedaleira (o que está tocando, legível de longe).
+function renderNow(dirty) {
+  const b = $('nowPreset'), idx = state.presets.findIndex(p => p.name === state.preset);
+  b.textContent = state.preset || 'Sem preset';
+  b.classList.toggle('none', !state.preset);
+  if (dirty) {
+    const tag = document.createElement('span');
+    tag.className = 'dirty';
+    tag.textContent = 'ALTERADO';
+    b.append(tag);
+  }
+  $('nowCount').textContent = idx >= 0 ? `Preset ${idx + 1} de ${state.presets.length}` : 'Preset';
 }
 
 // Chamado depois de cada mudança: atualiza o * sem refazer a lista inteira à toa.
