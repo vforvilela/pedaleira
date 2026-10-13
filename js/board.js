@@ -47,14 +47,23 @@ export function ensureView(block) {
   return l.view;
 }
 
+// Cada pedal leva junto o cabo que chega nele: quando a pedaleira quebra em fileiras (tablet, PC),
+// o pedal que abre a fileira mostra o cabo vindo da anterior, e nenhum cabo fica solto no fim da linha.
+function slot(node) {
+  const s = document.createElement('div');
+  s.className = 'slot';
+  s.append(cable(), node);
+  return s;
+}
+
 export function renderBoard() {
   const nodes = [jack('Guitarra', '🎸')];
   state.chain.forEach((b, i) => {
     const v = ensureView(b);
     v.setNumber(i < 9 ? i + 1 : 0); // número = tecla que liga e desliga
-    nodes.push(cable(), v.root);
+    nodes.push(slot(v.root));
   });
-  nodes.push(cable(), jack('Saída', '🎧'));
+  nodes.push(slot(jack('Saída', '🎧')));
   board.replaceChildren(...nodes);
   $('empty').hidden = state.chain.length > 0;
   renderChainMap();
@@ -153,25 +162,34 @@ export function makeDraggable(block, view) {
   let drag = null;
 
   const begin = e => {
-    drag = { x: e.clientX, id: e.pointerId, started: false };
+    drag = { x: e.clientX, y: e.clientY, id: e.pointerId, started: false };
     (e.currentTarget).setPointerCapture(e.pointerId);
   };
   const move = e => {
     if (!drag || e.pointerId !== drag.id) return;
-    const dx = e.clientX - drag.x;
-    if (!drag.started && Math.abs(dx) < 6) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.started && Math.hypot(dx, dy) < 6) return;
+    const wrap = board.parentElement;
     if (!drag.started) {
       drag.started = true;
       root.classList.add('dragging');
       // Os outros pedais não se movem durante o arraste: mede uma vez, não a cada movimento (evita reflow).
+      // Centro de cada um, em coordenadas da página (a pedaleira pode rolar na horizontal e a página na vertical).
       drag.others = [...board.querySelectorAll('.pedal')].filter(p => p !== root);
-      drag.mids = drag.others.map(p => { const r = p.getBoundingClientRect(); return r.left + r.width / 2 + board.parentElement.scrollLeft; });
+      drag.mids = drag.others.map(p => {
+        const r = p.getBoundingClientRect();
+        return { x: r.left + r.width / 2 + wrap.scrollLeft, y: r.top + r.height / 2 + scrollY };
+      });
     }
-    root.style.transform = `translateX(${dx}px)`;
+    root.style.transform = `translate(${dx}px, ${dy}px)`;
     const { others, mids } = drag;
-    const x = e.clientX + board.parentElement.scrollLeft;
-    let to = mids.findIndex(m => x < m);
-    if (to < 0) to = others.length;
+    const x = e.clientX + wrap.scrollLeft, y = e.clientY + scrollY;
+    // Fileira mais próxima do dedo (pedais da mesma fileira têm o mesmo centro vertical, com folga
+    // para alturas diferentes); dentro dela, entra antes do primeiro pedal à direita do dedo.
+    const rowY = mids.reduce((best, m) => (Math.abs(m.y - y) < Math.abs(best - y) ? m.y : best), Infinity);
+    const inRow = i => Math.abs(mids[i].y - rowY) < 60;
+    let to = mids.findIndex((m, i) => inRow(i) && x < m.x);
+    if (to < 0) { to = mids.findLastIndex((m, i) => inRow(i)) + 1; if (!mids.length) to = 0; }
     others.forEach((p, i) => p.classList.toggle('drop-before', i === to));
     board.classList.toggle('drop-end', to === others.length);
     drag.to = to;

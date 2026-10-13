@@ -63,7 +63,7 @@ h1 .ember {
 .io #device { min-width: 170px; }
 /* Em tela média, entrada + canal + botões não cabem ao lado dos níveis: os níveis descem uma linha. */
 @media (max-width: 1440px) { .top .levels { grid-column: 1 / -1; } }
-.levels { display: flex; gap: 14px; align-items: center; font-size: 13px; color: var(--muted); }
+.levels { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 13px; color: var(--muted); }
 .meter { width: 90px; height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; border: 1px solid var(--line); }
 .meter div { height: 100%; background: var(--ok); transform: scaleX(0); transform-origin: left; transition: transform 60ms linear; }
 .meter.clip div { background: var(--bad); }
@@ -77,6 +77,8 @@ h1 .ember {
   border-radius: 8px; padding: 8px 10px;
 }
 .presets button { padding: 8px 10px; }
+/* Tablet em pé: com o preset alterado aparece o Reverter; o nome encolhe para o Palco não cair de linha. */
+@media (max-width: 900px) { .presets input { min-width: 100px; } }
 button.small { padding: 3px 8px; font-size: 12px; border-radius: 6px; }
 #presetSave.attention { border-color: var(--accent); color: var(--accent); }
 #presetSave.attention::after { content: " *"; }
@@ -93,8 +95,15 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
 @media (pointer: coarse) {
   button, select, .presets input { min-height: var(--touch); }
   #presetPrev, #presetNext { min-width: var(--touch); }
-  .master input { height: var(--touch); }
+  /* Mais compridos: no dedo, 110 px dá pouca precisão para acertar o ganho. */
+  .master input { height: var(--touch); width: 150px; }
+  /* Sem o cursor do mouse, o retorno do toque é o botão clarear enquanto o dedo está nele. */
+  button:not(:disabled):active { filter: brightness(1.35); }
 }
+/* Topo grudado só onde sobra altura: no tablet deitado ele comeria um terço da tela ao rolar. */
+@media (pointer: coarse), (max-height: 820px) { .top { position: static; } }
+/* Número do pedal = tecla do teclado; sem teclado nem mouse, só ocupa espaço. */
+@media (hover: none) and (pointer: coarse) { .pedal .num { display: none; } }
 .presets:not(.show-more) .more-item { display: none; }
 #presetSave { border-color: color-mix(in oklch, var(--accent) 45%, var(--line)); font-weight: 600; }
 @media (max-width: 760px) {
@@ -137,7 +146,13 @@ main { padding: 16px 0 32px; }
     linear-gradient(180deg, var(--rail), var(--board));
   box-shadow: inset 0 2px 0 rgba(255,255,255,.06), 0 10px 30px rgba(0,0,0,.4);
 }
-.board.drop-end > .jack:last-child { box-shadow: -4px 0 0 var(--accent); }
+.board.drop-end > .slot:last-child .jack { box-shadow: -4px 0 0 var(--accent); }
+.slot { display: flex; align-items: center; }
+/* Tablet e PC: a pedaleira quebra em fileiras, como as duas réguas de uma pedaleira de verdade,
+   e cabe na largura da tela sem rolar de lado. No celular ela continua numa fileira só (ver abaixo). */
+@media (min-width: 761px) {
+  .board { flex-wrap: wrap; width: auto; row-gap: 22px; }
+}
 .jack {
   display: grid; justify-items: center; gap: 4px; font-size: 12px; color: var(--muted);
   min-width: 64px; text-align: center;
@@ -214,7 +229,7 @@ main { padding: 16px 0 32px; }
 @keyframes blink { 50% { opacity: .35; } }
 .pedal.treadle .pedal-svg { width: 150px; }
 .slider { cursor: ns-resize; }
-.tools .remove:hover { border-color: var(--bad); color: var(--bad); }
+@media (hover: hover) { .tools .remove:hover { border-color: var(--bad); color: var(--bad); } }
 
 /* ---------- Modo palco ---------- */
 .stage-btn { border-color: var(--accent); color: var(--accent); font-weight: 700; }
@@ -293,7 +308,7 @@ h2 { font-size: 20px; font-weight: 700; font-stretch: 112%; letter-spacing: -.01
 .lib-group h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; font-stretch: 80%; letter-spacing: .04em; color: var(--muted); }
 .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
 .add { display: flex; gap: 10px; align-items: center; text-align: left; padding: 10px 12px; background: var(--panel); }
-.add:hover { border-color: var(--accent); }
+@media (hover: hover) { .add:hover { border-color: var(--accent); } }
 .add b { display: block; font-weight: 600; }
 .add small { color: var(--muted); font-size: 12px; }
 .swatch { width: 22px; height: 34px; border-radius: 4px; flex: none; border: 1px solid rgba(0,0,0,.4); box-shadow: inset 0 0 0 1px rgba(255,255,255,.2); }
@@ -340,10 +355,11 @@ h2 { font-size: 20px; font-weight: 700; font-stretch: 112%; letter-spacing: -.01
 .knob-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
 .knob-sheet h2, .file-sheet h2 { margin: 0; }
 .knob-sheet-rows { display: grid; gap: 4px; }
-.knob-row { display: grid; grid-template-columns: 72px 1fr 64px; align-items: center; gap: 10px; min-height: var(--touch); }
-.knob-row span { font-weight: 700; font-stretch: 75%; letter-spacing: .03em; color: var(--muted); }
+.knob-row { display: grid; grid-template-columns: 72px 1fr 64px var(--touch); align-items: center; gap: 10px; min-height: var(--touch); }
+.knob-row label { font-weight: 700; font-stretch: 75%; letter-spacing: .03em; color: var(--muted); }
 .knob-row input { width: 100%; height: var(--touch); accent-color: var(--accent); }
 .knob-row output { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.knob-row .reset { min-width: var(--touch); min-height: var(--touch); padding: 0; color: var(--muted); }
 
 /* ---------- Carregar captura ou IR ---------- */
 .file-sheet { display: none; }

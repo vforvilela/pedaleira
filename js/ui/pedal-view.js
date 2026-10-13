@@ -429,11 +429,13 @@ function openKnobSheet(def, block, setters, focusId) {
   sheet.querySelector('h2').textContent = def.name;
   const rows = def.controls.map(c => {
     const max = c.type === 'select' ? c.options.length - 1 : 10;
-    const label = document.createElement('label');
+    const label = document.createElement('div');
     label.className = 'knob-row';
-    label.innerHTML = '<span></span><input type="range" min="0"><output></output>';
-    label.querySelector('span').textContent = c.label;
+    label.innerHTML = '<label></label><input type="range" min="0"><output></output><button class="reset">↺</button>';
+    label.querySelector('label').textContent = c.label;
+    label.querySelector('label').htmlFor = `ks-${c.id}`;
     const input = label.querySelector('input'), out = label.querySelector('output');
+    input.id = `ks-${c.id}`;
     input.max = max;
     input.step = c.type === 'select' ? 1 : 0.1;
     input.value = block.params[c.id];
@@ -444,6 +446,11 @@ function openKnobSheet(def, block, setters, focusId) {
     };
     show();
     input.oninput = () => { setters[c.id](+input.value); show(); };
+    // No toque não há duplo clique: o ↺ faz o papel dele (volta o botão ao padrão).
+    const reset = label.querySelector('.reset');
+    reset.title = 'Voltar ao padrão';
+    reset.setAttribute('aria-label', `${c.label}: voltar ao padrão`);
+    reset.onclick = () => { input.value = c.default; setters[c.id](c.default); show(); };
     return label;
   });
   sheet.querySelector('.knob-sheet-rows').replaceChildren(...rows);
