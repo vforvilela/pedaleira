@@ -27,6 +27,7 @@
   /* Painel do topo: chapa de metal, teclas e visor âmbar retroiluminado */
   --plate-hi: #2b2420; --plate: #1f1a17; --plate-lo: #171310; --plate-edge: #0a0807;
   --key-hi: #3b332e; --key: #2b2521; --key-lo: #201b18; --key-edge: #0f0c0a; --bezel: #0b0907;
+  --led-amber-off: #3a2c0c; --led-red-dim: #3d1411;
   --lcd-bg: #140d06; --lcd-glow: #2e1d09; --lcd-ink: #ffd08c; --lcd-dim: #bd915a; --lcd-err: #ff7f61;
   --font-script: Damion, "Brush Script MT", cursive;
   --font: Archivo, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -91,19 +92,56 @@ body:has(#power[aria-pressed="true"]) h1 .ember { animation: ember 3.2s ease-in-
 /* Largura de partida fixa, que já conta com Canal e Instalar: quando eles aparecem, a lista de entradas encolhe
    em vez de a faixa ganhar uma linha (o que mudaria o tamanho da pedaleira no meio do uso). */
 .io { display: flex; gap: 8px; min-width: 0; flex: 1 1 290px; max-width: 520px; }
-.io select, .io button { background: rgba(0,0,0,.3); border: 1px solid transparent; color: var(--muted); font-size: 14px; padding: 6px 10px; }
+.io select, .io button { font-size: 14px; padding: 6px 10px; }
 .io #device { flex: 1 1 auto; min-width: 90px; max-width: 280px; }
 .io #channel { flex: none; max-width: 100px; }
-@media (hover: hover) { .io select:hover, .io button:hover { border-color: var(--line); color: var(--text); } }
-.levels { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; font-size: 13px; color: var(--muted); min-width: 0; }
-/* Medidor em segmentos, como a escada de LEDs de uma interface. */
-.meter { position: relative; width: 84px; height: 10px; background: var(--lcd-bg); border-radius: 2px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,.8), 0 1px 0 rgba(255,235,210,.05); }
-.meter div { height: 100%; background: var(--ok); transform: scaleX(0); transform-origin: left; transition: transform 60ms linear; }
+/* Rótulos do painel: caixa alta espaçada, como os do visor ("PRESET 2 DE 7") e os dos pedais. */
+.levels { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; min-width: 0;
+  font-size: 11px; font-weight: 700; font-stretch: 112%; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+/* Medidor: escada de LEDs numa moldura funda. Os apagados aparecem (verde, âmbar, vermelho), como no aparelho;
+   o sinal acende da esquerda e cada LED fica na cor do seu lugar. */
+.meter {
+  position: relative; width: 88px; height: 14px; padding: 3px; border-radius: 3px; background: var(--bezel);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.9), 0 1px 0 rgba(255,235,210,.07);
+}
+.meter::before, .meter div { background: linear-gradient(90deg, var(--ok) 0 64%, var(--led-amber) 64% 84%, var(--bad) 84%); }
+.meter::before { content: ""; position: absolute; inset: 3px; opacity: .22; }
+.meter div { position: relative; height: 100%; clip-path: inset(0 100% 0 0); transition: clip-path 60ms linear; }
 .meter.clip div { background: var(--bad); }
-.meter::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 5px, var(--lcd-bg) 5px 7px); }
-.master { display: flex; align-items: center; gap: 6px; }
-.master input { width: 110px; accent-color: var(--accent); }
-.master output, .lat b { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 500; }
+.meter::after { content: ""; position: absolute; inset: 3px; background: repeating-linear-gradient(90deg, transparent 0 6px, var(--bezel) 6px 8px); }
+/* Rótulo em cima do fader e valor ao lado, como gravado na chapa: a faixa cabe numa linha no tablet deitado. */
+.master { display: grid; grid-template-columns: auto auto; align-items: center; column-gap: 8px; row-gap: 2px; line-height: 1; font-size: 10px; }
+.master input { grid-row: 2; grid-column: 1; }
+.master output { grid-row: 1 / 3; grid-column: 2; }
+/* Valores num visorzinho âmbar, igual ao do preset; largura fixa para o número não empurrar nada. */
+.master output, .lat b {
+  min-width: 54px; padding: 4px 6px; border-radius: 3px; text-align: right;
+  font: 600 12px/1 var(--font); letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums;
+  color: var(--lcd-ink); background: var(--lcd-bg); box-shadow: inset 0 0 0 1px rgba(0,0,0,.9), inset 0 2px 4px rgba(0,0,0,.6), 0 1px 0 rgba(255,235,210,.06);
+}
+.lat { display: grid; justify-items: start; gap: 3px; line-height: 1; font-size: 10px; }
+/* Fader: fenda funda na chapa e capa de metal com a risca na cor da brasa (sem o controle padrão do navegador). */
+.master input { -webkit-appearance: none; appearance: none; width: 120px; height: 28px; margin: -6px 0 0; background: transparent; cursor: pointer; }
+.master input::-webkit-slider-runnable-track {
+  height: 6px; border-radius: 3px; background: var(--bezel); box-shadow: inset 0 1px 2px rgba(0,0,0,.9), 0 1px 0 rgba(255,235,210,.07);
+}
+.master input::-moz-range-track {
+  height: 6px; border-radius: 3px; background: var(--bezel); box-shadow: inset 0 1px 2px rgba(0,0,0,.9), 0 1px 0 rgba(255,235,210,.07);
+}
+.master input::-webkit-slider-thumb {
+  -webkit-appearance: none; width: var(--cap-w, 14px); height: var(--cap-h, 24px); margin-top: calc(3px - var(--cap-h, 24px) / 2);
+  border: 1px solid var(--key-edge); border-radius: 3px;
+  background: linear-gradient(90deg, transparent calc(50% - 1px), var(--accent) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)),
+    linear-gradient(180deg, var(--key-hi), var(--key) 50%, var(--key-lo));
+  box-shadow: inset 0 1px 0 rgba(255,240,220,.16), 0 2px 4px rgba(0,0,0,.7);
+}
+.master input::-moz-range-thumb {
+  width: var(--cap-w, 14px); height: var(--cap-h, 24px); border: 1px solid var(--key-edge); border-radius: 3px;
+  background: linear-gradient(90deg, transparent calc(50% - 1px), var(--accent) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)),
+    linear-gradient(180deg, var(--key-hi), var(--key) 50%, var(--key-lo));
+  box-shadow: inset 0 1px 0 rgba(255,240,220,.16), 0 2px 4px rgba(0,0,0,.7);
+}
+.master input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 .lat.high b { color: var(--bad); }
 /* Desligado não há latência para mostrar. */
 body:not(:has(#power[aria-pressed="true"])) .lat { display: none; }
@@ -112,12 +150,12 @@ body:not(:has(#power[aria-pressed="true"])) .lat { display: none; }
 /* Uma fileira no tablet deitado e no PC; em pé, o visor fica com a primeira e cenas + ações descem. */
 .face { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px 12px; padding: 12px 16px 14px; }
 /* Tecla de equipamento: borda clara em cima, sombra embaixo; afunda ao apertar. */
-.face button, .more-row button {
+.face button, .more-row button, .io select, .io button {
   background: linear-gradient(180deg, var(--key-hi), var(--key) 55%, var(--key-lo));
   border: 1px solid var(--key-edge); border-radius: 8px; color: var(--text); font-weight: 650;
   box-shadow: inset 0 1px 0 rgba(255,240,220,.10), 0 2px 0 rgba(0,0,0,.55), 0 5px 10px -5px rgba(0,0,0,.7);
 }
-.face button:not(:disabled):active, .more-row button:not(:disabled):active {
+.face button:not(:disabled):active, .more-row button:not(:disabled):active, .io button:not(:disabled):active {
   transform: translateY(1px); box-shadow: inset 0 1px 0 rgba(255,240,220,.05), 0 1px 0 rgba(0,0,0,.55);
 }
 /* Liga: tecla alta com lâmpada piloto. Desligado, é a única tecla acesa da tela (o primeiro passo). */
@@ -232,7 +270,8 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
   button, select, #presetName { min-height: var(--touch); }
   #presetPrev, #presetNext { min-width: var(--touch); }
   /* Mais compridos: no dedo, 110 px dá pouca precisão para acertar o ganho. */
-  .master input { height: var(--touch); width: 140px; }
+  /* 44 px de área de toque; a parte de cima, transparente, passa por baixo do rótulo. */
+  .master input { height: var(--touch); width: 140px; margin-top: -14px; --cap-w: 18px; --cap-h: 30px; }
   .pick select { min-height: 0; }
   /* Sem o cursor do mouse, o retorno do toque é o botão clarear enquanto o dedo está nele. */
   button:not(:disabled):active { filter: brightness(1.35); }
@@ -241,7 +280,7 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
 @media (hover: none) and (pointer: coarse) { .pedal .num { display: none; } }
 /* Tablet deitado: a faixa de ligação cabe numa linha só. */
 @media (max-width: 1180px) { .lat-label { display: none; } }
-@media (max-width: 1180px) and (pointer: coarse) { .master input { width: 100px; } }
+@media (max-width: 1180px) and (pointer: coarse) { .master input { width: 120px; } }
 
 /* Celular */
 @media (max-width: 760px) {
