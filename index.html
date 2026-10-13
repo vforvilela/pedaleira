@@ -20,8 +20,9 @@
 <body>
 <header class="top">
   <!-- Faixa de cima: ligação com a interface. Ajusta-se uma vez e some do caminho. -->
-  <div class="rack">
+  <div class="rack" id="rack">
     <h1><span class="ember" aria-hidden="true"></span>Brasa</h1>
+    <button id="rackClose" class="rack-close" aria-label="Fechar entrada e volume">✕</button>
     <div class="io">
       <select id="device" aria-label="Entrada de áudio"><option value="">Entrada padrão</option></select>
       <select id="channel" aria-label="Canal da interface onde está a guitarra" title="Em qual entrada da interface a guitarra está plugada. Automático: o app descobre na primeira palhetada." hidden>
@@ -60,6 +61,7 @@
       <button id="sceneRec" aria-pressed="false" aria-label="Gravar cena" title="Guarda numa cena os pedais ligados e a posição dos botões (cada cena liga e desliga vários pedais de uma vez; atalhos: A, B, C, D)">Gravar<small>cena</small></button>
     </div>
     <div class="actions">
+      <button id="rackOpen" class="rack-open" aria-expanded="false" aria-controls="rack" title="Entrada de áudio, ganho, volume e medidor">Entrada</button>
       <button id="presetSave">Salvar</button>
       <button id="stageBtn" class="stage-btn" title="Tela para tocar ao vivo: preset, cenas e pedais em botões grandes">Palco</button>
       <button id="libOpen" class="lib-open" aria-haspopup="dialog" aria-controls="libSheet">+ Pedal</button>

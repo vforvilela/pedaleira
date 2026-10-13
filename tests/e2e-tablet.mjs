@@ -277,6 +277,44 @@ try {
   await sleep(200);
   check(!(await ev(`document.body.classList.contains('floor')`)), 'desliga de novo');
 
+  // ---------- Telefone: outra tela (em pé e deitado) ----------
+  for (const [w, h, nome] of [[390, 844, 'telefone em pé'], [360, 640, 'telefone pequeno'], [844, 390, 'telefone deitado']]) {
+    await viewport(w, h); await sleep(700);
+    const ph = await ev(`(() => { const r = s => document.querySelector(s).getBoundingClientRect();
+      const dockTop = Math.min(r('.scenes').top, r('.actions').top), board = r('#board'), wrap = r('.board-wrap');
+      const keys = [...document.querySelectorAll('.scenes button, .actions button')].map(b => b.getBoundingClientRect());
+      return { pagina: document.documentElement.scrollHeight > innerHeight || document.documentElement.scrollWidth > innerWidth,
+        cabe: board.bottom <= dockTop + 1 && board.top >= wrap.top - 1, dock: dockTop < innerHeight && r('.actions').bottom <= innerHeight + 1,
+        teclas: Math.round(Math.min(...keys.map(k => Math.min(k.width, k.height)))), faixa: r('.rack').top >= innerHeight - 1 }; })()`);
+    check(!ph.pagina && ph.cabe && ph.dock && ph.teclas >= 44 && ph.faixa,
+      `${nome} ${w}×${h}: uma tela sem rolar, pedais inteiros acima do rodapé, cenas e ações ≥ 44 px, entrada guardada (${JSON.stringify(ph)})`);
+    await shot(`fone-${w}x${h}.png`);
+  }
+  await viewport(390, 844); await sleep(600);
+  // Gaveta de entrada e volume.
+  await tapEl(`document.getElementById('rackOpen')`);
+  await sleep(400);
+  const gav = await ev(`(() => { const r = document.getElementById('rack').getBoundingClientRect(), f = document.getElementById('master').getBoundingClientRect();
+    return { aberta: document.body.classList.contains('rack-on') && r.top < innerHeight - 100, fader: f.top >= r.top && f.bottom <= innerHeight && f.height >= 44 }; })()`);
+  check(gav.aberta && gav.fader, `telefone: Entrada abre a gaveta com os faders à vista e no tamanho do dedo (${JSON.stringify(gav)})`);
+  await shot('fone-gaveta.png');
+  await tapEl(`document.getElementById('rackClose')`); await sleep(400);
+  check(!(await ev(`document.body.classList.contains('rack-on')`)), 'telefone: ✕ fecha a gaveta');
+  await tapEl(`document.getElementById('rackOpen')`); await sleep(400);
+  await tap(200, 60); await sleep(400);
+  check(!(await ev(`document.body.classList.contains('rack-on')`)), 'telefone: tocar fora (no fundo escuro) fecha a gaveta');
+  // Mapa da cadeia: tocar no nome traz o pedal para a tela.
+  const ultimo = await ev(`[...document.querySelectorAll('#chainMap .map-chip')].at(-1).dataset.uid`);
+  await tapEl(`[...document.querySelectorAll('#chainMap .map-chip')].at(-1)`);
+  await sleep(900);
+  check(await ev(`(() => { const r = document.querySelector('.pedal[data-uid="${ultimo}"]').getBoundingClientRect(); return r.left >= -1 && r.right <= innerWidth + 1; })()`),
+    'telefone: tocar no nome do pedal no mapa traz o pedal para a tela');
+  // + Pedal no rodapé abre a biblioteca.
+  await tapEl(`document.getElementById('libOpen')`);
+  check(await open(), 'telefone: + Pedal no rodapé abre a biblioteca');
+  await tapEl(`document.getElementById('libClose')`);
+  await viewport(1024, 768); await sleep(900);
+
   // ---------- Cadeia longa: todos os pedais da biblioteca ----------
   await ev(`(() => { for (const b of document.querySelectorAll('#library .add')) b.click(); })()`);
   await sleep(600);

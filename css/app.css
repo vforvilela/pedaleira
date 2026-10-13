@@ -315,25 +315,13 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
 /* Estreita: ações numa linha ao lado das cenas (a fileira fica da altura de uma tecla, não de duas). */
 .actions { grid-area: actions; grid-template-columns: repeat(4, auto); }
 .face .scene-btn { padding: 16px 0 6px; }
-@media (min-width: 1010px) {
+@media (min-width: 1010px) and (min-height: 501px) {
   .rack { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "brand io levels"; }
   .face { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: "power display scenes actions"; }
   .actions { grid-template-columns: repeat(2, auto); }
   .face .scene-btn { padding: 18px 0 6px; }
 }
 
-/* Celular */
-@media (max-width: 760px) {
-  .rack { padding: 8px 12px; grid-template-columns: minmax(0, 1fr); grid-template-areas: "brand" "io" "levels"; }
-  .io { flex-wrap: wrap; max-width: none; }
-  .io #device { flex: 1 1 100%; max-width: none; }
-  .levels { flex-wrap: wrap; }
-  .face { padding: 10px 12px 12px; gap: 8px; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "power display" "scenes scenes" "actions actions"; }
-  .face .power { width: 70px; font-size: 11px; letter-spacing: .02em; }
-  .face .display .nav { width: 44px; }
-  .face .scene-btn { min-width: 0; max-width: none; font-size: 19px; padding: 16px 0 4px; }
-  .actions { grid-template-columns: repeat(4, 1fr); }
-  .more-row { padding: 0 12px; }
 }
 
 /* ---------- Primeiros passos ---------- */
@@ -366,7 +354,7 @@ main { padding: 16px 0 32px; }
 @keyframes arrive { from { opacity: 0; transform: translateY(-22px); } }
 /* Tablet e PC: a pedaleira quebra em fileiras, como as duas réguas de uma pedaleira de verdade,
    e cabe na largura da tela sem rolar de lado. No celular ela continua numa fileira só (ver abaixo). */
-@media (min-width: 761px) {
+@media (min-width: 761px) and (min-height: 501px) {
   .board { flex-wrap: wrap; width: auto; row-gap: 22px; }
 }
 .jack {
@@ -564,7 +552,7 @@ h2 { font-size: 26px; font-weight: 850; font-stretch: 118%; letter-spacing: -.02
 }
 .hint { color: var(--muted); font-size: 13px; max-width: 720px; }
 
-/* ---------- Mapa da cadeia (celular) ---------- */
+/* ---------- Mapa da cadeia (só no telefone) ---------- */
 .chain-map {
   display: none; gap: 6px; overflow-x: auto; padding: 0 12px 10px; scrollbar-width: none;
 }
@@ -580,21 +568,6 @@ h2 { font-size: 26px; font-weight: 850; font-stretch: 118%; letter-spacing: -.02
   *, *::before, *::after { transition-duration: 0s !important; animation: none !important; scroll-behavior: auto !important; }
 }
 
-/* ---------- Celular: depois das regras gerais para valer sobre elas ---------- */
-@media (max-width: 760px) {
-  /* Pedais menores para caberem mais de dois na tela; o mapa da cadeia mostra a ordem inteira. */
-  .chain-map { display: flex; }
-  .board { padding: 24px 12px 14px; }
-  .pedal-svg { width: 136px; }
-  .pedal.amp .pedal-svg { width: 230px; }
-  .pedal.treadle .pedal-svg { width: 136px; }
-  .cable { width: 22px; }
-  .jack { min-width: 52px; }
-  .lib-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .add { padding: 8px 10px; gap: 8px; }
-  .add small { display: none; }
-}
-
 /* ---------- Aviso de app incompleto (guarda no index.html) ---------- */
 .boot-fail {
   position: fixed; inset: 0 0 auto; z-index: 50; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 16px;
@@ -605,7 +578,7 @@ h2 { font-size: 26px; font-weight: 850; font-stretch: 118%; letter-spacing: -.02
 
 /* ---------- Tablet e PC: uma tela só, sem rolar ---------- */
 /* Topo e cenas no tamanho natural; a pedaleira fica com o resto da altura e o zoom dela se ajusta (fitBoard). */
-@media (min-width: 761px) {
+@media (min-width: 761px) and (min-height: 501px) {
   body { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
   .top { flex: none; }
   main { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0; overflow-y: auto; }
@@ -675,3 +648,89 @@ h2 { font-size: 26px; font-weight: 850; font-stretch: 118%; letter-spacing: -.02
 .suggest[aria-pressed="true"] { border-color: var(--accent); }
 .file-suggest .hint { margin: 8px 0 0; font-size: 12px; }
 .file-suggest a { color: var(--accent); }
+
+/* ---------- Telefone: outra tela, pensada para uma mão ---------- */
+/* Tablet e PC continuam como estão. No telefone (até 760 px):
+   - em cima, só LIGAR e o visor do preset;
+   - no meio, o mapa da cadeia e a pedaleira numa fileira, com um pedal grande por vez (desliza de lado);
+   - embaixo, ao alcance do polegar, as cenas e as ações;
+   - entrada, níveis, Instalar e tela cheia numa gaveta que sobe de baixo (tecla Entrada): ajusta-se uma vez.
+   Tudo numa tela, sem rolar a página. */
+.rack-open, .rack-close { display: none; }
+@media (max-width: 760px), (max-height: 500px) {
+  body { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; --dock: calc(118px + env(safe-area-inset-bottom)); }
+  /* Sem camada própria no topo: a gaveta (que mora nele) precisa ficar acima do fundo escurecido. */
+  .top { flex: none; z-index: auto; }
+  main { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 0 var(--dock); overflow-y: auto; }
+  .intro { flex: none; margin: 10px 12px; }
+
+  /* Topo: LIGAR + visor. */
+  .face { padding: 8px 10px; gap: 8px; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "power display"; }
+  .face .power { width: 58px; padding: 6px 2px; gap: 6px; font-size: 10px; letter-spacing: .02em; }
+  .face .display .nav { width: 40px; font-size: 15px; }
+  .display { padding: 4px; }
+  .screen { margin: 0 4px; padding: 3px 8px 4px; }
+  #presetName { height: 38px; font-size: 24px; }
+  .screen-top { min-width: 0; }
+  #nowCount { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  /* Reverter vira ↺ (o nome continua sendo lido por leitor de tela). */
+  .screen #presetRevert { width: 36px; min-width: 36px; padding: 0; font-size: 0; letter-spacing: 0; }
+  .screen #presetRevert::before { content: "↺"; font-size: 18px; }
+  .more-row { padding: 0 10px; }
+
+  /* Embaixo: cenas e ações presas no rodapé, para o polegar. */
+  .scenes, .actions {
+    position: fixed; left: 0; right: 0; z-index: 10; padding: 0 10px; gap: 6px;
+  }
+  .scenes { bottom: calc(56px + env(safe-area-inset-bottom)); height: 56px; padding-top: 6px; background: var(--plate); box-shadow: 0 -1px 0 rgba(255,235,210,.07), 0 -10px 20px -10px rgba(0,0,0,.8); }
+  .actions {
+    bottom: 0; height: calc(56px + env(safe-area-inset-bottom)); padding: 6px 10px calc(6px + env(safe-area-inset-bottom));
+    grid-template-columns: repeat(5, 1fr); background: var(--plate-lo);
+  }
+  .face .scene-btn { min-width: 0; max-width: none; font-size: 19px; padding: 14px 0 2px; }
+  .scene-btn::before { top: 5px; width: 6px; height: 6px; margin-left: -3px; }
+  .face #sceneRec { width: 60px; font-size: 12px; padding: 2px; }
+  #sceneRec small { font-size: 10px; }
+  .face .actions button { padding: 4px 2px; font-size: 13px; min-width: 0; }
+  .rack-open { display: block; }
+
+  /* Gaveta de entrada e volume. */
+  .rack {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; max-height: 85dvh; overflow-y: auto;
+    padding: 14px 16px calc(18px + env(safe-area-inset-bottom)); border-radius: 16px 16px 0 0; border: 0;
+    grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "brand close" "io io" "levels levels"; gap: 14px;
+    background: linear-gradient(180deg, var(--plate-hi), var(--plate)); box-shadow: 0 -12px 30px rgba(0,0,0,.7);
+    transform: translateY(105%); visibility: hidden; transition: transform .28s cubic-bezier(.25, 1, .5, 1), visibility 0s .28s;
+  }
+  body.rack-on .rack { transform: none; visibility: visible; transition: transform .28s cubic-bezier(.25, 1, .5, 1); }
+  body.rack-on::after { content: ""; position: fixed; inset: 0; z-index: 39; background: rgba(0,0,0,.55); }
+  .rack-close { display: grid; place-items: center; grid-area: close; width: var(--touch); padding: 0; }
+  .io { flex-wrap: wrap; max-width: none; }
+  .io #device { flex: 1 1 100%; max-width: none; }
+  .levels { flex-wrap: wrap; gap: 14px 18px; }
+  .master input { width: clamp(120px, 40vw, 220px); }
+
+  /* Meio: mapa da cadeia + pedaleira de borda a borda, numa fileira que desliza; o zoom põe a fileira na altura toda. */
+  .chain-map { display: flex; flex: none; padding: 8px 10px; }
+  .board-wrap {
+    flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0; overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x mandatory; background: var(--board-surface); box-shadow: inset 0 10px 18px -10px rgba(0,0,0,.7);
+  }
+  .board { flex: none; margin-block: auto; padding: 16px 40px 10px; background: none; box-shadow: none; border-radius: 0; }
+  .caption .pname { display: none; }
+  .cable { width: 22px; }
+  .jack { min-width: 52px; }
+  .toast { bottom: calc(var(--dock) + 10px); }
+  .lib-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .add { padding: 8px 10px; gap: 8px; }
+  .add small { display: none; }
+}
+/* Telefone deitado (pouca altura): visor só com o nome, sem o mapa da cadeia, e cenas + ações numa faixa só no
+   rodapé (metade cada), para sobrar altura para os pedais. */
+@media (max-height: 500px) {
+  body { --dock: calc(56px + env(safe-area-inset-bottom)); }
+  .screen-top, .status, .chain-map { display: none; }
+  .face { padding: 6px 10px; }
+  .scenes { bottom: 0; right: 50%; height: calc(56px + env(safe-area-inset-bottom)); padding: 6px 5px calc(6px + env(safe-area-inset-bottom)) 10px; }
+  .actions { left: 50%; padding-left: 5px; }
+}

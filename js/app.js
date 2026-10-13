@@ -112,6 +112,16 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:')
   navigator.serviceWorker.register('sw.js').catch(() => {});
 $('floorView').onclick = () => { setFloorView(!state.floorView); save(); status(state.floorView ? 'Como no chão: a guitarra entra pela direita e o sinal vai para a esquerda.' : 'Sinal da esquerda para a direita, como nas pedaleiras digitais.'); };
 
+// Telefone: gaveta de entrada e volume (no tablet e no PC essa faixa fica sempre à vista no topo).
+const setRack = on => { document.body.classList.toggle('rack-on', on); $('rackOpen').setAttribute('aria-expanded', on); };
+$('rackOpen').onclick = () => setRack(true);
+$('rackClose').onclick = () => setRack(false);
+// Toque fora da gaveta (no fundo escurecido) fecha; Esc também.
+document.addEventListener('pointerdown', e => {
+  if (document.body.classList.contains('rack-on') && !e.target.closest('#rack, #rackOpen')) setRack(false);
+});
+addEventListener('keydown', e => { if (e.key === 'Escape') setRack(false); });
+
 // Aviso cortado em uma linha (tablet e PC): um toque mostra inteiro.
 $('status').onclick = e => e.currentTarget.classList.toggle('full');
 

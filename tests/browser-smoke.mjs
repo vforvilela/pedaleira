@@ -284,14 +284,20 @@ try {
   // Tela alta: o toque precisa cair dentro dela, e a emulação não rola a página.
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 1200, deviceScaleFactor: 2, mobile: true });
   await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 });
-  await evaluate(`document.querySelector('.board-wrap').scrollLeft = 0`);
+  // No telefone os pedais são grandes, um por vez: rola até o 2º pedal, arrasta até a borda esquerda e segura ali
+  // (a pedaleira rola sozinha até o começo).
+  await sleep(300);
   const before = await evaluate(`__pedaleira.state.chain.map(b => b.type).join(',')`);
   const tp = await evaluate(`(() => {
-    const g = document.querySelectorAll('.pedal')[1].querySelector('.grip').getBoundingClientRect();
+    const p = document.querySelectorAll('.pedal')[1];
+    p.scrollIntoView({ inline: 'center', block: 'nearest' });
+    const g = p.querySelector('.grip').getBoundingClientRect();
     return { x: g.x + g.width / 2, y: g.y + g.height / 2 };
   })()`);
+  await sleep(100);
   await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: tp.x, y: tp.y }] });
   for (let x = tp.x; x >= 20; x -= 15) await send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: tp.y }] });
+  for (let i = 0; i < 60; i++) await send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 10 + (i % 2), y: tp.y }] });
   await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await sleep(200);
   const after = await evaluate(`__pedaleira.state.chain.map(b => b.type).join(',')`);
@@ -300,6 +306,7 @@ try {
   // Toque sem arrastar num botão do pedal: abre os controles em tamanho de dedo (≥ 44 px).
   const kp = await evaluate(`(() => {
     const k = document.querySelector('.pedal .knob[data-param="level"]');
+    k.closest('.pedal').scrollIntoView({ inline: 'center', block: 'nearest' });
     const r = k.getBoundingClientRect();
     return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
   })()`);

@@ -93,7 +93,8 @@ export function renderBoard() {
 // Procura o maior zoom em que ela cabe na altura; com zoom menor cabem mais pedais por fileira,
 // então às vezes duas fileiras viram uma. --z deixa o CSS manter os botões de toque em 44 px na tela.
 const Z_MIN = .3, Z_MAX = 1.3, Z_TINY = .6;
-const wide = matchMedia('(min-width: 761px)');
+// Tela larga = nem estreita (telefone em pé) nem baixa (telefone deitado); ver o fim do app.css.
+const wide = matchMedia('(min-width: 761px) and (min-height: 501px)');
 export const zoom = () => parseFloat(board.style.zoom) || 1;
 function setZoom(z) {
   board.style.zoom = z;
@@ -115,7 +116,13 @@ export function fitBoard({ animate = false, fresh = false } = {}) {
   // fresh: como se a página abrisse agora neste tamanho (sem a preferência pelas fileiras de antes).
   if (fresh) lastRows = 0;
   board.style.removeProperty('--squeeze');
-  if (!wide.matches) { fitted = null; board.style.zoom = ''; board.style.removeProperty('--z'); board.classList.remove('tiny'); board.parentElement.style.overflow = ''; lastRows = 0; return; }
+  if (!wide.matches) {
+    // Telefone: uma fileira que desliza de lado; o zoom faz ela ocupar a altura toda (pedais grandes, um por vez).
+    fitted = null; lastRows = 0; board.classList.remove('tiny'); board.parentElement.style.overflow = '';
+    const avail = board.parentElement.clientHeight;
+    if (avail) setZoom(largestZoom(z => (setZoom(z), board.getBoundingClientRect().height <= avail + .5), .4, 1.6));
+    return;
+  }
   // Sem barra de rolagem enquanto mede: no PC ela aparece no meio da busca, rouba 15 px de largura, um pedal desce
   // de fileira e a barra fica (um estado estável, mas errado). Ela só volta se nem no zoom mínimo couber.
   const wrap = board.parentElement;
@@ -300,7 +307,7 @@ export function makeDraggable(block, view) {
   let drag = null;
 
   const begin = e => {
-    drag = { x: e.clientX, y: e.clientY, id: e.pointerId, started: false };
+    drag = { x: e.clientX, y: e.clientY, id: e.pointerId, started: false, sl0: board.parentElement.scrollLeft };
     (e.currentTarget).setPointerCapture(e.pointerId);
   };
   const move = e => {
@@ -311,6 +318,7 @@ export function makeDraggable(block, view) {
     if (!drag.started) {
       drag.started = true;
       root.classList.add('dragging');
+      wrap.style.scrollSnapType = 'none'; // o encaixe brigaria com a rolagem automática
       // Os outros pedais não se movem durante o arraste: mede uma vez, não a cada movimento (evita reflow).
       // Centro de cada um, em coordenadas da página (a pedaleira pode rolar na horizontal e a página na vertical).
       drag.others = [...board.querySelectorAll('.pedal')].filter(p => p !== root);
@@ -319,9 +327,17 @@ export function makeDraggable(block, view) {
         return { x: r.left + r.width / 2 + wrap.scrollLeft, y: r.top + r.height / 2 + scrollY };
       });
     }
+    // Dedo perto da borda (telefone: um pedal por vez na tela): a pedaleira rola sozinha para o lado,
+    // até o lugar de destino aparecer.
+    const wr = wrap.getBoundingClientRect(), edge = 48;
+    if (wrap.scrollWidth > wrap.clientWidth) {
+      if (e.clientX < wr.left + edge) wrap.scrollLeft -= 14;
+      else if (e.clientX > wr.right - edge) wrap.scrollLeft += 14;
+    }
     // Com zoom na pedaleira, o deslocamento dentro dela é multiplicado por ele: divide para o pedal seguir o dedo.
+    // A rolagem desde o começo do arraste soma, para o pedal continuar embaixo do dedo.
     const z = zoom();
-    root.style.transform = `translate(${dx / z}px, ${dy / z}px)`;
+    root.style.transform = `translate(${(dx + wrap.scrollLeft - drag.sl0) / z}px, ${dy / z}px)`;
     const { others, mids } = drag;
     const x = e.clientX + wrap.scrollLeft, y = e.clientY + scrollY;
     // Fileira mais próxima do dedo (pedais da mesma fileira têm o mesmo centro vertical, com folga
@@ -341,6 +357,7 @@ export function makeDraggable(block, view) {
     drag = null;
     root.classList.remove('dragging');
     root.style.transform = '';
+    board.parentElement.style.scrollSnapType = '';
     board.querySelectorAll('.drop-before').forEach(p => p.classList.remove('drop-before'));
     board.classList.remove('drop-end');
     if (!started) return;
