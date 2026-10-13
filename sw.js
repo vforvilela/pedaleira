@@ -1,7 +1,7 @@
 // Service worker: rede primeiro (assim você sempre recebe a versão nova), cache quando estiver offline.
-const CACHE = 'pedaleira-v36';
+const CACHE = 'pedaleira-v38';
 const SHELL = [
-  './', 'index.html', 'css/app.css', 'fonts/archivo-latin.woff2', 'fonts/damion-latin.woff2', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png',
+  './', 'index.html', 'css/app.css', 'fonts/archivo-latin.woff2', 'fonts/damion-latin.woff2', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png',
   'js/app.js', 'js/fit.js', 'js/i18n.js', 'js/i18n-apply.js', 'js/i18n/app.js', 'js/i18n/board.js', 'js/i18n/control.js', 'js/i18n/core.js', 'js/i18n/html.js', 'js/i18n/pedal-view.js', 'js/i18n/pedals.js', 'js/i18n/power.js', 'js/i18n/presets.js', 'js/i18n/scenes.js', 'js/i18n/stage.js', 'js/suggestions.js', 'js/core.js', 'js/board.js', 'js/power.js', 'js/presets.js', 'js/scenes.js', 'js/control.js', 'js/stage.js', 'js/store.js', 'js/midi.js', 'js/audio/engine.js', 'js/audio/reverb-ir.js', 'js/audio/pitch.js', 'js/audio/dynamics.js', 'js/audio/dsp-worklet.js', 'js/ui/pedal-view.js',
   'js/pedals/index.js', 'js/pedals/common.js', 'js/pedals/sol-drive.js', 'js/pedals/eco-8.js',
   'js/pedals/salao.js', 'js/pedals/amp.js', 'js/pedals/afinador.js',
@@ -20,17 +20,31 @@ self.addEventListener('activate', e => {
     .then(() => self.clients.claim()));
 });
 
+// Sinal fraco (palco, 3G ruim): a rede conecta mas não responde, e o fetch fica pendurado sem nunca falhar.
+// Depois de WAIT ms sem resposta, entrega o que estiver no cache; a resposta da rede, se chegar, ainda atualiza o cache.
+// Um timeout marca a rede como lenta por SLOW ms: os outros arquivos vão direto ao cache em vez de esperar um por um.
+const WAIT = 3000, SLOW = 30000;
+let slowUntil = 0;
+
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
-  e.respondWith(
-    // no-cache: confere com o servidor mesmo se o navegador tiver uma cópia "ainda válida" no cache HTTP.
-    // Sem isso, o index.html novo podia vir com um app.js velho e botões novos ficavam sem ação.
-    // Navegação vai pela URL: um Request de navegação não aceita opções novas.
-    fetch(e.request.mode === 'navigate' ? e.request.url : e.request, { cache: 'no-cache' })
-      .then(res => {
-        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }
-        return res;
-      })
-      .catch(() => caches.match(e.request, { ignoreSearch: true })),
-  );
+  // no-cache: confere com o servidor mesmo se o navegador tiver uma cópia "ainda válida" no cache HTTP.
+  // Sem isso, o index.html novo podia vir com um app.js velho e botões novos ficavam sem ação.
+  // Navegação vai pela URL: um Request de navegação não aceita opções novas.
+  const net = fetch(e.request.mode === 'navigate' ? e.request.url : e.request, { cache: 'no-cache' })
+    .then(res => {
+      slowUntil = 0;
+      if (res.ok) { const copy = res.clone(); saved = caches.open(CACHE).then(c => c.put(e.request, copy)); }
+      return res;
+    });
+  let saved;
+  // Mantém o worker vivo até a resposta da rede chegar e ser guardada, mesmo que o cache já tenha respondido.
+  e.waitUntil(net.then(() => saved, () => {}));
+  const cached = () => caches.match(e.request, { ignoreSearch: true });
+  const wait = Date.now() < slowUntil ? 0 : WAIT;
+  const slow = new Promise(r => setTimeout(r, wait)).then(cached).then(hit => {
+    if (hit && wait) slowUntil = Date.now() + SLOW;
+    return hit || net;
+  });
+  e.respondWith(Promise.race([net, slow]).catch(() => cached().then(hit => hit || net)));
 });

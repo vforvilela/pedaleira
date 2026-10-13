@@ -29,6 +29,8 @@ jobs:
         run: node tests/browser-smoke.mjs /tmp/shots
       - name: E2E no tablet (toque, sem rolagem, + Pedal, guarda de inicialização)
         run: node tests/e2e-tablet.mjs /tmp/shots-tablet
+      - name: Offline e sinal fraco (abre pelo cache)
+        run: node tests/offline.mjs
       # Só o app: sem testes, sem o código-fonte do wasm.
       - run: mkdir _site && cp -r index.html manifest.webmanifest sw.js css js icons fonts _site/
       - uses: actions/upload-pages-artifact@v4
