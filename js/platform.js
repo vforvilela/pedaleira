@@ -53,4 +53,12 @@ export async function nativeMidi(onMessage) {
 }
 export const hasNativeMidi = !!(isNative && plugin('Midi'));
 
+// Botão Voltar do Android. handler() devolve true se fechou algo; se não havia nada aberto, o app vai para o
+// fundo em vez de fechar (fechar mataria o som no meio da música). Sem listener o Capacitor fecharia o app.
+export function onBack(handler) {
+  const app = isNative && plugin('App');
+  if (!app) return;
+  app.addListener('backButton', () => { if (!handler()) app.minimizeApp().catch(() => {}); });
+}
+
 if (isNative) plugin('StatusBar')?.hide().catch(() => {});

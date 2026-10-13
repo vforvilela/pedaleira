@@ -78,7 +78,11 @@ export async function start() {
   };
   showLat();
   latencyTimer = setInterval(showLat, 1000);
-  if (!$('status').classList.contains('err')) status(t('power.playing', { device: track.label }));
+  if (!$('status').classList.contains('err')) {
+    // Primeira vez tocando: o engano mais comum é o monitor direto da interface dobrando o som limpo.
+    status(t(state.monitorHintDone ? 'power.playing' : 'power.playingFirst', { device: track.label }));
+    if (!state.monitorHintDone) { state.monitorHintDone = true; save(); }
+  }
   $('measure').hidden = false;
   $('record').hidden = false;
   $('power').textContent = t('power.turnOff');

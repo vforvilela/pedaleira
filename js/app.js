@@ -7,7 +7,8 @@ import { midi } from './control.js';
 import { $, engine, live, save, snapshot, state, status } from './core.js';
 import { buildExport, importPresets, loadChain, openSharedLink, renderPresets, shareLink } from './presets.js';
 import { renderScenes } from './scenes.js';
-import { isNative } from './platform.js';
+import { isNative, onBack } from './platform.js';
+import { exitStage } from './stage.js';
 import { getFile, persist } from './store.js';
 import { installDefs } from './ui/pedal-view.js';
 import { PEDALS } from './pedals/index.js';
@@ -121,6 +122,17 @@ $('floorView').onclick = () => { setFloorView(!state.floorView); save(); status(
 const setRack = on => { document.body.classList.toggle('rack-on', on); $('rackOpen').setAttribute('aria-expanded', on); };
 $('rackOpen').onclick = () => setRack(true);
 $('rackClose').onclick = () => setRack(false);
+
+// Voltar do Android (app nativo): fecha o que estiver aberto, do mais em cima para baixo. Sem nada aberto,
+// platform.js manda o app para o fundo em vez de fechar: o som continua.
+onBack(() => {
+  const dlg = document.querySelector('dialog[open]');
+  if (dlg) { dlg.close(); return true; }
+  if (document.body.classList.contains('stage')) { exitStage(); return true; }
+  if (document.body.classList.contains('rack-on')) { setRack(false); return true; }
+  if ($('presetsRow').classList.contains('show-more')) { $('moreBtn').click(); return true; }
+  return false;
+});
 // Toque fora da gaveta (no fundo escurecido) fecha; Esc também.
 document.addEventListener('pointerdown', e => {
   if (document.body.classList.contains('rack-on') && !e.target.closest('#rack, #rackOpen')) setRack(false);

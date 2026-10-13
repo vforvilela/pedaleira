@@ -98,9 +98,13 @@ npm run android   # monta www/, sincroniza e abre o Android Studio
 npm run ios       # idem, Xcode (só no macOS)
 ```
 
-Cada tag `v*` (ou um clique em "Apps Android e iOS" nas Actions) gera o APK de teste e o AAB da Play Store, e
-confere que o projeto iOS compila (`.github/workflows/native.yml`). Assinar e publicar nas lojas é com as contas
-do dono (Play Console e Apple Developer).
+**Android sem loja:** baixe o `.apk` da [página de releases](https://github.com/vforvilela/pedaleira/releases) no
+celular e abra (o Android avisa que veio de fora da loja; é o build de debug).
+
+Cada tag `v*` (ou um clique em "Apps Android e iOS" nas Actions) gera o APK de teste e o AAB da Play Store,
+anexa o APK à release e confere que o projeto iOS compila (`.github/workflows/native.yml`). Assinar e publicar
+nas lojas é com as contas do dono (Play Console e Apple Developer). No app, o botão Voltar do Android fecha
+gavetas e o palco; sem nada aberto, manda o app para o fundo sem desligar o som.
 
 - `android/` e `ios/`: projetos nativos. Plugins locais: `MidiPlugin` (Android e iOS) e `AudioSessionPlugin` (iOS).
 - `assets/`: ícone e splash de 1024 px; `npx capacitor-assets generate` refaz os ícones nativos.

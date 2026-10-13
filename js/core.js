@@ -50,6 +50,8 @@ export const state = {
   measuredMs: saved?.measuredMs ?? null,
   // Quem já usava o app antes do cartão de primeiros passos não precisa vê-lo.
   introDone: saved ? saved.introDone ?? true : false,
+  // Aviso do monitor direto da interface, mostrado só na primeira vez que o som liga.
+  monitorHintDone: saved?.monitorHintDone ?? false,
   // Visão do chão: o sinal corre da direita para a esquerda, como a pedaleira vista por quem pisa nela.
   floorView: saved?.floorView ?? false,
   deviceId: saved?.deviceId ?? '',
