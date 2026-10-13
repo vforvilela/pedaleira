@@ -114,6 +114,23 @@ try {
   check(zLand !== zPort, `girar o tablet recalcula o tamanho da pedaleira (deitado ${zLand}, em pé ${zPort})`);
   await viewport(1024, 768); await sleep(350);
 
+  // ---------- Jeito de app ----------
+  const app = await ev(`(() => { const w = document.querySelector('.board-wrap').getBoundingClientRect();
+    const meta = n => document.querySelector('meta[name="' + n + '"]')?.content;
+    return { bottom: Math.round(w.bottom), left: Math.round(w.left), right: Math.round(w.right), vh: innerHeight, vw: innerWidth,
+      capable: meta('apple-mobile-web-app-capable'), bar: meta('apple-mobile-web-app-status-bar-style'),
+      overscroll: getComputedStyle(document.body).overscrollBehaviorY }; })()`);
+  check(app.bottom === app.vh && app.left === 0 && app.right === app.vw, `pedaleira de borda a borda e até embaixo (${JSON.stringify(app)})`);
+  check(app.capable === 'yes' && app.bar === 'black-translucent' && app.overscroll === 'none', 'instalada abre como app: sem barra do navegador e sem elástico na borda');
+  check(!(await ev(`document.getElementById('fullscreen').hidden`)), 'tecla de tela cheia à vista no navegador');
+  await tapEl(`document.getElementById('fullscreen')`);
+  await sleep(500);
+  check(await ev(`!!document.fullscreenElement && document.getElementById('fullscreen').getAttribute('aria-pressed') === 'true'`), 'tocar na tecla entra em tela cheia');
+  await tapEl(`document.getElementById('fullscreen')`);
+  await sleep(500);
+  check(await ev(`!document.fullscreenElement && document.getElementById('fullscreen').getAttribute('aria-pressed') === 'false'`), 'tocar de novo sai da tela cheia');
+  await viewport(1024, 768); await sleep(350);
+
   // ---------- + Pedal ----------
   check(!(await open()), 'gaveta começa fechada');
   const btn = await center(`document.getElementById('libOpen')`);

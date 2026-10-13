@@ -70,6 +70,21 @@ addEventListener('appinstalled', () => { $('install').hidden = true; status('Bra
 const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 const iOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 if (iOS && !standalone) $('install').hidden = false;
+
+// Tela cheia (navegador comum; instalada, ela já abre sem barras). No iPad o Safari usa o prefixo webkit.
+const root = document.documentElement;
+const enterFs = root.requestFullscreen || root.webkitRequestFullscreen;
+const exitFs = document.exitFullscreen || document.webkitExitFullscreen;
+const inFs = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+$('fullscreen').hidden = !enterFs || standalone;
+const syncFs = () => {
+  $('fullscreen').setAttribute('aria-pressed', inFs());
+  $('fullscreen').setAttribute('aria-label', inFs() ? 'Sair da tela cheia' : 'Tela cheia');
+};
+$('fullscreen').onclick = () => Promise.resolve(inFs() ? exitFs.call(document) : enterFs.call(root))
+  .catch(e => status(`O navegador não deixou abrir em tela cheia: ${e.message}`, true));
+document.addEventListener('fullscreenchange', syncFs);
+document.addEventListener('webkitfullscreenchange', syncFs);
 $('install').onclick = async () => {
   if (installPrompt) {
     installPrompt.prompt();

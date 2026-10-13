@@ -3,7 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#141518">
+<meta name="theme-color" content="#2b2420">
+<!-- Aberta da tela de início, roda como app: sem barra do navegador, com a chapa do topo por baixo da barra de status. -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Brasa">
 <meta name="description" content="Brasa: sua pedaleira de guitarra no navegador. pedais desenhados como os reais, com som modelado e capturas NAM.">
 <title>Brasa</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -23,12 +28,12 @@
         <option value="auto">Canal: auto</option><option value="0">Canal 1</option><option value="1">Canal 2</option>
       </select>
       <button id="install" title="Instalar a Brasa como app (abre sem o navegador, funciona sem internet)" hidden>Instalar</button>
+      <button id="fullscreen" class="icon-key" aria-pressed="false" aria-label="Tela cheia" title="Tela cheia: esconde as barras do navegador" hidden><span class="fs-icon" aria-hidden="true"></span></button>
     </div>
     <div class="levels">
       <div class="meter" id="meter" title="Nível da entrada"><div></div></div>
       <label class="master" title="Ganho de entrada: ajuste até o medidor ficar verde nas notas fortes, sem vermelho">Entrada <input id="inGain" type="range" min="-12" max="24" step="0.5"> <output id="inGainV"></output></label>
       <label class="master">Volume <input id="master" type="range" min="-40" max="6" step="0.5"> <output id="masterV"></output></label>
-      <span class="lat" title="Latência informada pelo navegador (sem o atraso da interface)"><span class="lat-label">Latência </span><b id="latency">—</b></span>
     </div>
   </div>
   <!-- Painel da frente: liga, visor do preset, cenas e ações. Como a cabeça de uma pedaleira digital. -->
@@ -68,6 +73,7 @@
     <button class="more-item" id="presetImport" title="Trazer presets de um arquivo exportado">Importar</button>
     <button class="more-item" id="floorView" aria-pressed="false" title="Mostra a pedaleira como ela fica no chão, vista de quem pisa: a guitarra entra pela direita e o sinal vai para a esquerda, até o amp. Desligado, o sinal vai da esquerda para a direita, como nas pedaleiras digitais.">Como no chão</button>
     <button class="more-item" id="record" aria-pressed="false" title="Grava o que sai da pedaleira e baixa o arquivo quando você parar" hidden>Gravar áudio</button>
+    <span class="more-item lat" title="Latência informada pelo navegador (sem o atraso da interface)">Latência <b id="latency">—</b></span>
     <button class="more-item" id="measure" title="Mede a latência real, de ida e volta. Ligue um cabo da saída da interface na entrada antes." hidden>Medir latência</button>
     <button class="more-item" id="midi" aria-pressed="false" title="Aprender botões de um controlador MIDI" hidden>MIDI</button>
     <button class="more-item" id="midiClear" hidden>Apagar MIDI</button>

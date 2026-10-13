@@ -29,6 +29,11 @@
   --key-hi: #3b332e; --key: #2b2521; --key-lo: #201b18; --key-edge: #0f0c0a; --bezel: #0b0907;
   --led-amber-off: #3a2c0c; --led-red-dim: #3d1411;
   --lcd-bg: #140d06; --lcd-glow: #2e1d09; --lcd-ink: #ffd08c; --lcd-dim: #bd915a; --lcd-err: #ff7f61;
+  /* Superfície da pedaleira: luz de palco quente vinda de cima, sobre réguas de alumínio pintado (fresta escura + aresta clara). */
+  --board-surface:
+    radial-gradient(120% 70% at 50% -12%, color-mix(in oklch, var(--ember-hot) 16%, transparent), transparent 62%),
+    repeating-linear-gradient(180deg, transparent 0 44px, rgba(255,235,210,.06) 44px 45px, rgba(0,0,0,.5) 45px 50px),
+    linear-gradient(180deg, var(--rail), var(--board));
   --font-script: Damion, "Brush Script MT", cursive;
   --font: Archivo, system-ui, -apple-system, "Segoe UI", sans-serif;
   --touch: 44px;
@@ -37,12 +42,18 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { margin: 0; }
+html { -webkit-text-size-adjust: 100%; }
+/* Jeito de app: sem "elástico" ao arrastar além da borda, sem zoom de toque duplo (que atrasa o toque),
+   e a chapa do topo vai por baixo da barra de status (a margem de cima fica no .top). */
 body {
   background: var(--bg); color: var(--text);
   font: 15px/1.45 var(--font);
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  -webkit-tap-highlight-color: transparent;
+  padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  -webkit-tap-highlight-color: transparent; overscroll-behavior: none;
 }
+button, select, input, .knob, .footswitch { touch-action: manipulation; }
+.top { padding-top: env(safe-area-inset-top); -webkit-user-select: none; user-select: none; }
+.top input { -webkit-user-select: text; user-select: text; }
 button, select, input { font: inherit; color: inherit; }
 button, select {
   background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; cursor: pointer;
@@ -91,10 +102,20 @@ body:has(#power[aria-pressed="true"]) h1 .ember { animation: ember 3.2s ease-in-
 .rack h1 { margin-right: 4px; }
 /* Largura de partida fixa, que já conta com Canal e Instalar: quando eles aparecem, a lista de entradas encolhe
    em vez de a faixa ganhar uma linha (o que mudaria o tamanho da pedaleira no meio do uso). */
-.io { display: flex; gap: 8px; min-width: 0; flex: 1 1 290px; max-width: 520px; }
+.io { display: flex; gap: 8px; min-width: 0; flex: 1 1 340px; max-width: 560px; }
 .io select, .io button { font-size: 14px; padding: 6px 10px; }
 .io #device { flex: 1 1 auto; min-width: 90px; max-width: 280px; }
 .io #channel { flex: none; max-width: 100px; }
+/* Tela cheia: quatro cantos desenhados (sem depender de fonte com o símbolo). */
+.io .icon-key { flex: none; width: var(--touch); padding: 0; display: grid; place-items: center; }
+.fs-icon {
+  width: 16px; height: 16px; --c: linear-gradient(currentColor, currentColor);
+  background: var(--c) 0 0 / 6px 2px, var(--c) 0 0 / 2px 6px, var(--c) 100% 0 / 6px 2px, var(--c) 100% 0 / 2px 6px,
+    var(--c) 0 100% / 6px 2px, var(--c) 0 100% / 2px 6px, var(--c) 100% 100% / 6px 2px, var(--c) 100% 100% / 2px 6px;
+  background-repeat: no-repeat;
+}
+#fullscreen[aria-pressed="true"] { color: var(--accent); }
+
 /* Rótulos do painel: caixa alta espaçada, como os do visor ("PRESET 2 DE 7") e os dos pedais. */
 .levels { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; min-width: 0;
   font-size: 11px; font-weight: 700; font-stretch: 112%; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
@@ -119,7 +140,7 @@ body:has(#power[aria-pressed="true"]) h1 .ember { animation: ember 3.2s ease-in-
   font: 600 12px/1 var(--font); letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums;
   color: var(--lcd-ink); background: var(--lcd-bg); box-shadow: inset 0 0 0 1px rgba(0,0,0,.9), inset 0 2px 4px rgba(0,0,0,.6), 0 1px 0 rgba(255,235,210,.06);
 }
-.lat { display: grid; justify-items: start; gap: 3px; line-height: 1; font-size: 10px; }
+.more-row .lat { display: inline-flex; align-items: center; gap: 8px; padding: 0 6px; font-size: 11px; font-weight: 700; font-stretch: 112%; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
 /* Fader: fenda funda na chapa e capa de metal com a risca na cor da brasa (sem o controle padrão do navegador). */
 .master input { -webkit-appearance: none; appearance: none; width: 120px; height: 28px; margin: -6px 0 0; background: transparent; cursor: pointer; }
 .master input::-webkit-slider-runnable-track {
@@ -278,8 +299,13 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
 }
 /* Número do pedal = tecla do teclado; sem teclado nem mouse, só ocupa espaço. */
 @media (hover: none) and (pointer: coarse) { .pedal .num { display: none; } }
+/* Tablet em pé: cenas e ações dividem a segunda fileira, com as ações numa linha só (4 × 1 em vez de 2 × 2):
+   a fileira fica da altura de uma tecla de cena, não de duas teclas empilhadas. */
+@media (min-width: 761px) and (orientation: portrait) {
+  .actions { grid-template-columns: repeat(4, auto); }
+  .face .scene-btn { padding: 16px 0 6px; }
+}
 /* Tablet deitado: a faixa de ligação cabe numa linha só. */
-@media (max-width: 1180px) { .lat-label { display: none; } }
 @media (max-width: 1180px) and (pointer: coarse) { .master input { width: 120px; } }
 
 /* Celular */
@@ -309,11 +335,7 @@ main { padding: 16px 0 32px; }
 .board {
   display: flex; align-items: center; width: max-content; min-width: 100%;
   padding: 32px 20px 22px; border-radius: 14px;
-  /* Luz de palco quente vindo de cima, sobre réguas de alumínio pintado (fresta escura + aresta clara). */
-  background:
-    radial-gradient(120% 70% at 50% -12%, color-mix(in oklch, var(--ember-hot) 16%, transparent), transparent 62%),
-    repeating-linear-gradient(180deg, transparent 0 44px, rgba(255,235,210,.06) 44px 45px, rgba(0,0,0,.5) 45px 50px),
-    linear-gradient(180deg, var(--rail), var(--board));
+  background: var(--board-surface);
   box-shadow:
     inset 0 1px 0 rgba(255,235,210,.10), inset 0 -6px 0 rgba(0,0,0,.35),
     0 1px 0 rgba(255,235,210,.05), 0 24px 48px -12px rgba(0,0,0,.7);
@@ -573,9 +595,15 @@ h2 { font-size: 26px; font-weight: 850; font-stretch: 118%; letter-spacing: -.02
 @media (min-width: 761px) {
   body { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
   .top { flex: none; }
-  main { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 10px 0 12px; overflow-y: auto; }
-  .intro { flex: none; }
-  .board-wrap { flex: 1; min-height: 0; overflow: auto; scroll-snap-type: none; }
+  main { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0; overflow-y: auto; }
+  .intro { flex: none; margin-top: 12px; }
+  /* A pedaleira é o chão da tela: de borda a borda e até embaixo, sem moldura. Os pedais ficam no meio da altura
+     (margin auto: se não couberem, a área rola a partir do topo, sem cortar). */
+  .board-wrap {
+    flex: 1; min-height: 0; overflow: auto; scroll-snap-type: none; padding: 0; display: flex; flex-direction: column;
+    background: var(--board-surface); box-shadow: inset 0 1px 0 rgba(255,235,210,.08), inset 0 10px 18px -10px rgba(0,0,0,.7);
+  }
+  .board { margin-block: auto; background: none; box-shadow: none; border-radius: 0; }
   /* Cada fileira o mais baixa possível, para caberem duas com pedais grandes: o nome já está pintado no pedal,
      e o "inspirado no" fica numa linha (inteiro na dica e na biblioteca). */
   .board { padding: 22px calc(16px + var(--squeeze, 0px)) 14px; row-gap: 10px; }
@@ -588,7 +616,8 @@ h2 { font-size: 26px; font-weight: 850; font-stretch: 118%; letter-spacing: -.02
 }
 /* Os botões embaixo dos pedais continuam com 44 px na tela mesmo com a pedaleira reduzida (o PC também pode ter toque). */
 .board .tools button {
-  min-width: calc(var(--touch) / var(--z, 1)); min-height: calc(var(--touch) / var(--z, 1)); font-size: calc(12px / var(--z, 1));
+  /* + 0,5 px: com zoom quebrado, 44 / z × z dá 43,99 na tela. */
+  min-width: calc(var(--touch) / var(--z, 1) + .5px); min-height: calc(var(--touch) / var(--z, 1) + .5px); font-size: calc(12px / var(--z, 1));
 }
 
 /* ---------- Controles do pedal em tamanho de dedo (toque num botão) ---------- */
