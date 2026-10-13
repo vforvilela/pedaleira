@@ -124,7 +124,7 @@ export async function loadIntoAudio(block, kind, data, name) {
 
 export function status(msg, err = false) {
   const s = $('status');
-  s.textContent = msg;
+  s.textContent = s.title = msg; // no tablet a linha é uma só: a mensagem inteira fica no title e num toque
   s.classList.toggle('err', err);
 }
 

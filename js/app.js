@@ -94,3 +94,8 @@ addEventListener('hashchange', openSharedLink);
 loadWasmBytes();
 if ('serviceWorker' in navigator && location.protocol !== 'file:')
   navigator.serviceWorker.register('sw.js').catch(() => {});
+// Aviso cortado em uma linha (tablet e PC): um toque mostra inteiro.
+$('status').onclick = e => e.currentTarget.classList.toggle('full');
+
+// Fim da inicialização: a guarda do index.html deixa de esperar (ver #bootFail).
+document.documentElement.dataset.ready = '1';

@@ -141,8 +141,10 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
   font-size: 12px; font-weight: 600; font-stretch: 112%; letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
 }
 /* Campo de texto com cara de título: sem caixa até tocar nele. */
+.now-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+#presetRevert { flex: none; }
 #presetName {
-  width: 100%; min-width: 0; margin: 0 0 0 -8px; padding: 2px 8px; border: 1px solid transparent; border-radius: 8px; background: transparent;
+  flex: 1; width: 100%; min-width: 0; margin: 0 0 0 -8px; padding: 2px 8px; border: 1px solid transparent; border-radius: 8px; background: transparent;
   font-size: clamp(28px, 3.5vw, 52px); line-height: 1.05; font-weight: 850; font-stretch: 118%; letter-spacing: -.025em;
   text-overflow: ellipsis;
 }
@@ -414,6 +416,14 @@ h2 { font-size: 26px; font-weight: 850; font-stretch: 118%; letter-spacing: -.02
   .add small { display: none; }
 }
 
+/* ---------- Aviso de app incompleto (guarda no index.html) ---------- */
+.boot-fail {
+  position: fixed; inset: 0 0 auto; z-index: 50; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 16px;
+  padding: calc(12px + env(safe-area-inset-top)) 16px 12px; background: var(--panel); border-bottom: 2px solid var(--bad);
+}
+.boot-fail p { margin: 0; }
+.boot-fail button { min-height: var(--touch); }
+
 /* ---------- Tablet e PC: uma tela só, sem rolar ---------- */
 /* Topo e cenas no tamanho natural; a pedaleira fica com o resto da altura e o zoom dela se ajusta (fitBoard). */
 @media (min-width: 761px) {
@@ -421,11 +431,15 @@ h2 { font-size: 26px; font-weight: 850; font-stretch: 118%; letter-spacing: -.02
   /* Topo em fileiras que se completam: o aviso (status) ocupa a sobra ao lado dos níveis em vez de uma linha só dele. */
   .top { flex: none; position: static; padding: 10px 16px; gap: 8px 14px; display: flex; flex-wrap: wrap; align-items: center; }
   .top h1 { order: 1; }
-  .io { order: 2; flex: 0 1 auto; }
-  .io #device { min-width: 150px; max-width: 260px; }
+  /* Largura de partida fixa: quando o Canal ou o Instalar aparecem, as listas encolhem em vez de o topo
+     ganhar uma fileira (o que mudaria o tamanho da pedaleira no meio do uso). */
+  .io { order: 2; flex: 1 1 220px; max-width: 520px; }
+  .io #device { flex: 1 1 0; min-width: 90px; max-width: 260px; }
+  .io #channel { flex: 0 1 auto; min-width: 90px; }
   .presets { order: 3; }
   .levels { order: 4; }
-  .status { order: 5; flex: 1 1 220px; }
+  .status { order: 5; flex: 1 1 220px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+  .status.full { white-space: normal; }
   main { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 10px 0 12px; overflow-y: auto; }
   .intro, .deck { flex: none; }
   .deck { padding: 0 16px 10px; }

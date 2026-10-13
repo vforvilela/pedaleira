@@ -3,6 +3,7 @@ import { $, applyStoredFiles, changeListeners, createAudio, setParam, engine, li
 import { ORDER, byType } from './pedals/index.js';
 import { putFile } from './store.js';
 import { pedalView } from './ui/pedal-view.js';
+import { largestSqueeze, largestZoom } from './fit.js';
 import { SUGGESTIONS } from './suggestions.js';
 
 // ---------- Pedaleira ----------
@@ -96,23 +97,13 @@ export function fitBoard() {
   const avail = board.parentElement.clientHeight;
   if (!avail) return;
   const height = () => board.getBoundingClientRect().height;
-  const fits = z => (setZoom(z), height() <= avail + .5);
-  if (!fits(Z_MAX)) {
-    // Nem no mínimo cabe (cadeia muito longa): fica no mínimo e a área da pedaleira rola.
-    if (!fits(Z_MIN)) return;
-    let lo = Z_MIN, hi = Z_MAX;
-    for (let i = 0; i < 7; i++) { const m = (lo + hi) / 2; if (fits(m)) lo = m; else hi = m; }
-    setZoom(Math.floor(lo * 100) / 100);
-  }
-  balanceRows(height());
-}
-// Fileiras equilibradas (3 + 3, não 5 + 1): aperta as laterais da pedaleira enquanto o número de fileiras
-// não muda, e os pedais ficam centralizados.
-function balanceRows(h) {
-  const keeps = px => (board.style.setProperty('--squeeze', `${px}px`), board.getBoundingClientRect().height <= h + .5);
-  let lo = 0, hi = board.clientWidth / 2;
-  for (let i = 0; i < 8; i++) { const m = (lo + hi) / 2; if (keeps(m)) lo = m; else hi = m; }
-  board.style.setProperty('--squeeze', `${Math.floor(lo)}px`);
+  // Nem no mínimo cabe (cadeia muito longa): fica no mínimo e a área da pedaleira rola.
+  setZoom(largestZoom(z => (setZoom(z), height() <= avail + .5), Z_MIN, Z_MAX));
+  // Fileiras equilibradas (3 + 3, não 5 + 1): aperta as laterais da pedaleira enquanto o número de fileiras
+  // não muda, e os pedais ficam centralizados.
+  const h = height();
+  const squeeze = px => board.style.setProperty('--squeeze', `${px}px`);
+  squeeze(largestSqueeze(px => (squeeze(px), height() <= h + .5), board.clientWidth / 2));
 }
 let fitQueued = false;
 const queueFit = () => {

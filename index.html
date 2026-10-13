@@ -36,7 +36,6 @@
     <select id="preset" aria-label="Preset"></select>
     <button id="presetNext" aria-label="Próximo preset" title="Próximo preset (atalho: ])">▶</button>
     <button id="presetSave">Salvar</button>
-    <button id="presetRevert" title="Descartar as mudanças e voltar para a versão salva" hidden>Reverter</button>
     <button class="more-item" id="presetDelete">Apagar</button>
     <button class="more-item" id="presetOrganize" title="Ordem dos presets (setlist), nomes e apagar">Organizar</button>
     <button class="more-item" id="presetShare" title="Copia um link com a pedaleira atual para mandar para alguém ou para o celular">Link</button>
@@ -64,7 +63,7 @@
   </section>
   <div class="deck">
   <!-- O nome do preset é o maior texto da tela e é também onde se escreve o nome para salvar. -->
-  <div class="now"><small id="nowCount">Preset</small><input id="presetName" type="text" placeholder="Preset sem nome" aria-label="Nome do preset" maxlength="40" autocomplete="off" title="Nome do preset: escreva aqui e toque em Salvar"></div>
+  <div class="now"><small id="nowCount">Preset</small><div class="now-row"><input id="presetName" type="text" placeholder="Preset sem nome" aria-label="Nome do preset" maxlength="40" autocomplete="off" title="Nome do preset: escreva aqui e toque em Salvar"><button id="presetRevert" title="Descartar as mudanças e voltar para a versão salva" hidden>Reverter</button></div></div>
   <div id="scenes" class="scenes" role="group" aria-label="Cenas">
     <span class="scenes-label" title="Cada cena liga e desliga vários pedais de uma vez (atalhos: A, B, C, D)">Cenas</span>
     <button class="scene-btn" aria-pressed="false" title="Cena A (atalho: A)">A</button>
@@ -126,6 +125,28 @@
 </dialog>
 <div id="toast" class="toast" role="status" hidden><span></span><button></button></div>
 <input id="file" type="file" hidden>
-<script type="module" src="js/app.js"></script>
+<div id="bootFail" class="boot-fail" role="alert" hidden>
+  <p>A Brasa não carregou inteira: o navegador misturou arquivos de duas versões do app.</p>
+  <button id="bootReload" class="primary">Recarregar</button>
+</div>
+<script type="module" src="js/app.js" id="appScript"></script>
+<script>
+// Guarda da inicialização. Se um arquivo do app falha (rede, ou versão velha no cache que não combina
+// com as outras), os botões ficariam mortos sem aviso. app.js marca data-ready no fim da inicialização;
+// erro antes disso, ou 15 s sem ela, mostra o aviso. Recarregar busca de novo no servidor tudo o que a
+// página já baixou (ignorando o cache) e só então recarrega.
+(() => {
+  const fail = () => { if (!document.documentElement.dataset.ready) document.getElementById('bootFail').hidden = false; };
+  addEventListener('error', fail);
+  document.getElementById('appScript').addEventListener('error', fail);
+  setTimeout(fail, 15000);
+  document.getElementById('bootReload').onclick = async e => {
+    e.currentTarget.disabled = true;
+    const urls = performance.getEntriesByType('resource').map(r => r.name).filter(u => u.startsWith(location.origin));
+    await Promise.all(urls.map(u => fetch(u, { cache: 'reload' }).catch(() => {})));
+    location.reload();
+  };
+})();
+</script>
 </body>
 </html>

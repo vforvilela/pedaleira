@@ -1,8 +1,8 @@
 // Service worker: rede primeiro (assim você sempre recebe a versão nova), cache quando estiver offline.
-const CACHE = 'pedaleira-v25';
+const CACHE = 'pedaleira-v26';
 const SHELL = [
   './', 'index.html', 'css/app.css', 'fonts/archivo-latin.woff2', 'fonts/damion-latin.woff2', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png',
-  'js/app.js', 'js/suggestions.js', 'js/core.js', 'js/board.js', 'js/power.js', 'js/presets.js', 'js/scenes.js', 'js/control.js', 'js/stage.js', 'js/store.js', 'js/midi.js', 'js/audio/engine.js', 'js/audio/reverb-ir.js', 'js/audio/pitch.js', 'js/audio/dynamics.js', 'js/audio/dsp-worklet.js', 'js/ui/pedal-view.js',
+  'js/app.js', 'js/fit.js', 'js/suggestions.js', 'js/core.js', 'js/board.js', 'js/power.js', 'js/presets.js', 'js/scenes.js', 'js/control.js', 'js/stage.js', 'js/store.js', 'js/midi.js', 'js/audio/engine.js', 'js/audio/reverb-ir.js', 'js/audio/pitch.js', 'js/audio/dynamics.js', 'js/audio/dsp-worklet.js', 'js/ui/pedal-view.js',
   'js/pedals/index.js', 'js/pedals/common.js', 'js/pedals/sol-drive.js', 'js/pedals/eco-8.js',
   'js/pedals/salao.js', 'js/pedals/amp.js', 'js/pedals/afinador.js',
   'js/pedals/silencio.js', 'js/pedals/aperto.js', 'js/pedals/marimbondo.js', 'js/pedals/coro.js', 'js/pedals/fase-90.js',
@@ -23,7 +23,10 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(
-    fetch(e.request)
+    // no-cache: confere com o servidor mesmo se o navegador tiver uma cópia "ainda válida" no cache HTTP.
+    // Sem isso, o index.html novo podia vir com um app.js velho e botões novos ficavam sem ação.
+    // Navegação vai pela URL: um Request de navegação não aceita opções novas.
+    fetch(e.request.mode === 'navigate' ? e.request.url : e.request, { cache: 'no-cache' })
       .then(res => {
         if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }
         return res;
