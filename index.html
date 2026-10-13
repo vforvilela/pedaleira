@@ -15,9 +15,72 @@
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="preload" href="fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
+<!-- Letreiro dos pedais: sem preload, só é pedido quando o primeiro pedal aparece e chega por último, e a troca de
+     fonte obriga a reajustar a pedaleira inteira. -->
+<link rel="preload" href="fonts/damion-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/app.css">
+<!-- Todos os módulos de uma vez: sem isto o navegador só descobre cada import depois de baixar quem importa,
+     e a abertura vira uma escada de 5 idas e voltas pela rede. A lista é conferida por tests/preload.test.mjs. -->
+<link rel="modulepreload" href="js/i18n/app.js">
+<link rel="modulepreload" href="js/i18n/board.js">
+<link rel="modulepreload" href="js/i18n/core.js">
+<link rel="modulepreload" href="js/i18n/control.js">
+<link rel="modulepreload" href="js/i18n/html.js">
+<link rel="modulepreload" href="js/i18n/pedal-view.js">
+<link rel="modulepreload" href="js/i18n/pedals.js">
+<link rel="modulepreload" href="js/i18n/power.js">
+<link rel="modulepreload" href="js/i18n/presets.js">
+<link rel="modulepreload" href="js/i18n/scenes.js">
+<link rel="modulepreload" href="js/i18n/stage.js">
+<link rel="modulepreload" href="js/i18n.js">
+<link rel="modulepreload" href="js/i18n-apply.js">
+<link rel="modulepreload" href="js/audio/engine.js">
+<link rel="modulepreload" href="js/pedals/common.js">
+<link rel="modulepreload" href="js/audio/pitch.js">
+<link rel="modulepreload" href="js/pedals/afinador.js">
+<link rel="modulepreload" href="js/pedals/ua.js">
+<link rel="modulepreload" href="js/pedals/aperto.js">
+<link rel="modulepreload" href="js/pedals/turbo.js">
+<link rel="modulepreload" href="js/pedals/sol-drive.js">
+<link rel="modulepreload" href="js/audio/fuzz.js">
+<link rel="modulepreload" href="js/pedals/marimbondo.js">
+<link rel="modulepreload" href="js/pedals/ratazana.js">
+<link rel="modulepreload" href="js/pedals/abafa.js">
+<link rel="modulepreload" href="js/pedals/silencio.js">
+<link rel="modulepreload" href="js/pedals/amp.js">
+<link rel="modulepreload" href="js/pedals/equalizador.js">
+<link rel="modulepreload" href="js/pedals/coro.js">
+<link rel="modulepreload" href="js/pedals/fase-90.js">
+<link rel="modulepreload" href="js/pedals/ondas.js">
+<link rel="modulepreload" href="js/pedals/volume.js">
+<link rel="modulepreload" href="js/pedals/eco-8.js">
+<link rel="modulepreload" href="js/audio/reverb-ir.js">
+<link rel="modulepreload" href="js/pedals/salao.js">
+<link rel="modulepreload" href="js/pedals/laco.js">
+<link rel="modulepreload" href="js/pedals/pulso.js">
+<link rel="modulepreload" href="js/pedals/oitava.js">
+<link rel="modulepreload" href="js/pedals/flange.js">
+<link rel="modulepreload" href="js/pedals/baleia.js">
+<link rel="modulepreload" href="js/pedals/index.js">
+<link rel="modulepreload" href="js/store.js">
+<link rel="modulepreload" href="js/factory.js">
+<link rel="modulepreload" href="js/core.js">
+<link rel="modulepreload" href="js/ui/pedal-view.js">
+<link rel="modulepreload" href="js/fit.js">
+<link rel="modulepreload" href="js/suggestions.js">
+<link rel="modulepreload" href="js/board.js">
+<link rel="modulepreload" href="js/midi.js">
+<link rel="modulepreload" href="js/presets.js">
+<link rel="modulepreload" href="js/scenes.js">
+<link rel="modulepreload" href="js/control.js">
+<link rel="modulepreload" href="js/stage.js">
+<link rel="modulepreload" href="js/audio/channel.js">
+<link rel="modulepreload" href="js/power.js">
 </head>
 <body>
+<!-- Começa a usar as fontes já (os bytes vieram pelo preload): quando a pedaleira for montada elas estão prontas, e a
+     chegada delas não obriga a medir e ajustar a pedaleira de novo (ver fitBoard em board.js). -->
+<script>document.fonts?.load('1em Archivo'); document.fonts?.load('1em Damion');</script>
 <header class="top">
   <!-- Faixa de cima: ligação com a interface. Ajusta-se uma vez e some do caminho. -->
   <div class="rack" id="rack">
@@ -93,6 +156,9 @@
     </ol>
     <button id="introOk" class="primary" data-i18n="html.introOk">Entendi</button>
   </section>
+  <!-- Primeira visita: mostra o cartão já no HTML. Se esperasse o app.js, ele surgiria depois e empurraria a pedaleira
+       para baixo. Mesma regra de introDone em core.js. -->
+  <script>try { const s = JSON.parse(localStorage.getItem('pedaleira.v1')); if (!s || s.introDone === false) document.getElementById('intro').hidden = false; } catch { document.getElementById('intro').hidden = false; }</script>
   <nav id="chainMap" class="chain-map" aria-label="Ordem dos pedais" data-i18n-attr="aria-label:html.chainMap"></nav>
   <section class="board-wrap" aria-label="Pedaleira" data-i18n-attr="aria-label:html.board">
     <div id="board" class="board"></div>

@@ -107,6 +107,12 @@ let lastRows = 0;
 // Tamanho da pedaleira (em unidades dela, sem zoom) no fim do último ajuste. Quando o evento de resize chega, o
 // navegador já refez o layout na largura nova; medir ali congelaria a arrumação já mudada.
 let fitted = null;
+// Tamanho da área no último ajuste. Cada ajuste mede a pedaleira umas 20 vezes (caro no tablet); o observador da área
+// avisa também na primeira observação e quando nada mudou de verdade, e aí o ajuste daria o mesmo resultado.
+// fittedFonts: as fontes já tinham chegado nesse ajuste (então a chegada delas não muda nada).
+let fittedArea = '', fittedFonts = false;
+const areaKey = () => `${board.parentElement.clientWidth}x${board.parentElement.clientHeight}`;
+const markFitted = () => { fittedArea = areaKey(); fittedFonts = document.fonts?.status === 'loaded'; };
 const calm = matchMedia('(prefers-reduced-motion: reduce)');
 export function fitBoard({ animate = false, fresh = false } = {}) {
   // Para animar (FLIP): onde cada peça estava antes do ajuste (medido antes de descongelar: é o que está na tela).
@@ -122,6 +128,7 @@ export function fitBoard({ animate = false, fresh = false } = {}) {
     fitted = null; lastRows = 0; board.classList.remove('tiny'); board.parentElement.style.overflow = '';
     const avail = board.parentElement.clientHeight;
     if (avail) setZoom(largestZoom(z => (setZoom(z), board.getBoundingClientRect().height <= avail + .5), .4, 1.6));
+    markFitted();
     return;
   }
   // Sem barra de rolagem enquanto mede: no PC ela aparece no meio da busca, rouba 15 px de largura, um pedal desce
@@ -152,6 +159,7 @@ export function fitBoard({ animate = false, fresh = false } = {}) {
   wrap.style.overflow = height() > avail + .5 ? 'auto' : 'hidden';
   const r = board.getBoundingClientRect(), zf = zoom();
   fitted = { w: r.width / zf, h: r.height / zf };
+  markFitted();
   // Mudou o número de fileiras ou o tamanho deu um salto (o topo trocou de forma): cada peça desliza e muda de
   // tamanho do lugar antigo para o novo, em vez de pular. Mudanças pequenas e contínuas não precisam disso.
   if (before && (fresh || (rowsBefore && (lastRows !== rowsBefore || Math.abs(zoom() / zBefore - 1) > .05)))) glide(pieces, before);
@@ -210,10 +218,11 @@ const queueFit = () => {
 };
 // Muda a área (girar o tablet, abrir os primeiros passos) ou a pedaleira passou da área (carregou uma captura e
 // a legenda cresceu): ajusta de novo. Só o "passou" para não entrar em laço com o próprio zoom.
-new ResizeObserver(queueFit).observe(board.parentElement);
+new ResizeObserver(() => { if (areaKey() !== fittedArea) queueFit(); }).observe(board.parentElement);
 new ResizeObserver(() => { if (board.getBoundingClientRect().height > board.parentElement.clientHeight + .5) queueFit(); }).observe(board);
 wide.addEventListener('change', queueFit);
-document.fonts?.ready.then(queueFit);
+// Fontes chegaram depois do ajuste: as letras mudaram de largura, ajusta de novo. Se já tinham chegado, nada muda.
+document.fonts?.ready.then(() => { if (!fittedFonts) queueFit(); });
 
 // Mapa da cadeia (só no celular, onde cabe pouco mais de um pedal na tela): a ordem inteira numa linha;
 // tocar num nome leva até o pedal.

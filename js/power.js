@@ -33,13 +33,16 @@ export function runTuners() {
 export function runMeter() {
   const buf = new Float32Array(engine.analyser.fftSize);
   const meter = $('meter'), bar = meter.firstElementChild;
+  let shown = -1;
   const tick = () => {
     if (!engine.running) return;
     const peak = engine.peak(buf);
     const db = 20 * Math.log10(peak || 1e-6);
     // clip-path em vez de width: não recalcula o layout a cada quadro, e os LEDs verde, âmbar e vermelho
     // ficam no lugar (com scaleX a faixa de cor encolheria junto).
-    bar.style.clipPath = `inset(0 ${100 - 100 * Math.max(0, Math.min(1, (db + 60) / 60))}% 0 0)`;
+    // Em meio ponto percentual (mais fino que um LED) e só quando muda: em silêncio o medidor não redesenha a cada quadro.
+    const pct = Math.round(200 * Math.max(0, Math.min(1, (db + 60) / 60))) / 2;
+    if (pct !== shown) { shown = pct; bar.style.clipPath = `inset(0 ${100 - pct}% 0 0)`; }
     meter.classList.toggle('clip', peak > 0.98);
     meterRaf = requestAnimationFrame(tick);
   };
