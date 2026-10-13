@@ -49,6 +49,8 @@ export const state = {
   measuredMs: saved?.measuredMs ?? null,
   // Quem já usava o app antes do cartão de primeiros passos não precisa vê-lo.
   introDone: saved ? saved.introDone ?? true : false,
+  // Visão do chão: o sinal corre da direita para a esquerda, como a pedaleira vista por quem pisa nela.
+  floorView: saved?.floorView ?? false,
   deviceId: saved?.deviceId ?? '',
   inputChannel: saved?.inputChannel ?? 'auto',
   chain: normalizeChain(saved?.chain || DEFAULT_CHAIN.map(newBlock)),

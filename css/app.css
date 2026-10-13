@@ -180,6 +180,13 @@ main { padding: 16px 0 32px; }
     0 1px 0 rgba(255,235,210,.05), 0 24px 48px -12px rgba(0,0,0,.7);
 }
 .board.drop-end > .slot:last-child .jack { box-shadow: -4px 0 0 var(--accent); }
+/* Visão do chão: a mesma cadeia espelhada. A guitarra entra pela direita, cada pedal recebe o cabo do lado direito
+   e as fileiras se enchem da direita para a esquerda, como a pedaleira vista de quem pisa nela. */
+.floor .board, .floor .slot, .floor .chain-map { flex-direction: row-reverse; }
+.floor .stage-pedals { direction: rtl; }
+.floor .stage-pedals > * { direction: ltr; }
+.floor .board.drop-end > .slot:last-child .jack { box-shadow: 4px 0 0 var(--accent); }
+.floor .pedal.drop-before { box-shadow: 14px 0 0 -10px var(--accent); }
 .slot { display: flex; align-items: center; }
 .board.arrive .slot { animation: arrive .55s cubic-bezier(.25, 1, .5, 1) both; animation-delay: calc(var(--i) * 70ms); }
 @keyframes arrive { from { opacity: 0; transform: translateY(-22px); } }

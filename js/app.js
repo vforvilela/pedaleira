@@ -1,6 +1,6 @@
 // Pedaleira: junta os módulos e inicia o app.
 import { loadWasmBytes } from './audio/engine.js';
-import { addBlock, directUrl, renderBoard } from './board.js';
+import { addBlock, directUrl, renderBoard, setFloorView } from './board.js';
 import { midi } from './control.js';
 import { $, engine, live, save, snapshot, state, status } from './core.js';
 import { buildExport, importPresets, loadChain, openSharedLink, renderPresets, shareLink } from './presets.js';
@@ -56,6 +56,7 @@ $('libSheet').addEventListener('click', e => {
 // ---------- Início ----------
 
 installDefs();
+setFloorView(state.floorView);
 renderBoard();
 renderPresets();
 renderScenes();
@@ -94,6 +95,8 @@ addEventListener('hashchange', openSharedLink);
 loadWasmBytes();
 if ('serviceWorker' in navigator && location.protocol !== 'file:')
   navigator.serviceWorker.register('sw.js').catch(() => {});
+$('floorView').onclick = () => { setFloorView(!state.floorView); save(); status(state.floorView ? 'Como no chão: a guitarra entra pela direita e o sinal vai para a esquerda.' : 'Sinal da esquerda para a direita, como nas pedaleiras digitais.'); };
+
 // Aviso cortado em uma linha (tablet e PC): um toque mostra inteiro.
 $('status').onclick = e => e.currentTarget.classList.toggle('full');
 

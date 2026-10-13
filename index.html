@@ -41,6 +41,7 @@
     <button class="more-item" id="presetShare" title="Copia um link com a pedaleira atual para mandar para alguém ou para o celular">Link</button>
     <button class="more-item" id="presetExport" title="Baixar um arquivo com os presets e as capturas que eles usam">Exportar</button>
     <button class="more-item" id="presetImport" title="Trazer presets de um arquivo exportado">Importar</button>
+    <button class="more-item" id="floorView" aria-pressed="false" title="Mostra a pedaleira como ela fica no chão, vista de quem pisa: a guitarra entra pela direita e o sinal vai para a esquerda, até o amp. Desligado, o sinal vai da esquerda para a direita, como nas pedaleiras digitais.">Como no chão</button>
     <button id="moreBtn" class="more-btn" aria-expanded="false" aria-controls="presetsRow">⋯ Mais</button>
     <button id="stageBtn" class="stage-btn" title="Tela para tocar ao vivo: preset, cenas e pedais em botões grandes">Palco</button>
     <button class="more-item" id="midi" aria-pressed="false" title="Aprender botões de um controlador MIDI" hidden>MIDI</button>
@@ -119,7 +120,7 @@
 <dialog id="libSheet" class="lib-sheet" aria-labelledby="libTitle">
   <div class="knob-sheet-head"><h2 id="libTitle">Adicionar pedal</h2><button id="libClose" aria-label="Fechar">✕</button></div>
   <div id="library" class="library"></div>
-  <p class="hint">O sinal vai da esquerda para a direita: a ordem muda o som (ex.: delay antes do drive). Dois cliques num botão voltam ao padrão (no toque, o ↺ do painel de controles).</p>
+  <p class="hint">O sinal vai da guitarra para a saída, da esquerda para a direita (ou ao contrário, com ⋯ Mais → Como no chão): a ordem muda o som (ex.: delay antes do drive). Dois cliques num botão voltam ao padrão (no toque, o ↺ do painel de controles).</p>
   <p class="hint">Atalhos: <kbd>1</kbd>–<kbd>9</kbd> ligam e desligam o pedal naquela posição, <kbd>A</kbd>–<kbd>D</kbd> chamam as cenas, <kbd>T</kbd> é o tap tempo do delay, <kbd>[</kbd> <kbd>]</kbd>, as setas e PageUp/PageDown trocam de preset. Com o foco no ⠿, as setas mudam o pedal de lugar.</p>
   <p class="hint">Footswitch: um controlador MIDI faz tudo isso pelo botão MIDI, em ⋯ Mais (no Chrome e no Edge). No celular, inclusive no iPhone, um footswitch Bluetooth de virar página troca de preset sem configurar.</p>
 </dialog>

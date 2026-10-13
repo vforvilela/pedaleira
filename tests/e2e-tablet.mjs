@@ -195,6 +195,44 @@ try {
   const last = order0.split(',').at(-1);
   check(order1.split(',')[1] === last, `arrastar o último pedal para o 2º lugar (${order0} → ${order1})`);
 
+  // ---------- Como no chão (sinal da direita para a esquerda) ----------
+  const xs = () => ev(`(() => { const c = e => e.getBoundingClientRect().left + e.getBoundingClientRect().width / 2;
+    const j = [...document.querySelectorAll('#board .jack')], p = [...document.querySelectorAll('#board .pedal')];
+    return { guitar: c(j[0]), out: c(j.at(-1)), p0: c(p[0]), p1: c(p[1]) }; })()`);
+  const ltr = await xs();
+  check(ltr.guitar < ltr.p0 && ltr.p0 < ltr.p1, `padrão: guitarra à esquerda, sinal para a direita (${JSON.stringify(ltr)})`);
+  await tapEl(`document.getElementById('moreBtn')`);
+  await tapEl(`document.getElementById('floorView')`);
+  await sleep(300);
+  const rtl = await xs();
+  check(await ev(`document.getElementById('floorView').getAttribute('aria-pressed') === 'true' && __pedaleira.state.floorView`), 'Como no chão liga (aria-pressed e estado)');
+  check(rtl.guitar > rtl.p0 && rtl.p0 > rtl.p1, `como no chão: guitarra à direita, sinal para a esquerda (${JSON.stringify(rtl)})`);
+  const fm = await noScroll();
+  check(fm.sh <= fm.vh && fm.fits, `como no chão: continua sem rolagem (zoom ${fm.z})`);
+  await shot('3-como-no-chao.png');
+  // Arrastar no espelho: o 1º pedal (mais à direita) solto à esquerda do 2º vira o 2º.
+  const o0 = await chain();
+  const g2 = await center(`document.querySelectorAll('#board .pedal')[0].querySelector('.grip')`);
+  const t2 = await ev(`(() => { const r = document.querySelectorAll('#board .pedal')[1].getBoundingClientRect(); return { x: r.left + 4, y: r.top + r.height / 2 }; })()`);
+  await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: g2.x, y: g2.y }] });
+  for (let k = 1; k <= 15; k++) await send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: g2.x + (t2.x - g2.x) * k / 15, y: g2.y + (t2.y - g2.y) * k / 15 }] });
+  await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await sleep(300);
+  const o1 = await chain();
+  check(o1.split(',')[1] === o0.split(',')[0] && o1.split(',')[0] === o0.split(',')[1], `como no chão: arrastar para a esquerda põe depois na cadeia (${o0} → ${o1})`);
+  // Setas no ⠿ seguem a tela: ← leva para depois na cadeia.
+  await ev(`document.querySelectorAll('#board .pedal')[0].querySelector('.grip').focus()`);
+  await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowLeft', code: 'ArrowLeft', windowsVirtualKeyCode: 37 });
+  await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowLeft', code: 'ArrowLeft', windowsVirtualKeyCode: 37 });
+  await sleep(200);
+  const o2 = await chain();
+  check(o2.split(',')[1] === o1.split(',')[0], `como no chão: ← no ⠿ anda para a esquerda, que é depois na cadeia (${o1} → ${o2})`);
+  await send('Page.reload'); await sleep(1500);
+  check(await ev(`document.body.classList.contains('floor')`), 'como no chão continua depois de recarregar');
+  await ev(`document.getElementById('floorView').click()`);
+  await sleep(200);
+  check(!(await ev(`document.body.classList.contains('floor')`)), 'desliga de novo');
+
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
 
   // ---------- Guarda de inicialização ----------

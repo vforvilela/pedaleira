@@ -58,6 +58,14 @@ function slot(node, i) {
   return s;
 }
 
+// Visão do chão: liga e desliga o espelhamento (CSS) e refaz o encaixe.
+export function setFloorView(on) {
+  state.floorView = on;
+  document.body.classList.toggle('floor', on);
+  $('floorView').setAttribute('aria-pressed', on);
+  fitBoard();
+}
+
 let arrived = false;
 export function renderBoard() {
   const nodes = [jack('Guitarra', '🎸')];
@@ -239,7 +247,8 @@ export function makeDraggable(block, view) {
     // para alturas diferentes); dentro dela, entra antes do primeiro pedal à direita do dedo.
     const rowY = mids.reduce((best, m) => (Math.abs(m.y - y) < Math.abs(best - y) ? m.y : best), Infinity);
     const inRow = i => Math.abs(mids[i].y - rowY) < 60;
-    let to = mids.findIndex((m, i) => inRow(i) && x < m.x);
+    // Na visão do chão o sinal corre para a esquerda: "antes" de um pedal é à direita dele.
+    let to = mids.findIndex((m, i) => inRow(i) && (state.floorView ? x > m.x : x < m.x));
     if (to < 0) { to = mids.findLastIndex((m, i) => inRow(i)) + 1; if (!mids.length) to = 0; }
     others.forEach((p, i) => p.classList.toggle('drop-before', i === to));
     board.classList.toggle('drop-end', to === others.length);
@@ -262,7 +271,9 @@ export function makeDraggable(block, view) {
   grip.addEventListener('pointerdown', e => { e.preventDefault(); begin(e); });
   // Teclado: setas no ⠿ trocam o pedal de lugar com o vizinho.
   grip.addEventListener('keydown', e => {
-    const dir = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[e.key];
+    // Esquerda/direita seguem a tela: na visão do chão, ir para a esquerda é andar para depois na cadeia.
+    const side = state.floorView ? -1 : 1;
+    const dir = { ArrowLeft: -side, ArrowUp: -1, ArrowRight: side, ArrowDown: 1 }[e.key];
     if (!dir) return;
     e.preventDefault();
     const from = state.chain.findIndex(b => b.uid === block.uid);
