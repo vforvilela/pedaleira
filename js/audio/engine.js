@@ -45,7 +45,12 @@ export class Engine {
       if (!deviceId || (e.name !== 'OverconstrainedError' && e.name !== 'NotFoundError')) throw e;
       this.stream = await ask(null);
     }
-    const ctx = this.ctx = new AudioContext({ latencyHint: 0, sampleRate: 48000 });
+    // 48 kHz: a taxa das capturas NAM. Interface só de 44,1 kHz (Cube Baby, muitos celulares): alguns navegadores
+    // recusam a taxa pedida em vez de reamostrar; aí vale a taxa do aparelho, e a captura soa um pouco mais
+    // brilhante do que foi gravada.
+    let ctx;
+    try { ctx = new AudioContext({ latencyHint: 0, sampleRate: 48000 }); } catch { ctx = new AudioContext({ latencyHint: 0 }); }
+    this.ctx = ctx;
     await Promise.all(['../nam/nam-worklet.js', './dsp-worklet.js']
       .map(f => ctx.audioWorklet.addModule(new URL(f, import.meta.url))));
     this.wasmBytes = await loadWasmBytes();

@@ -84,7 +84,7 @@ Pedal names stay in Portuguese in every language. The table gives each one's mea
 |---|---|---|
 | Windows / macOS / Linux | Chrome or Edge → install app (icon in the address bar) | Full feature set, including MIDI |
 | Android | Chrome → "Add to Home screen" | Needs a USB audio interface. Latency varies a lot between phones |
-| iPhone / iPad | Safari → Share → "Add to Home Screen" | Needs a USB audio interface. No Web MIDI; Bluetooth page-turners work |
+| iPhone / iPad | Safari → Share → "Add to Home Screen" | Needs a USB audio interface. No Web MIDI in Safari (the native app has MIDI); Bluetooth page-turners work |
 
 After the first load the app works offline.
 

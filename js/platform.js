@@ -18,12 +18,11 @@ export async function saveFile(blob, name) {
     setTimeout(() => URL.revokeObjectURL(a.href), 60000);
     return;
   }
-  const data = await new Promise((ok, fail) => {
-    const r = new FileReader();
-    r.onload = () => ok(r.result.slice(r.result.indexOf(',') + 1));
-    r.onerror = () => fail(r.error);
-    r.readAsDataURL(blob);
-  });
+  // Base64 em pedaços: String.fromCharCode(...tudo) estoura a pilha com uma gravação de alguns MB.
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  const data = btoa(s);
   const { uri } = await plugin('Filesystem').writeFile({ path: name, data, directory: 'CACHE' });
   await plugin('Share').share({ title: name, files: [uri] });
 }
