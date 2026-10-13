@@ -36,3 +36,10 @@ export function countRows(boxes) {
   }
   return rows;
 }
+
+// Durante o redimensionamento a arrumação fica congelada (largura w × altura h, em unidades da pedaleira) e só a
+// escala acompanha a área: o maior zoom em que ela cabe inteira, nos dois sentidos.
+export function frozenZoom(w, h, availW, availH) {
+  if (!(w > 0 && h > 0 && availW > 0 && availH > 0)) return 1;
+  return Math.min(availW / w, availH / h);
+}

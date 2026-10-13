@@ -3,7 +3,7 @@ import { $, applyStoredFiles, changeListeners, createAudio, setParam, engine, li
 import { ORDER, byType } from './pedals/index.js';
 import { putFile } from './store.js';
 import { pedalView } from './ui/pedal-view.js';
-import { countRows, keepRows, largestSqueeze, largestZoom } from './fit.js';
+import { countRows, frozenZoom, keepRows, largestSqueeze, largestZoom } from './fit.js';
 import { SUGGESTIONS } from './suggestions.js';
 
 // ---------- Pedaleira ----------
@@ -102,14 +102,20 @@ function setZoom(z) {
 }
 const rowsNow = () => countRows([...board.children].map(c => ({ top: c.offsetTop, height: c.offsetHeight })));
 let lastRows = 0;
+// Tamanho da pedaleira (em unidades dela, sem zoom) no fim do último ajuste. Quando o evento de resize chega, o
+// navegador já refez o layout na largura nova; medir ali congelaria a arrumação já mudada.
+let fitted = null;
 const calm = matchMedia('(prefers-reduced-motion: reduce)');
-export function fitBoard({ animate = false } = {}) {
-  // Para animar (FLIP): onde cada peça estava antes do ajuste.
+export function fitBoard({ animate = false, fresh = false } = {}) {
+  // Para animar (FLIP): onde cada peça estava antes do ajuste (medido antes de descongelar: é o que está na tela).
   const pieces = [...board.children];
   const before = animate && !calm.matches && !board.classList.contains('arrive') ? pieces.map(p => p.getBoundingClientRect()) : null;
+  if (frozen) unfreeze();
   const rowsBefore = lastRows, zBefore = zoom();
+  // fresh: como se a página abrisse agora neste tamanho (sem a preferência pelas fileiras de antes).
+  if (fresh) lastRows = 0;
   board.style.removeProperty('--squeeze');
-  if (!wide.matches) { board.style.zoom = ''; board.style.removeProperty('--z'); board.classList.remove('tiny'); board.parentElement.style.overflow = ''; lastRows = 0; return; }
+  if (!wide.matches) { fitted = null; board.style.zoom = ''; board.style.removeProperty('--z'); board.classList.remove('tiny'); board.parentElement.style.overflow = ''; lastRows = 0; return; }
   // Sem barra de rolagem enquanto mede: no PC ela aparece no meio da busca, rouba 15 px de largura, um pedal desce
   // de fileira e a barra fica (um estado estável, mas errado). Ela só volta se nem no zoom mínimo couber.
   const wrap = board.parentElement;
@@ -136,9 +142,11 @@ export function fitBoard({ animate = false } = {}) {
   const squeeze = px => board.style.setProperty('--squeeze', `${px}px`);
   if (h <= avail + .5) squeeze(largestSqueeze(px => (squeeze(px), height() <= h + .5), board.clientWidth / 2));
   wrap.style.overflow = height() > avail + .5 ? 'auto' : 'hidden';
+  const r = board.getBoundingClientRect(), zf = zoom();
+  fitted = { w: r.width / zf, h: r.height / zf };
   // Mudou o número de fileiras ou o tamanho deu um salto (o topo trocou de forma): cada peça desliza e muda de
   // tamanho do lugar antigo para o novo, em vez de pular. Mudanças pequenas e contínuas não precisam disso.
-  if (before && rowsBefore && (lastRows !== rowsBefore || Math.abs(zoom() / zBefore - 1) > .05)) glide(pieces, before);
+  if (before && (fresh || (rowsBefore && (lastRows !== rowsBefore || Math.abs(zoom() / zBefore - 1) > .05)))) glide(pieces, before);
 }
 function glide(pieces, before) {
   const z = zoom();
@@ -153,11 +161,44 @@ function glide(pieces, before) {
     ], { duration: 320, easing: 'cubic-bezier(.25, 1, .5, 1)' });
   });
 }
+// Redimensionar a janela (ou dividir a tela, ou girar): enquanto o tamanho muda, nenhum pedal troca de fileira;
+// a pedaleira inteira só muda de escala, como uma foto. Um quarto de segundo depois que o tamanho para de mudar,
+// ela é arrumada do zero para o tamanho final, igual a abrir a página nele, e cada pedal desliza uma vez só.
+let frozen = null, settleTimer = 0;
+function freeze() {
+  if (!fitted) return;
+  frozen = { ...fitted };
+  board.style.width = `${frozen.w}px`;
+  board.style.alignSelf = 'center';
+}
+function unfreeze() {
+  frozen = null;
+  board.style.width = '';
+  board.style.alignSelf = '';
+}
+function scaleFrozen() {
+  const wrap = board.parentElement;
+  // Só o zoom muda; --z (tamanho dos botões, legenda) fica como estava para nada trocar de lugar.
+  board.style.zoom = frozenZoom(frozen.w, frozen.h, wrap.clientWidth, wrap.clientHeight);
+}
+addEventListener('resize', () => {
+  if (!wide.matches) return;
+  if (!frozen && state.chain.length) freeze();
+  if (frozen) scaleFrozen();
+  clearTimeout(settleTimer);
+  settleTimer = setTimeout(() => { settleTimer = 0; fitBoard({ animate: true, fresh: true }); }, 250);
+});
+
 let fitQueued = false;
 const queueFit = () => {
   if (fitQueued) return;
   fitQueued = true;
-  requestAnimationFrame(() => { fitQueued = false; fitBoard({ animate: true }); });
+  requestAnimationFrame(() => {
+    fitQueued = false;
+    // No meio de um redimensionamento: só a escala (o ajuste completo vem quando o tamanho parar).
+    if (frozen) scaleFrozen();
+    else if (!settleTimer) fitBoard({ animate: true });
+  });
 };
 // Muda a área (girar o tablet, abrir os primeiros passos) ou a pedaleira passou da área (carregou uma captura e
 // a legenda cresceu): ajusta de novo. Só o "passou" para não entrar em laço com o próprio zoom.

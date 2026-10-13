@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import { countRows, keepRows, largestSqueeze, largestZoom } from '../js/fit.js';
+import { countRows, frozenZoom, keepRows, largestSqueeze, largestZoom } from '../js/fit.js';
 
 // ---------- Encaixe da pedaleira (js/fit.js) ----------
 
@@ -67,6 +67,12 @@ test('fileiras: conta pelo layout, com pedais de alturas diferentes e nas duas d
   assert.equal(countRows([{ top: 20, height: 300 }, { top: 60, height: 220 }, { top: 20, height: 300 }, { top: 340, height: 300 }, { top: 340, height: 300 }]), 2);
   assert.equal(countRows([{ top: 0, height: 100 }]), 1);
   assert.equal(countRows([]), 0);
+});
+
+test('redimensionando: escala da pedaleira congelada cabe inteira nos dois sentidos', () => {
+  assert.equal(frozenZoom(1000, 500, 800, 600), .8);   // limitada pela largura
+  assert.equal(frozenZoom(1000, 500, 2000, 400), .8);  // limitada pela altura
+  assert.equal(frozenZoom(0, 500, 800, 600), 1);       // sem medida: não mexe
 });
 
 // ---------- Ligações HTML ↔ JS ----------

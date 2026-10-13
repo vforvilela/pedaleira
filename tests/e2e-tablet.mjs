@@ -98,11 +98,11 @@ try {
   // ---------- Sem rolagem, em todos os tablets, em pé e deitado ----------
   const fitAll = async label => {
     for (const [w, h, name] of TABLETS) {
-      await viewport(w, h); await sleep(350);
+      await viewport(w, h); await sleep(900);
       const m = await noScroll();
       check(m.sh <= m.vh && m.sw <= m.vw && m.fits, `${label}, ${name} ${w}×${h}: sem rolagem (página ${m.sw}×${m.sh}, zoom ${m.z})`);
     }
-    await viewport(1024, 768); await sleep(350);
+    await viewport(1024, 768); await sleep(900);
   };
   await fitAll('5 pedais');
   await ev(`(() => { const s = document.getElementById('preset'); const o = [...s.options].find(o => /Crunch/.test(o.textContent)); s.value = o.value; s.dispatchEvent(new Event('change')); })()`);
@@ -125,12 +125,21 @@ try {
     }
     check(tops.size <= 2 && flips <= 2, `redimensionando ${dir > 0 ? 'para mais largo' : 'para mais estreito'}: topo com ${tops.size} forma(s), fileiras trocam ${flips} vez(es)`);
   }
-  await viewport(1024, 768); await sleep(350);
+  // No fim do redimensionamento, a arrumação é a mesma de abrir a página direto naquele tamanho.
+  const settled = async () => ev(`(() => { const b = document.getElementById('board');
+    return b.style.zoom + ' / ' + [...b.children].map(c => c.offsetTop).join(','); })()`);
+  for (const w of [1300, 1200, 1100, 1000, 900, 1180]) { await viewport(w, 820); await sleep(30); }
+  await sleep(900);
+  const afterResize = await settled();
+  await send('Page.reload'); await sleep(1500);
+  const afterLoad = await settled();
+  check(afterResize === afterLoad, `depois de redimensionar fica igual a abrir a página no tamanho final (${afterResize} | ${afterLoad})`);
+  await viewport(1024, 768); await sleep(900);
   const zLand = await ev(`document.getElementById('board').style.zoom`);
-  await viewport(768, 1024); await sleep(350);
+  await viewport(768, 1024); await sleep(900);
   const zPort = await ev(`document.getElementById('board').style.zoom`);
   check(zLand !== zPort, `girar o tablet recalcula o tamanho da pedaleira (deitado ${zLand}, em pé ${zPort})`);
-  await viewport(1024, 768); await sleep(350);
+  await viewport(1024, 768); await sleep(900);
 
   // ---------- Jeito de app ----------
   const app = await ev(`(() => { const w = document.querySelector('.board-wrap').getBoundingClientRect();
@@ -147,7 +156,7 @@ try {
   await tapEl(`document.getElementById('fullscreen')`);
   await sleep(500);
   check(await ev(`!document.fullscreenElement && document.getElementById('fullscreen').getAttribute('aria-pressed') === 'false'`), 'tocar de novo sai da tela cheia');
-  await viewport(1024, 768); await sleep(350);
+  await viewport(1024, 768); await sleep(900);
 
   // ---------- + Pedal ----------
   check(!(await open()), 'gaveta começa fechada');
@@ -272,7 +281,7 @@ try {
   await ev(`(() => { for (const b of document.querySelectorAll('#library .add')) b.click(); })()`);
   await sleep(600);
   for (const [w, h] of [[1024, 768], [768, 1024]]) {
-    await viewport(w, h); await sleep(400);
+    await viewport(w, h); await sleep(900); // ¼ s até o ajuste final + o deslize
     const lg = await ev(`(() => { const b = document.getElementById('board'), wr = b.parentElement;
       const tools = [...b.querySelectorAll('.tools button')].map(e => e.getBoundingClientRect()).filter(r => r.width);
       return { n: __pedaleira.state.chain.length, z: b.style.zoom, rola: wr.style.overflow === 'auto' || b.getBoundingClientRect().height > wr.clientHeight + 1,
