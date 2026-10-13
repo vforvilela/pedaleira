@@ -629,10 +629,18 @@ h2 { font-size: 26px; font-weight: 850; font-stretch: 118%; letter-spacing: -.02
   .tools { margin-top: 2px; }
 }
 /* Os botões embaixo dos pedais continuam com 44 px na tela mesmo com a pedaleira reduzida (o PC também pode ter toque). */
+/* Botões embaixo dos pedais: 44 px na tela enquanto os pedais estão a 60 % ou mais; com cadeia longa, encolhem junto
+   até um piso (36 px no dedo, 32 no mouse; o mínimo da WCAG é 24). Mantidos sempre em 44, eles ficavam mais
+   largos que o próprio pedal e era isso que fazia a pedaleira não caber. --tool é o tamanho na tela. */
+.board { --tool: clamp(32px, calc(44px * var(--z, 1) / .6), 44px); }
+@media (pointer: coarse) { .board { --tool: clamp(36px, calc(44px * var(--z, 1) / .6), 44px); } }
 .board .tools button {
   /* + 0,5 px: com zoom quebrado, 44 / z × z dá 43,99 na tela. */
-  min-width: calc(var(--touch) / var(--z, 1) + .5px); min-height: calc(var(--touch) / var(--z, 1) + .5px); font-size: calc(12px / var(--z, 1));
+  min-width: calc(var(--tool) / var(--z, 1) + .5px); min-height: calc(var(--tool) / var(--z, 1) + .5px);
+  font-size: calc(var(--tool) * 12 / 44 / var(--z, 1)); padding: 0 4px;
 }
+/* Pedais bem pequenos (cadeia longa): sem a legenda, que continua na dica e na biblioteca. */
+.board.tiny .caption { display: none; }
 
 /* ---------- Controles do pedal em tamanho de dedo (toque num botão) ---------- */
 .knob-sheet, .file-sheet {

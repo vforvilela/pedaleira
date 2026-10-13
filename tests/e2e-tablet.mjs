@@ -268,6 +268,19 @@ try {
   await sleep(200);
   check(!(await ev(`document.body.classList.contains('floor')`)), 'desliga de novo');
 
+  // ---------- Cadeia longa: todos os pedais da biblioteca ----------
+  await ev(`(() => { for (const b of document.querySelectorAll('#library .add')) b.click(); })()`);
+  await sleep(600);
+  for (const [w, h] of [[1024, 768], [768, 1024]]) {
+    await viewport(w, h); await sleep(400);
+    const lg = await ev(`(() => { const b = document.getElementById('board'), wr = b.parentElement;
+      const tools = [...b.querySelectorAll('.tools button')].map(e => e.getBoundingClientRect()).filter(r => r.width);
+      return { n: __pedaleira.state.chain.length, z: b.style.zoom, rola: wr.style.overflow === 'auto' || b.getBoundingClientRect().height > wr.clientHeight + 1,
+        pagina: document.documentElement.scrollHeight > innerHeight, menor: Math.round(Math.min(...tools.map(r => Math.min(r.width, r.height)))) }; })()`);
+    check(!lg.rola && !lg.pagina && lg.menor >= 36, `${lg.n} pedais em ${w}×${h}: cabe sem rolar (zoom ${lg.z}), botões com ≥ 36 px (${lg.menor})`);
+  }
+  await viewport(1024, 768); await sleep(300);
+
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
 
   // ---------- Guarda de inicialização ----------

@@ -92,12 +92,13 @@ export function renderBoard() {
 // Tablet e PC: a pedaleira inteira cabe na área que sobra embaixo do topo, sem rolar a página.
 // Procura o maior zoom em que ela cabe na altura; com zoom menor cabem mais pedais por fileira,
 // então às vezes duas fileiras viram uma. --z deixa o CSS manter os botões de toque em 44 px na tela.
-const Z_MIN = .5, Z_MAX = 1.3;
+const Z_MIN = .3, Z_MAX = 1.3, Z_TINY = .6;
 const wide = matchMedia('(min-width: 761px)');
 export const zoom = () => parseFloat(board.style.zoom) || 1;
 function setZoom(z) {
   board.style.zoom = z;
   board.style.setProperty('--z', z);
+  board.classList.toggle('tiny', z < Z_TINY);
 }
 const rowsNow = () => countRows([...board.children].map(c => ({ top: c.offsetTop, height: c.offsetHeight })));
 let lastRows = 0;
@@ -108,7 +109,7 @@ export function fitBoard({ animate = false } = {}) {
   const before = animate && !calm.matches && !board.classList.contains('arrive') ? pieces.map(p => p.getBoundingClientRect()) : null;
   const rowsBefore = lastRows, zBefore = zoom();
   board.style.removeProperty('--squeeze');
-  if (!wide.matches) { board.style.zoom = ''; board.style.removeProperty('--z'); board.parentElement.style.overflow = ''; lastRows = 0; return; }
+  if (!wide.matches) { board.style.zoom = ''; board.style.removeProperty('--z'); board.classList.remove('tiny'); board.parentElement.style.overflow = ''; lastRows = 0; return; }
   // Sem barra de rolagem enquanto mede: no PC ela aparece no meio da busca, rouba 15 px de largura, um pedal desce
   // de fileira e a barra fica (um estado estável, mas errado). Ela só volta se nem no zoom mínimo couber.
   const wrap = board.parentElement;
@@ -130,9 +131,10 @@ export function fitBoard({ animate = false } = {}) {
   lastRows = rowsNow();
   // Fileiras equilibradas (3 + 3, não 5 + 1): aperta as laterais da pedaleira enquanto o número de fileiras
   // não muda, e os pedais ficam centralizados.
+  // (Se nem assim couber, a área vai rolar: aí é melhor ocupar a largura toda, sem apertar.)
   const h = height();
   const squeeze = px => board.style.setProperty('--squeeze', `${px}px`);
-  squeeze(largestSqueeze(px => (squeeze(px), height() <= h + .5), board.clientWidth / 2));
+  if (h <= avail + .5) squeeze(largestSqueeze(px => (squeeze(px), height() <= h + .5), board.clientWidth / 2));
   wrap.style.overflow = height() > avail + .5 ? 'auto' : 'hidden';
   // Mudou o número de fileiras ou o tamanho deu um salto (o topo trocou de forma): cada peça desliza e muda de
   // tamanho do lugar antigo para o novo, em vez de pular. Mudanças pequenas e contínuas não precisam disso.

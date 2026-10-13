@@ -809,14 +809,14 @@ try {
   check(svgSmall.out.length === 0, `toque: footswitches e chaves do afinador com ≥ 44 px (${svgSmall.out.length ? svgSmall.out.join(', ') : svgSmall.n + ' medidos'})`);
   check(small.small.length === 0, `toque: todos os controles com ≥ 44 px (${small.small.length ? small.small.join(', ') : small.total + ' controles medidos'})`);
 
-  // Mouse (tela de PC): ⠿ ✕ NAM IR TAP também com 44×44 px.
+  // Mouse (tela de PC): ⠿ ✕ NAM IR TAP com 44×44 px; com a cadeia longa e os pedais pequenos, nunca menos de 32.
   await send('Emulation.setTouchEmulationEnabled', { enabled: false });
   await send('Emulation.setDeviceMetricsOverride', { width: 1600, height: 900, deviceScaleFactor: 1, mobile: false });
   await sleep(300);
   const mouseSmall = await evaluate(`[...document.querySelectorAll('#board .tools button')].map(b => b.getBoundingClientRect())
-    .filter(r => r.width < 44 || r.height < 44).map(r => Math.round(r.width) + 'x' + Math.round(r.height))`);
+    .filter(r => { const t = +document.getElementById('board').style.zoom >= .6 ? 43.5 : 31.5; return r.width < t || r.height < t; }).map(r => Math.round(r.width) + 'x' + Math.round(r.height))`);
   check(!(await evaluate(`matchMedia('(pointer: coarse)').matches`)) && mouseSmall.length === 0,
-    `mouse: botões dos pedais com ≥ 44 px (${mouseSmall.length ? mouseSmall.join(', ') : 'todos'})`);
+    `mouse: botões dos pedais com ≥ 44 px (≥ 32 com pedais abaixo de 60 %) (${mouseSmall.length ? mouseSmall.join(', ') : 'todos'})`);
 
   // Fonte própria (Archivo) carregada do app e usada no título e nos rótulos dos botões.
   const font = await evaluate(`document.fonts.ready.then(() => {
