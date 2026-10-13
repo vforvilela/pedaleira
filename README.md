@@ -108,6 +108,10 @@ gavetas e o palco; sem nada aberto, manda o app para o fundo sem desligar o som.
 
 - `android/` e `ios/`: projetos nativos. Plugins locais: `MidiPlugin` (Android e iOS) e `AudioSessionPlugin` (iOS).
 - `assets/`: ícone e splash de 1024 px; `npx capacitor-assets generate` refaz os ícones nativos.
+- `store/listing.md`: textos para as lojas em três idiomas; `privacy.html`: política de privacidade
+  (publicada em https://vforvilela.github.io/pedaleira/privacy.html, que a Play Store exige para apps com microfone).
+- No Android, com o som ligado o app mantém uma notificação (serviço em primeiro plano): sem ela o sistema corta a
+  entrada da guitarra ao trocar de app ou apagar a tela.
 
 ## Como funciona
 

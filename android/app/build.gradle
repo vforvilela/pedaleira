@@ -7,8 +7,10 @@ android {
         applicationId "com.tonesmith.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // A Play Store exige versionCode crescente a cada envio: o CI passa o número da execução
+        // (native.yml); a tag v1.2.3 vira versionName 1.2.3. Local: 1 / 1.0-dev.
+        versionCode (System.getenv("VERSION_CODE") ?: "1").toInteger()
+        versionName (System.getenv("VERSION_NAME") ?: "1.0-dev").replaceFirst(/^v/, "")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

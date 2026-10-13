@@ -34,6 +34,14 @@ export async function keepAwake(on) {
   try { await (on ? ka.keepAwake() : ka.allowSleep()); } catch { /* segue sem */ }
 }
 
+// Som ligado com o app no fundo ou a tela apagada. Android: serviço em primeiro plano com notificação (sem ele
+// o sistema corta o microfone); iPhone: o modo de fundo "audio" do Info.plist já basta.
+export async function backgroundAudio(on, text = 'ToneSmith') {
+  const s = isNative && plugin('AudioService');
+  if (!s) return;
+  try { await (on ? s.start({ text }) : s.stop()); } catch { /* segue sem: o som para ao sair do app */ }
+}
+
 // Antes de ligar o áudio: no iPhone, pede ao sistema a sessão de gravação com buffer curto (plugin AudioSession,
 // ver native/). Sem o plugin (ou no Android, que já usa o caminho de baixa latência), não faz nada.
 export async function prepareAudio() {

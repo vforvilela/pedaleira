@@ -4,7 +4,7 @@ import { noteOf } from './audio/pitch.js';
 import { pickChannel } from './audio/channel.js';
 import { t, fmtNum } from './i18n.js';
 import { $, applyStoredFiles, createAudio, engine, live, reconnect, save, state, status } from './core.js';
-import { keepAwake, saveFile } from './platform.js';
+import { backgroundAudio, keepAwake, saveFile } from './platform.js';
 
 export async function listDevices(selectedId) {
   const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput');
@@ -95,6 +95,7 @@ export async function stop() {
   wakeLock?.release().catch(() => {});
   wakeLock = null;
   keepAwake(false);
+  backgroundAudio(false);
   cancelAnimationFrame(meterRaf);
   clearInterval(latencyTimer);
   clearInterval(tunerTimer);
@@ -270,6 +271,7 @@ async function resumeAudio() {
 
 function watchAudio(track) {
   keepScreenOn();
+  backgroundAudio(true, t('power.playing', { device: track.label }));
   engine.ctx.onstatechange = () => { if (engine.running) resumeAudio(); };
   track.addEventListener('ended', async () => {
     if (!engine.running) return;

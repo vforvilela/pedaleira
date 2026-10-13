@@ -11,7 +11,9 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        registerPlugin(MidiPlugin.class); // plugin local: antes do super, que monta a ponte com o JS
+        // Plugins locais: antes do super, que monta a ponte com o JS.
+        registerPlugin(MidiPlugin.class);
+        registerPlugin(AudioServicePlugin.class);
         super.onCreate(savedInstanceState);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         WindowInsetsControllerCompat bars = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());

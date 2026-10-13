@@ -121,6 +121,10 @@ button closes drawers and stage mode; with nothing open it sends the app to the 
 
 - `android/` and `ios/`: native projects. Local plugins: `MidiPlugin` (Android and iOS) and `AudioSessionPlugin` (iOS).
 - `assets/`: 1024 px icon and splash; `npx capacitor-assets generate` regenerates the native icons.
+- `store/listing.md`: store texts in three languages; `privacy.html`: privacy policy
+  (published at https://vforvilela.github.io/pedaleira/privacy.html, required by the Play Store for apps using the mic).
+- On Android, while audio is on the app keeps a notification (foreground service): without it the system cuts the
+  guitar input when you switch apps or the screen turns off.
 
 ## How it works
 

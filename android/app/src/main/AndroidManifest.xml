@@ -21,6 +21,12 @@
             </intent-filter>
         </activity>
 
+        <!-- Som continua com o app no fundo ou a tela apagada: sem o serviço o Android corta o microfone. -->
+        <service
+            android:name=".AudioService"
+            android:exported="false"
+            android:foregroundServiceType="microphone|mediaPlayback" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -36,6 +42,11 @@
     <!-- Entrada da guitarra pela interface USB (getUserMedia no WebView) e controle do caminho do áudio. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- Serviço em primeiro plano enquanto o som está ligado (AudioService). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Sem interface ligada o app abre do mesmo jeito (biblioteca, presets): não exige microfone na loja. -->
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <uses-feature android:name="android.hardware.usb.host" android:required="false" />

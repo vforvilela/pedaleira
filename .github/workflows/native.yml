@@ -24,6 +24,9 @@ jobs:
       - run: npm run www && npx cap sync android
       # APK de debug: instala direto no celular (adb install ou pelo navegador). AAB: o que a Play Store recebe.
       - run: cd android && ./gradlew --no-daemon assembleDebug bundleRelease
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '1.0-dev' }}
       - uses: actions/upload-artifact@v4
         with:
           name: tonesmith-android
