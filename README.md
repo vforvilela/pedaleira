@@ -85,6 +85,26 @@ systemctl --user start tankmini-loopback  # ao terminar
 No celular, o navegador só libera a entrada de áudio em HTTPS. Para testar fora do PC, o app precisa estar
 publicado (ex.: Vercel). No iPhone e no Android é preciso uma interface de áudio USB.
 
+## Apps Android e iOS
+
+Os mesmos arquivos do site, empacotados com o [Capacitor](https://capacitorjs.com) num WebView. O que muda em
+relação ao PWA: entra na loja, **MIDI funciona no iPhone e no Android** (plugin nativo, porque os WebViews não têm
+Web MIDI), exportar e gravar abrem a folha de compartilhar (Arquivos, Drive…), e no iPhone o app pede ao sistema
+a sessão de áudio com buffer curto. O som continua sendo o Web Audio; só `js/platform.js` conhece o Capacitor.
+
+```sh
+npm ci
+npm run android   # monta www/, sincroniza e abre o Android Studio
+npm run ios       # idem, Xcode (só no macOS)
+```
+
+Cada tag `v*` (ou um clique em "Apps Android e iOS" nas Actions) gera o APK de teste e o AAB da Play Store, e
+confere que o projeto iOS compila (`.github/workflows/native.yml`). Assinar e publicar nas lojas é com as contas
+do dono (Play Console e Apple Developer).
+
+- `android/` e `ios/`: projetos nativos. Plugins locais: `MidiPlugin` (Android e iOS) e `AudioSessionPlugin` (iOS).
+- `assets/`: ícone e splash de 1024 px; `npx capacitor-assets generate` refaz os ícones nativos.
+
 ## Como funciona
 
 - `js/pedals/*.js`: um arquivo por pedal, com visual (`look`), controles e o circuito de áudio (`create`).

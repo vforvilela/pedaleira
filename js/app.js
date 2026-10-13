@@ -7,6 +7,7 @@ import { midi } from './control.js';
 import { $, engine, live, save, snapshot, state, status } from './core.js';
 import { buildExport, importPresets, loadChain, openSharedLink, renderPresets, shareLink } from './presets.js';
 import { renderScenes } from './scenes.js';
+import { isNative } from './platform.js';
 import { getFile, persist } from './store.js';
 import { installDefs } from './ui/pedal-view.js';
 import { PEDALS } from './pedals/index.js';
@@ -69,7 +70,8 @@ openSharedLink();
 let installPrompt = null;
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; $('install').hidden = false; });
 addEventListener('appinstalled', () => { $('install').hidden = true; status(t('app.installed')); });
-const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+// App nativo (Android/iOS): já é instalado e abre sem barras, como o PWA da tela de início.
+const standalone = isNative || matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 const iOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 if (iOS && !standalone) $('install').hidden = false;
 
@@ -110,7 +112,8 @@ $('moreBtn').onclick = () => {
 };
 addEventListener('hashchange', openSharedLink);
 loadWasmBytes();
-if ('serviceWorker' in navigator && location.protocol !== 'file:')
+// No app nativo os arquivos vêm empacotados: o service worker não teria o que guardar.
+if ('serviceWorker' in navigator && location.protocol !== 'file:' && !isNative)
   navigator.serviceWorker.register('sw.js').catch(() => {});
 $('floorView').onclick = () => { setFloorView(!state.floorView); save(); status(t(state.floorView ? 'app.floorOn' : 'app.floorOff')); };
 

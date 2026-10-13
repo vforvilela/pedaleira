@@ -4,6 +4,7 @@ import { noteOf } from './audio/pitch.js';
 import { pickChannel } from './audio/channel.js';
 import { t, fmtNum } from './i18n.js';
 import { $, applyStoredFiles, createAudio, engine, live, reconnect, save, state, status } from './core.js';
+import { keepAwake, saveFile } from './platform.js';
 
 export async function listDevices(selectedId) {
   const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput');
@@ -89,6 +90,7 @@ export async function stop() {
   await stopRecording();
   wakeLock?.release().catch(() => {});
   wakeLock = null;
+  keepAwake(false);
   cancelAnimationFrame(meterRaf);
   clearInterval(latencyTimer);
   clearInterval(tunerTimer);
@@ -176,9 +178,7 @@ async function stopRecording() {
   const d = new Date(), p2 = n => String(n).padStart(2, '0');
   const ext = blob.type.includes('mp4') ? 'm4a' : blob.type.includes('ogg') ? 'ogg' : 'webm';
   const name = `tonesmith-${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}.${ext}`;
-  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: name });
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  await saveFile(blob, name);
   status(t('power.recordingSaved', { name }));
 }
 
@@ -246,7 +246,9 @@ $('inGain').oninput = () => {
 
 let wakeLock = null;
 async function keepScreenOn() {
-  if (!engine.running || document.visibilityState !== 'visible' || wakeLock || !navigator.wakeLock) return;
+  if (!engine.running || document.visibilityState !== 'visible' || wakeLock) return;
+  // WebView sem a API (app nativo): o plugin do sistema faz o mesmo.
+  if (!navigator.wakeLock) { keepAwake(true); return; }
   try {
     wakeLock = await navigator.wakeLock.request('screen');
     wakeLock.addEventListener('release', () => { wakeLock = null; });

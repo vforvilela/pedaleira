@@ -98,6 +98,26 @@ python3 -m http.server 8000 -d ~/Code/pedaleira
 On phones, browsers only allow audio input over HTTPS. To test away from the PC, the app has to be published.
 Every push to `main` runs the tests and publishes to GitHub Pages (`.github/workflows/pages.yml`).
 
+## Android and iOS apps
+
+The same files as the site, packaged with [Capacitor](https://capacitorjs.com) in a WebView. What changes compared
+to the PWA: store listing, **MIDI works on iPhone and Android** (native plugin, since WebViews have no Web MIDI),
+export and recording open the share sheet (Files, Drive…), and on iPhone the app asks the system for a short audio
+buffer. The sound is still Web Audio; only `js/platform.js` knows about Capacitor.
+
+```sh
+npm ci
+npm run android   # builds www/, syncs and opens Android Studio
+npm run ios       # same, Xcode (macOS only)
+```
+
+Each `v*` tag (or a click on "Apps Android e iOS" under Actions) builds a test APK and the Play Store AAB, and
+checks that the iOS project compiles (`.github/workflows/native.yml`). Signing and publishing need the owner's
+Play Console and Apple Developer accounts.
+
+- `android/` and `ios/`: native projects. Local plugins: `MidiPlugin` (Android and iOS) and `AudioSessionPlugin` (iOS).
+- `assets/`: 1024 px icon and splash; `npx capacitor-assets generate` regenerates the native icons.
+
 ## How it works
 
 - `js/pedals/*.js`: one file per pedal, with its look (`look`), controls and audio circuit (`create`).

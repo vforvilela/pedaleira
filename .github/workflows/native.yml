@@ -1,0 +1,46 @@
+# Apps nativos (Capacitor): APK de teste e AAB para a Play Store no Ubuntu; no macOS, confere que o projeto
+# iOS compila (sem assinatura: a conta Apple do dono assina e publica pelo Xcode ou pelo Transporter).
+name: Apps Android e iOS
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm run www && npx cap sync android
+      # APK de debug: instala direto no celular (adb install ou pelo navegador). AAB: o que a Play Store recebe.
+      - run: cd android && ./gradlew --no-daemon assembleDebug bundleRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tonesmith-android
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/bundle/release/app-release.aab
+
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run www && npx cap sync ios
+      - run: >
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -sdk iphoneos
+          -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build | tail -40

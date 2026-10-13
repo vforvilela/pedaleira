@@ -2,6 +2,7 @@
 import { ensureView, fetchFile, fileInput, renderBoard } from './board.js';
 import { $, changeListeners, hideToast, sameScene, toast, createAudio, engine, live, loadIntoAudio, normalizeBlock, normalizeChain, reconnect, releaseFile, save, SCENE_NAMES, snapshot, state, status } from './core.js';
 import { t } from './i18n.js';
+import { saveFile } from './platform.js';
 import { getFile, putFile } from './store.js';
 
 // ---------- Presets ----------
@@ -401,13 +402,7 @@ export async function exportPresets() {
   const doc = await buildExport();
   const presets = doc.presets;
   const blob = new Blob([JSON.stringify(doc)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `tonesmith-presets-${new Date().toISOString().slice(0, 10)}.json`;
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  await saveFile(blob, `tonesmith-presets-${new Date().toISOString().slice(0, 10)}.json`);
   const unsaved = state.presets.some(p => hasDraft(p.name));
   status(t('presets.exported', { n: presets.length }) + (unsaved ? ` ${t('presets.exportUnsavedNote')}` : ''));
 }

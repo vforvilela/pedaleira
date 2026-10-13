@@ -1,4 +1,5 @@
 // Contexto de áudio, entrada da guitarra e ligação da cadeia de pedais.
+import { prepareAudio } from '../platform.js';
 
 const dbToGain = db => Math.pow(10, db / 20);
 
@@ -36,6 +37,7 @@ export class Engine {
         latency: 0, channelCount: { ideal: 2 },
       },
     });
+    await prepareAudio(); // iPhone como app: sessão de gravação com buffer curto, antes de pedir a entrada
     try {
       this.stream = await ask(deviceId);
     } catch (e) {

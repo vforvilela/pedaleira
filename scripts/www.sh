@@ -1,0 +1,7 @@
+#!/bin/sh
+# Monta www/ com os arquivos do app (os mesmos que vão para o GitHub Pages em .github/workflows/pages.yml).
+# O Capacitor empacota essa pasta dentro do app Android/iOS.
+set -e
+cd "$(dirname "$0")/.."
+rm -rf www && mkdir www
+cp -r index.html manifest.webmanifest sw.js css js icons fonts www/

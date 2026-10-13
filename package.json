@@ -1,0 +1,27 @@
+{
+  "name": "tonesmith",
+  "private": true,
+  "version": "1.0.0",
+  "description": "ToneSmith: sua pedaleira de guitarra, no navegador e como app Android/iOS",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "www": "sh scripts/www.sh",
+    "sync": "sh scripts/www.sh && cap sync",
+    "android": "sh scripts/www.sh && cap sync android && cap open android",
+    "ios": "sh scripts/www.sh && cap sync ios && cap open ios"
+  },
+  "dependencies": {
+    "@capacitor-community/keep-awake": "^8.0.1",
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.4",
+    "@capacitor/ios": "^8.5.3",
+    "@capacitor/share": "^8.0.3",
+    "@capacitor/status-bar": "^8.0.4"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.3"
+  }
+}

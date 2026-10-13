@@ -21,8 +21,10 @@ export function parseMidi([status, d1, d2 = 0]) {
 
 export class Midi {
   // mappings: [{ key, label, target }] (persistido pelo app). onAction(target, msg).
-  constructor(mappings, { onAction, onLearned, onChange, now = () => Date.now() }) {
+  // native(onMessage) → nomes das entradas: fonte MIDI do app nativo, usada quando não há navigator.requestMIDIAccess.
+  constructor(mappings, { onAction, onLearned, onChange, native = null, now = () => Date.now() }) {
     this.now = now;
+    this.native = native;
     this.lastPress = {};
     this.mappings = mappings;
     this.onAction = onAction;
@@ -34,6 +36,12 @@ export class Midi {
 
   async enable() {
     if (this.access) return this.access;
+    // App nativo (WebView sem Web MIDI): o plugin do sistema entrega os bytes; o resto é igual.
+    if (!navigator.requestMIDIAccess && this.native) {
+      this.nativeInputs = await this.native(data => this.handle(data));
+      this.access = { native: true };
+      return this.access;
+    }
     this.access = await navigator.requestMIDIAccess();
     const attach = () => { for (const input of this.access.inputs.values()) input.onmidimessage = e => this.handle(e.data); };
     attach();
@@ -42,6 +50,7 @@ export class Midi {
   }
 
   inputNames() {
+    if (this.access?.native) return this.nativeInputs ?? [];
     return this.access ? [...this.access.inputs.values()].map(i => i.name) : [];
   }
 

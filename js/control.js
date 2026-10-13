@@ -3,6 +3,7 @@ import { undoRemove } from './board.js';
 import { t } from './i18n.js';
 import { $, blockByUid, closest, save, SCENE_NAMES, setParam, state, status, tapTempo, toggleBlock } from './core.js';
 import { Midi, midiSupported } from './midi.js';
+import { hasNativeMidi, nativeMidi } from './platform.js';
 import { byType } from './pedals/index.js';
 import { applyPreset, stepPreset } from './presets.js';
 import { recallScene, sceneButtons } from './scenes.js';
@@ -44,6 +45,7 @@ export function describeTarget(tg) {
 }
 
 export const midi = new Midi(state.midi, {
+  native: nativeMidi,
   onAction: runAction,
   onChange: save,
   onLearned(target, msg) { status(t('control.learned', { msg: msg.label, target: describeTarget(target) })); },
@@ -59,7 +61,7 @@ export function setLearning(on) {
   if (!on) document.querySelectorAll('.learn-target').forEach(x => x.classList.remove('learn-target'));
 }
 
-if (midiSupported()) {
+if (midiSupported() || hasNativeMidi) {
   $('midi').hidden = false;
   $('midi').onclick = async () => {
     if (learning) { setLearning(false); status(t('control.midiReady')); return; }

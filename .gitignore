@@ -1,1 +1,3 @@
 nam-wasm/target/
+node_modules/
+www/

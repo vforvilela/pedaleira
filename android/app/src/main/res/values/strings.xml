@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ToneSmith</string>
+    <string name="title_activity_main">ToneSmith</string>
+    <string name="package_name">com.tonesmith.app</string>
+    <string name="custom_url_scheme">com.tonesmith.app</string>
+</resources>
