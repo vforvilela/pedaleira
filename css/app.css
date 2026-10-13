@@ -24,6 +24,10 @@
   /* Miniaturas da biblioteca */
   --mini-knob: #151515; --mini-foot-hi: #d9d6d0; --mini-foot: #77736d; --mini-plate: #1c1c1c; --mini-amp: #c9a85a;
   --mini-rubber: #1a1a1a; --mini-rubber-hi: #2a2a2a;
+  /* Painel do topo: chapa de metal, teclas e visor âmbar retroiluminado */
+  --plate-hi: #2b2420; --plate: #1f1a17; --plate-lo: #171310; --plate-edge: #0a0807;
+  --key-hi: #3b332e; --key: #2b2521; --key-lo: #201b18; --key-edge: #0f0c0a; --bezel: #0b0907;
+  --lcd-bg: #140d06; --lcd-glow: #2e1d09; --lcd-ink: #ffd08c; --lcd-dim: #bd915a; --lcd-err: #ff7f61;
   --font-script: Damion, "Brush Script MT", cursive;
   --font: Archivo, system-ui, -apple-system, "Segoe UI", sans-serif;
   --touch: 44px;
@@ -49,11 +53,17 @@ button.primary { background: var(--accent); color: var(--on-accent); border-colo
 button.primary[aria-pressed="true"] { background: transparent; color: var(--accent); }
 button:disabled { opacity: .6; cursor: wait; }
 
-/* ---------- Topo ---------- */
+/* ---------- Painel (topo) ---------- */
+/* O topo é a cabeça da pedaleira: chapa de metal escovado com um visor âmbar retroiluminado no meio.
+   Em cima, uma faixa discreta com a ligação da interface (ajusta-se uma vez); embaixo, o painel da frente,
+   que é o que se usa tocando: liga, visor do preset, cenas e ações. */
 .top {
-  display: grid; gap: 10px 16px; padding: 14px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
-  grid-template-columns: auto 1fr auto; align-items: center;
-  position: sticky; top: 0; z-index: 5;
+  position: relative; z-index: 5;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,240,220,.016) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, var(--plate-hi), var(--plate) 40%, var(--plate-lo));
+  border-bottom: 1px solid var(--plate-edge);
+  box-shadow: inset 0 1px 0 rgba(255,235,210,.08), 0 12px 24px -12px rgba(0,0,0,.85);
 }
 h1 { margin: 0; font-size: 22px; font-weight: 800; font-stretch: 125%; letter-spacing: -.01em; }
 /* Marca: um ponto aceso, como LED de pedal ou brasa de válvula. */
@@ -71,60 +81,180 @@ body:has(#power[aria-pressed="true"]) h1 .ember { animation: ember 3.2s ease-in-
 @keyframes ember {
   50% { box-shadow: 0 0 16px 2px color-mix(in oklch, var(--ember-deep) 80%, transparent); }
 }
-.io { display: flex; gap: 8px; min-width: 0; }
-.io select { flex: 1; min-width: 0; max-width: 340px; }
-.io #channel { flex: 0 0 auto; }
-.io #device { min-width: 170px; }
-/* Em tela média, entrada + canal + botões não cabem ao lado dos níveis: os níveis descem uma linha. */
-@media (max-width: 1440px) { .top .levels { grid-column: 1 / -1; } }
-.levels { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 13px; color: var(--muted); }
-.meter { width: 90px; height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; border: 1px solid var(--line); }
+
+/* Faixa de ligação: controles sem caixa, texto apagado. Importante só na hora de ligar. */
+.rack {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 8px 16px;
+  border-bottom: 1px solid rgba(0,0,0,.5); box-shadow: 0 1px 0 rgba(255,235,210,.045);
+}
+.rack h1 { margin-right: 4px; }
+/* Largura de partida fixa, que já conta com Canal e Instalar: quando eles aparecem, a lista de entradas encolhe
+   em vez de a faixa ganhar uma linha (o que mudaria o tamanho da pedaleira no meio do uso). */
+.io { display: flex; gap: 8px; min-width: 0; flex: 1 1 290px; max-width: 520px; }
+.io select, .io button { background: rgba(0,0,0,.3); border: 1px solid transparent; color: var(--muted); font-size: 14px; padding: 6px 10px; }
+.io #device { flex: 1 1 auto; min-width: 90px; max-width: 280px; }
+.io #channel { flex: none; max-width: 100px; }
+@media (hover: hover) { .io select:hover, .io button:hover { border-color: var(--line); color: var(--text); } }
+.levels { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; font-size: 13px; color: var(--muted); min-width: 0; }
+/* Medidor em segmentos, como a escada de LEDs de uma interface. */
+.meter { position: relative; width: 84px; height: 10px; background: var(--lcd-bg); border-radius: 2px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,.8), 0 1px 0 rgba(255,235,210,.05); }
 .meter div { height: 100%; background: var(--ok); transform: scaleX(0); transform-origin: left; transition: transform 60ms linear; }
 .meter.clip div { background: var(--bad); }
+.meter::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 5px, var(--lcd-bg) 5px 7px); }
 .master { display: flex; align-items: center; gap: 6px; }
 .master input { width: 110px; accent-color: var(--accent); }
 .master output, .lat b { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 500; }
-.presets { grid-column: 1 / -1; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-.presets select { min-width: 140px; max-width: 220px; }
-.presets button { padding: 8px 10px; }
-button.small { padding: 3px 8px; font-size: 12px; border-radius: 6px; }
-#presetSave.attention { border-color: var(--accent); color: var(--accent); }
+.lat.high b { color: var(--bad); }
+
+/* Painel da frente */
+/* Uma fileira no tablet deitado e no PC; em pé, o visor fica com a primeira e cenas + ações descem. */
+.face { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px 12px; padding: 12px 16px 14px; }
+/* Tecla de equipamento: borda clara em cima, sombra embaixo; afunda ao apertar. */
+.face button, .more-row button {
+  background: linear-gradient(180deg, var(--key-hi), var(--key) 55%, var(--key-lo));
+  border: 1px solid var(--key-edge); border-radius: 8px; color: var(--text); font-weight: 650;
+  box-shadow: inset 0 1px 0 rgba(255,240,220,.10), 0 2px 0 rgba(0,0,0,.55), 0 5px 10px -5px rgba(0,0,0,.7);
+}
+.face button:not(:disabled):active, .more-row button:not(:disabled):active {
+  transform: translateY(1px); box-shadow: inset 0 1px 0 rgba(255,240,220,.05), 0 1px 0 rgba(0,0,0,.55);
+}
+/* Liga: tecla alta com lâmpada piloto. Desligado, é a única tecla acesa da tela (o primeiro passo). */
+.face .power {
+  flex: none; width: 80px; display: grid; place-items: center; align-content: center; gap: 8px; padding: 6px 4px;
+  font-size: 12px; font-weight: 800; font-stretch: 92%; letter-spacing: .06em; text-transform: uppercase;
+}
+.power::before {
+  content: ""; width: 14px; height: 14px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, var(--coal-hi), var(--coal) 70%); box-shadow: inset 0 1px 2px rgba(0,0,0,.7);
+}
+.face .power[aria-pressed="false"] {
+  background: linear-gradient(180deg, var(--ember-hot), var(--accent) 45%, var(--ember-deep)); color: var(--on-accent); border-color: var(--ember-deep);
+}
+.power[aria-pressed="true"]::before {
+  background: radial-gradient(circle at 40% 35%, var(--ember-hot), var(--accent) 55%, var(--ember-deep));
+  box-shadow: 0 0 12px color-mix(in oklch, var(--accent) 80%, transparent);
+}
+
+/* Visor: moldura funda, tela âmbar com o preset em letra grande, a lista e a linha de mensagens. */
+.display {
+  flex: 1 1 400px; min-width: 0; display: flex; align-items: stretch; padding: 5px; border-radius: 11px;
+  background: var(--bezel); box-shadow: inset 0 2px 5px rgba(0,0,0,.8), 0 1px 0 rgba(255,235,210,.07);
+}
+.face .display .nav { flex: none; width: 46px; font-size: 17px; border-radius: 7px; }
+.screen {
+  flex: 1; min-width: 0; margin: 0 5px; padding: 4px 12px 5px; border-radius: 5px; display: grid; align-content: center;
+  color: var(--lcd-ink);
+  background: radial-gradient(120% 130% at 50% -10%, var(--lcd-glow), transparent 65%), var(--lcd-bg);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.9), inset 0 8px 16px rgba(0,0,0,.55);
+}
+.screen-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 18px; }
+#nowCount { font-size: 11px; font-weight: 700; font-stretch: 112%; letter-spacing: .16em; text-transform: uppercase; color: var(--lcd-dim); white-space: nowrap; }
+/* ALTERADO em negativo, como um aviso de visor de LCD. */
+#nowCount .dirty { margin-left: 10px; padding: 1px 5px; border-radius: 2px; background: var(--lcd-ink); color: var(--lcd-bg); letter-spacing: .12em; }
+/* Lista: um select transparente por cima da palavra, para abrir a lista nativa (no iPad, um popover). */
+.pick {
+  position: relative; display: inline-flex; align-items: center; gap: 4px; flex: none;
+  font-size: 11px; font-weight: 700; font-stretch: 112%; letter-spacing: .16em; text-transform: uppercase; color: var(--lcd-dim);
+}
+.pick::after { content: "▾"; letter-spacing: 0; }
+/* A área de toque cresce para cima, sobre a moldura e a margem do painel (nada clicável ali), até 44 px. */
+.pick select { position: absolute; inset: -26px -10px -3px; width: auto; min-height: 0; opacity: 0; cursor: pointer; }
+.pick:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+@media (hover: hover) { .pick:hover { color: var(--lcd-ink); } }
+/* O nome é um campo de texto com cara de letreiro: sem caixa até tocar nele. */
+.now-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+#presetName {
+  flex: 1; width: 100%; min-width: 0; margin: 0 0 0 -6px; padding: 0 6px; border: 1px solid transparent; border-radius: 4px;
+  background: transparent; color: var(--lcd-ink); text-overflow: ellipsis;
+  font-size: clamp(25px, 2.7vw, 46px); line-height: 1.05; font-weight: 850; font-stretch: 106%; letter-spacing: -.02em;
+  text-shadow: 0 0 18px color-mix(in oklch, var(--lcd-ink) 22%, transparent);
+}
+#presetName::placeholder { color: var(--lcd-dim); font-weight: 700; opacity: 1; }
+#presetName:focus { outline: none; background: rgba(255,200,120,.06); border-color: color-mix(in oklch, var(--lcd-dim) 55%, transparent); }
+#presetName:focus-visible { border-color: var(--accent); }
+@media (hover: hover) { #presetName:hover:not(:focus) { border-color: color-mix(in oklch, var(--lcd-dim) 35%, transparent); } }
+.screen #presetRevert {
+  flex: none; padding: 4px 10px; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  background: transparent; color: var(--lcd-ink); border: 1px solid var(--lcd-dim); border-radius: 4px; box-shadow: none;
+}
+.status { margin: 0; min-height: 17px; font-size: 12.5px; color: var(--lcd-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.status.full { white-space: normal; }
+.status.err { color: var(--lcd-err); }
+
+/* Cenas: teclas de pisar, cada uma com o LED em cima; a cena ativa acende inteira. */
+.scenes { display: flex; gap: 6px; align-items: stretch; flex: 1 0 auto; }
+.face .scene-btn {
+  position: relative; flex: 1; min-width: 54px; max-width: 120px; padding: 18px 0 6px; font-size: 23px; font-weight: 850; font-stretch: 115%; color: var(--muted);
+}
+.scene-btn::before {
+  content: ""; position: absolute; top: 8px; left: 50%; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%;
+  background: var(--led-red-off); box-shadow: inset 0 1px 1px rgba(0,0,0,.6);
+}
+.face .scene-btn.used { color: var(--text); }
+.face .scene-btn[aria-pressed="true"] {
+  background: linear-gradient(180deg, var(--ember-hot), var(--accent) 45%, var(--ember-deep)); color: var(--on-accent); border-color: var(--ember-deep);
+}
+.scene-btn[aria-pressed="true"]::before { background: var(--led-red); box-shadow: 0 0 8px var(--led-red); }
+.scenes.recording .scene-btn { outline: 2px dashed var(--bad); outline-offset: -5px; }
+.face #sceneRec { flex: none; width: 66px; display: grid; place-content: center; justify-items: center; gap: 1px; padding: 6px 4px; font-size: 13px; line-height: 1.1; color: var(--muted); }
+#sceneRec::before { content: ""; width: 9px; height: 9px; margin-bottom: 4px; border-radius: 50%; background: color-mix(in oklch, var(--bad) 55%, var(--key)); }
+#sceneRec small { font-size: 11px; letter-spacing: .06em; }
+.face #sceneRec[aria-pressed="true"] { color: var(--bad); border-color: var(--bad); }
+#sceneRec[aria-pressed="true"]::before { background: var(--bad); box-shadow: 0 0 8px var(--bad); }
+body.midi-learn .scene-btn { outline: 2px dashed color-mix(in oklch, var(--accent) 70%, transparent); outline-offset: 2px; cursor: crosshair; }
+
+/* Ações: 2 × 2. Palco e + Pedal na cor da brasa, o resto neutro. */
+.actions { display: grid; grid-template-columns: repeat(2, auto); gap: 6px; flex: none; }
+.face .actions button { padding: 6px 12px; font-size: 14px; }
+.face .stage-btn, .face .lib-open { color: var(--accent); font-weight: 800; }
+.face .more-btn { font-size: 20px; line-height: 1; }
+.face .more-btn[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
+.face #presetSave.attention { color: var(--accent); border-color: color-mix(in oklch, var(--accent) 60%, var(--key-edge)); }
 #presetSave.attention::after { content: " *"; }
+
+/* ⋯ Mais: uma fileira de teclas embaixo do painel, só quando aberta (ou gravando, para o relógio ficar à vista). */
+.more-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px; }
+.more-row.show-more, .more-row:has(#record[aria-pressed="true"]) { padding-bottom: 12px; }
+.presets:not(.show-more) .more-item:not(#record[aria-pressed="true"]) { display: none; }
+.more-row button { padding: 6px 12px; font-size: 14px; }
 #midi[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 #record[aria-pressed="true"] { border-color: var(--bad); color: var(--bad); font-variant-numeric: tabular-nums; }
+
+button.small { padding: 3px 8px; font-size: 12px; border-radius: 6px; }
 body.midi-learn .footswitch, body.midi-learn .tap-btn, body.midi-learn .knob,
 body.midi-learn #presetPrev, body.midi-learn #presetNext { outline: 2px dashed color-mix(in oklch, var(--accent) 70%, transparent); outline-offset: 2px; cursor: crosshair; }
 body.midi-learn .learn-target { outline: 3px solid var(--accent) !important; }
 kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; color: var(--text); }
-.status { grid-column: 1 / -1; margin: 0; font-size: 13px; color: var(--muted); }
-.status.err { color: var(--bad); }
 
 /* Dedo: tudo que se toca com pelo menos 44 px (Apple HIG, WCAG 2.5.5). */
 @media (pointer: coarse) {
   button, select, #presetName { min-height: var(--touch); }
   #presetPrev, #presetNext { min-width: var(--touch); }
   /* Mais compridos: no dedo, 110 px dá pouca precisão para acertar o ganho. */
-  .master input { height: var(--touch); width: 150px; }
+  .master input { height: var(--touch); width: 140px; }
+  .pick select { min-height: 0; }
   /* Sem o cursor do mouse, o retorno do toque é o botão clarear enquanto o dedo está nele. */
   button:not(:disabled):active { filter: brightness(1.35); }
 }
-/* Topo grudado só onde sobra altura: no tablet deitado ele comeria um terço da tela ao rolar. */
-@media (pointer: coarse), (max-height: 820px) { .top { position: static; } }
 /* Número do pedal = tecla do teclado; sem teclado nem mouse, só ocupa espaço. */
 @media (hover: none) and (pointer: coarse) { .pedal .num { display: none; } }
-.presets:not(.show-more) .more-item { display: none; }
-#presetSave { border-color: color-mix(in oklch, var(--accent) 45%, var(--line)); font-weight: 600; }
+/* Tablet deitado: a faixa de ligação cabe numa linha só. */
+@media (max-width: 1180px) { .lat-label { display: none; } }
+@media (max-width: 1180px) and (pointer: coarse) { .master input { width: 100px; } }
+
+/* Celular */
 @media (max-width: 760px) {
-  .top { grid-template-columns: 1fr; position: static; padding: 10px 12px; gap: 8px; }
-  .deck { padding: 0 12px 10px; }
-  .scenes { gap: 6px; flex-wrap: nowrap; flex: 1 1 100%; }
-  .scenes-label { display: none; }
-  .scene-btn { min-width: 0; min-height: 44px; flex: 1; padding: 8px 0; font-size: 17px; }
-  #sceneRec { white-space: nowrap; }
-  .lib-open { flex: 1 1 100%; min-height: 44px; }
-  .levels { flex-wrap: wrap; }
-  .io { flex-wrap: wrap; }
-  .io #device { flex-basis: 100%; max-width: none; }
+  .rack { padding: 8px 12px; }
+  .io { flex: 1 1 100%; flex-wrap: wrap; }
+  .io #device { flex: 1 1 100%; max-width: none; }
+  .face { padding: 10px 12px 12px; gap: 8px; }
+  .face .power { width: 70px; font-size: 11px; letter-spacing: .02em; }
+  .display { flex: 1 1 calc(100% - 78px); }
+  .face .display .nav { width: 44px; }
+  .scenes { flex: 1 1 100%; }
+  .face .scene-btn { min-width: 0; max-width: none; font-size: 19px; padding: 16px 0 4px; }
+  .actions { flex: 1 1 100%; grid-template-columns: repeat(4, 1fr); }
+  .more-row { padding: 0 12px; }
 }
 
 /* ---------- Primeiros passos ---------- */
@@ -132,37 +262,6 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
 .intro h2 { margin: 0 0 6px; color: var(--accent); font-size: 20px; }
 .intro ol { margin: 0 0 8px; padding-left: 20px; display: grid; gap: 4px; }
 .intro p { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
-
-/* ---------- Preset em destaque + cenas ---------- */
-/* O que importa no meio da música é "em que som estou": o nome do preset é o maior texto da tela. */
-.deck { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 10px 24px; padding: 4px 16px 16px; }
-.now { margin: 0; min-width: 0; flex: 1 1 320px; display: grid; gap: 2px; }
-.now small {
-  font-size: 12px; font-weight: 600; font-stretch: 112%; letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
-}
-/* Campo de texto com cara de título: sem caixa até tocar nele. */
-.now-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
-#presetRevert { flex: none; }
-#presetName {
-  flex: 1; width: 100%; min-width: 0; margin: 0 0 0 -8px; padding: 2px 8px; border: 1px solid transparent; border-radius: 8px; background: transparent;
-  font-size: clamp(28px, 3.5vw, 52px); line-height: 1.05; font-weight: 850; font-stretch: 118%; letter-spacing: -.025em;
-  text-overflow: ellipsis;
-}
-#presetName::placeholder { color: var(--muted); font-weight: 700; opacity: 1; }
-#presetName:focus { outline: none; border-color: var(--line); background: var(--bg); }
-#presetName:focus-visible { border-color: var(--accent); }
-@media (hover: hover) { #presetName:hover:not(:focus) { border-color: var(--line); } }
-.now .dirty { margin-left: 10px; color: var(--accent); font-weight: 700; }
-.scenes { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.scene-btn { min-width: 52px; min-height: 52px; font-size: 20px; font-weight: 800; font-stretch: 112%; border-radius: 10px; }
-.scenes-label { font-size: 13px; color: var(--muted); margin-right: 4px; text-transform: uppercase; letter-spacing: .08em; }
-.scene-btn { color: var(--muted); }
-.scene-btn.used { color: var(--text); }
-.scene-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-.scenes.recording .scene-btn { border-style: dashed; border-color: var(--bad); }
-#sceneRec[aria-pressed="true"] { border-color: var(--bad); color: var(--bad); }
-body.midi-learn .scene-btn { outline: 2px dashed color-mix(in oklch, var(--accent) 70%, transparent); outline-offset: 2px; cursor: crosshair; }
-.lat.high b { color: var(--bad); }
 
 /* ---------- Pedaleira ---------- */
 main { padding: 16px 0 32px; }
@@ -286,7 +385,6 @@ main { padding: 16px 0 32px; }
 @media (hover: hover) { .tools .remove:hover { border-color: var(--bad); color: var(--bad); } }
 
 /* ---------- Modo palco ---------- */
-.stage-btn { border-color: var(--accent); color: var(--accent); font-weight: 700; }
 body.stage { overflow: hidden; }
 .stage-view {
   position: fixed; inset: 0; z-index: 10; background: var(--stage-bg); display: flex; flex-direction: column; gap: 14px;
@@ -366,7 +464,6 @@ body.stage { overflow: hidden; }
 .lib-sheet .knob-sheet-head { position: sticky; top: calc(-14px - env(safe-area-inset-top)); background: var(--panel); padding: 4px 0 8px; z-index: 1; }
 .lib-sheet h2 { margin: 0; }
 .lib-sheet #libClose { min-width: var(--touch); min-height: var(--touch); }
-.lib-open { min-height: 52px; padding: 0 18px; font-size: 17px; font-weight: 800; border-color: var(--accent); color: var(--accent); }
 h2 { font-size: 26px; font-weight: 850; font-stretch: 118%; letter-spacing: -.02em; color: var(--text); margin: 28px 0 14px; }
 .library { display: grid; gap: 14px; }
 .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
@@ -435,21 +532,9 @@ h2 { font-size: 26px; font-weight: 850; font-stretch: 118%; letter-spacing: -.02
 /* Topo e cenas no tamanho natural; a pedaleira fica com o resto da altura e o zoom dela se ajusta (fitBoard). */
 @media (min-width: 761px) {
   body { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-  /* Topo em fileiras que se completam: o aviso (status) ocupa a sobra ao lado dos níveis em vez de uma linha só dele. */
-  .top { flex: none; position: static; padding: 10px 16px; gap: 8px 14px; display: flex; flex-wrap: wrap; align-items: center; }
-  .top h1 { order: 1; }
-  /* Largura de partida fixa: quando o Canal ou o Instalar aparecem, as listas encolhem em vez de o topo
-     ganhar uma fileira (o que mudaria o tamanho da pedaleira no meio do uso). */
-  .io { order: 2; flex: 1 1 220px; max-width: 520px; }
-  .io #device { flex: 1 1 0; min-width: 90px; max-width: 260px; }
-  .io #channel { flex: 0 1 auto; min-width: 90px; }
-  .presets { order: 3; }
-  .levels { order: 4; }
-  .status { order: 5; flex: 1 1 220px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
-  .status.full { white-space: normal; }
+  .top { flex: none; }
   main { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 10px 0 12px; overflow-y: auto; }
-  .intro, .deck { flex: none; }
-  .deck { padding: 0 16px 10px; }
+  .intro { flex: none; }
   .board-wrap { flex: 1; min-height: 0; overflow: auto; scroll-snap-type: none; }
   /* Cada fileira o mais baixa possível, para caberem duas com pedais grandes: o nome já está pintado no pedal,
      e o "inspirado no" fica numa linha (inteiro na dica e na biblioteca). */

@@ -162,7 +162,7 @@ async function stopRecording() {
   const finish = finishRec;
   finishRec = null;
   clearInterval(recTimer);
-  $('record').textContent = 'Gravar';
+  $('record').textContent = 'Gravar áudio';
   $('record').setAttribute('aria-pressed', 'false');
   const blob = await finish();
   const d = new Date(), p2 = n => String(n).padStart(2, '0');
@@ -214,7 +214,7 @@ $('measure').onclick = async () => {
   } catch (e) {
     status(`Não consegui medir: ${e.message}`, true);
   } finally {
-    $('measure').textContent = 'Medir';
+    $('measure').textContent = 'Medir latência';
     $('measure').disabled = false;
   }
 };

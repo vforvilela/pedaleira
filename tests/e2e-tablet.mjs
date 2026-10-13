@@ -161,10 +161,10 @@ try {
   // Nada que aparece no uso pode mudar a altura do topo: mudaria o tamanho da pedaleira e o lugar dos botões
   // (foi assim que o + Pedal "fugiu" do dedo depois do primeiro pedal adicionado).
   const layoutNow = () => ev(`(() => ({ top: document.querySelector('.top').getBoundingClientRect().height,
-    deck: document.querySelector('.deck').getBoundingClientRect().height, z: document.getElementById('board').style.zoom }))()`);
+    face: document.querySelector('.face').getBoundingClientRect().height, z: document.getElementById('board').style.zoom }))()`);
   const stable = async (what, change) => {
     const a = await layoutNow(); await ev(change); await sleep(300); const b = await layoutNow();
-    check(a.top === b.top && a.deck === b.deck && a.z === b.z, `${what}: topo e pedaleira não mudam de tamanho (${JSON.stringify(a)} → ${JSON.stringify(b)})`);
+    check(a.top === b.top && a.face === b.face && a.z === b.z, `${what}: topo e pedaleira não mudam de tamanho (${JSON.stringify(a)} → ${JSON.stringify(b)})`);
   };
   check(!(await ev(`document.getElementById('presetRevert').hidden`)), 'preset alterado mostra o Reverter');
   await stable('Reverter some (preset salvo)', `document.getElementById('presetRevert').hidden = true`);
