@@ -136,7 +136,7 @@ try {
     let p = 0; for (const x of d) p = Math.max(p, Math.abs(x));
     return { shown, label, name, type: blob.type, secs: buf.duration, peak: p };
   })()`);
-  check(rec.shown && /Parar/.test(rec.label) && rec.secs > 1.5 && rec.peak > 0.001 && /^brasa-.*\.(webm|m4a|ogg)$/.test(rec.name),
+  check(rec.shown && /Parar/.test(rec.label) && rec.secs > 1.5 && rec.peak > 0.001 && /^tonesmith-.*\.(webm|m4a|ogg)$/.test(rec.name),
     `Gravar baixa o som tocado (${rec.name}, ${rec.type}, ${rec.secs?.toFixed(1)} s, pico ${rec.peak?.toFixed(3)}, botão "${rec.label}")`);
 
   // Carrega uma captura NAM no amp.

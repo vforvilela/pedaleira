@@ -403,7 +403,7 @@ export async function exportPresets() {
   const blob = new Blob([JSON.stringify(doc)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `brasa-presets-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `tonesmith-presets-${new Date().toISOString().slice(0, 10)}.json`;
   document.body.append(a);
   a.click();
   a.remove();

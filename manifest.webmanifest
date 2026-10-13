@@ -1,7 +1,7 @@
 {
-  "name": "Brasa — pedaleira de guitarra",
-  "short_name": "Brasa",
-  "description": "Brasa: sua pedaleira de guitarra no navegador, pedais desenhados como os reais, com som modelado e capturas NAM.",
+  "name": "ToneSmith — pedaleira de guitarra",
+  "short_name": "ToneSmith",
+  "description": "ToneSmith: sua pedaleira de guitarra no navegador, pedais desenhados como os reais, com som modelado e capturas NAM.",
   "lang": "pt-BR",
   "start_url": "./",
   "scope": "./",

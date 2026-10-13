@@ -8,9 +8,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Brasa">
-<meta name="description" content="Brasa: sua pedaleira de guitarra no navegador. pedais desenhados como os reais, com som modelado e capturas NAM.">
-<title>Brasa</title>
+<meta name="apple-mobile-web-app-title" content="ToneSmith">
+<meta name="description" content="ToneSmith: sua pedaleira de guitarra no navegador. pedais desenhados como os reais, com som modelado e capturas NAM.">
+<title>ToneSmith</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -21,14 +21,14 @@
 <header class="top">
   <!-- Faixa de cima: ligação com a interface. Ajusta-se uma vez e some do caminho. -->
   <div class="rack" id="rack">
-    <h1><span class="ember" aria-hidden="true"></span>Brasa</h1>
+    <h1><span class="ember" aria-hidden="true"></span>ToneSmith</h1>
     <button id="rackClose" class="rack-close" data-i18n-attr="aria-label:html.rackClose" aria-label="Fechar entrada e volume">✕</button>
     <div class="io">
       <select id="device" aria-label="Entrada de áudio" data-i18n-attr="aria-label:html.device"><option value="" data-i18n="html.deviceDefault">Entrada padrão</option></select>
       <select id="channel" aria-label="Canal da interface onde está a guitarra" title="Em qual entrada da interface a guitarra está plugada. Automático: o app descobre na primeira palhetada." data-i18n-attr="aria-label:html.channel;title:html.channelTitle" hidden>
         <option value="auto" data-i18n="html.channelAuto">Canal: auto</option><option value="0" data-i18n="html.channel1">Canal 1</option><option value="1" data-i18n="html.channel2">Canal 2</option>
       </select>
-      <button id="install" title="Instalar a Brasa como app (abre sem o navegador, funciona sem internet)" data-i18n="html.install" data-i18n-attr="title:html.installTitle" hidden>Instalar</button>
+      <button id="install" title="Instalar o ToneSmith como app (abre sem o navegador, funciona sem internet)" data-i18n="html.install" data-i18n-attr="title:html.installTitle" hidden>Instalar</button>
       <button id="fullscreen" class="icon-key" aria-pressed="false" aria-label="Tela cheia" title="Tela cheia: esconde as barras do navegador" data-i18n-attr="title:html.fullscreenTitle" hidden><span class="fs-icon" aria-hidden="true"></span></button>
     </div>
     <div class="levels">
@@ -144,7 +144,7 @@
 <div id="toast" class="toast" role="status" hidden><span></span><button></button></div>
 <input id="file" type="file" hidden>
 <div id="bootFail" class="boot-fail" role="alert" hidden>
-  <p>A Brasa não carregou inteira: o navegador misturou arquivos de duas versões do app.</p>
+  <p>O ToneSmith não carregou inteiro: o navegador misturou arquivos de duas versões do app.</p>
   <button id="bootReload" class="primary">Recarregar</button>
 </div>
 <script type="module" src="js/app.js" id="appScript"></script>
