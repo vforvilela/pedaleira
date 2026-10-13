@@ -53,16 +53,14 @@ export function renderPresets() {
 
 // Nome do preset em letras grandes acima da pedaleira (o que está tocando, legível de longe).
 function renderNow(dirty) {
-  const b = $('nowPreset'), idx = state.presets.findIndex(p => p.name === state.preset);
-  b.textContent = state.preset || 'Sem preset';
-  b.classList.toggle('none', !state.preset);
+  const c = $('nowCount'), idx = state.presets.findIndex(p => p.name === state.preset);
+  c.textContent = idx >= 0 ? `Preset ${idx + 1} de ${state.presets.length}` : 'Preset';
   if (dirty) {
     const tag = document.createElement('span');
     tag.className = 'dirty';
-    tag.textContent = 'ALTERADO';
-    b.append(tag);
+    tag.textContent = 'Alterado';
+    c.append(tag);
   }
-  $('nowCount').textContent = idx >= 0 ? `Preset ${idx + 1} de ${state.presets.length}` : 'Preset';
 }
 
 // Chamado depois de cada mudança: atualiza o * sem refazer a lista inteira à toa.

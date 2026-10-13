@@ -65,7 +65,9 @@ export function renderBoard() {
     v.setNumber(i < 9 ? i + 1 : 0); // número = tecla que liga e desliga
     nodes.push(slot(v.root, i));
   });
-  nodes.push(slot(jack('Saída', '🎧'), state.chain.length));
+  // A saída anda junto com o último pedal: nunca sobra sozinha numa fileira (o que gastaria uma fileira inteira de altura).
+  const out = slot(jack('Saída', '🎧'), state.chain.length);
+  if (state.chain.length) nodes.at(-1).append(...out.childNodes); else nodes.push(out);
   board.replaceChildren(...nodes);
   // Na primeira montagem os pedais pousam na pedaleira, da guitarra para a saída (o caminho do sinal).
   if (!arrived) {
@@ -75,7 +77,55 @@ export function renderBoard() {
   }
   $('empty').hidden = state.chain.length > 0;
   renderChainMap();
+  fitBoard();
 }
+
+// Tablet e PC: a pedaleira inteira cabe na área que sobra embaixo do topo, sem rolar a página.
+// Procura o maior zoom em que ela cabe na altura; com zoom menor cabem mais pedais por fileira,
+// então às vezes duas fileiras viram uma. --z deixa o CSS manter os botões de toque em 44 px na tela.
+const Z_MIN = .5, Z_MAX = 1.3;
+const wide = matchMedia('(min-width: 761px)');
+export const zoom = () => parseFloat(board.style.zoom) || 1;
+function setZoom(z) {
+  board.style.zoom = z;
+  board.style.setProperty('--z', z);
+}
+export function fitBoard() {
+  board.style.removeProperty('--squeeze');
+  if (!wide.matches) { board.style.zoom = ''; board.style.removeProperty('--z'); return; }
+  const avail = board.parentElement.clientHeight;
+  if (!avail) return;
+  const height = () => board.getBoundingClientRect().height;
+  const fits = z => (setZoom(z), height() <= avail + .5);
+  if (!fits(Z_MAX)) {
+    // Nem no mínimo cabe (cadeia muito longa): fica no mínimo e a área da pedaleira rola.
+    if (!fits(Z_MIN)) return;
+    let lo = Z_MIN, hi = Z_MAX;
+    for (let i = 0; i < 7; i++) { const m = (lo + hi) / 2; if (fits(m)) lo = m; else hi = m; }
+    setZoom(Math.floor(lo * 100) / 100);
+  }
+  balanceRows(height());
+}
+// Fileiras equilibradas (3 + 3, não 5 + 1): aperta as laterais da pedaleira enquanto o número de fileiras
+// não muda, e os pedais ficam centralizados.
+function balanceRows(h) {
+  const keeps = px => (board.style.setProperty('--squeeze', `${px}px`), board.getBoundingClientRect().height <= h + .5);
+  let lo = 0, hi = board.clientWidth / 2;
+  for (let i = 0; i < 8; i++) { const m = (lo + hi) / 2; if (keeps(m)) lo = m; else hi = m; }
+  board.style.setProperty('--squeeze', `${Math.floor(lo)}px`);
+}
+let fitQueued = false;
+const queueFit = () => {
+  if (fitQueued) return;
+  fitQueued = true;
+  requestAnimationFrame(() => { fitQueued = false; fitBoard(); });
+};
+// Muda a área (girar o tablet, abrir os primeiros passos) ou a pedaleira passou da área (carregou uma captura e
+// a legenda cresceu): ajusta de novo. Só o "passou" para não entrar em laço com o próprio zoom.
+new ResizeObserver(queueFit).observe(board.parentElement);
+new ResizeObserver(() => { if (board.getBoundingClientRect().height > board.parentElement.clientHeight + .5) queueFit(); }).observe(board);
+wide.addEventListener('change', queueFit);
+document.fonts?.ready.then(queueFit);
 
 // Mapa da cadeia (só no celular, onde cabe pouco mais de um pedal na tela): a ordem inteira numa linha;
 // tocar num nome leva até o pedal.
@@ -189,7 +239,9 @@ export function makeDraggable(block, view) {
         return { x: r.left + r.width / 2 + wrap.scrollLeft, y: r.top + r.height / 2 + scrollY };
       });
     }
-    root.style.transform = `translate(${dx}px, ${dy}px)`;
+    // Com zoom na pedaleira, o deslocamento dentro dela é multiplicado por ele: divide para o pedal seguir o dedo.
+    const z = zoom();
+    root.style.transform = `translate(${dx / z}px, ${dy / z}px)`;
     const { others, mids } = drag;
     const x = e.clientX + wrap.scrollLeft, y = e.clientY + scrollY;
     // Fileira mais próxima do dedo (pedais da mesma fileira têm o mesmo centro vertical, com folga

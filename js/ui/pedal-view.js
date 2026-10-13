@@ -256,7 +256,7 @@ export function pedalView(block, cb) {
   caption.className = 'caption';
   caption.innerHTML = `<span class="pname"></span><span class="inspired"></span><span class="files"></span>`;
   caption.querySelector('.pname').textContent = def.name;
-  caption.querySelector('.inspired').textContent = def.inspiredBy ? `inspirado no ${def.inspiredBy}` : '';
+  caption.querySelector('.inspired').textContent = caption.querySelector('.inspired').title = def.inspiredBy ? `inspirado no ${def.inspiredBy}` : '';
   root.append(caption);
 
   const tools = document.createElement('div');

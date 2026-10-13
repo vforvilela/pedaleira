@@ -86,13 +86,7 @@ body:has(#power[aria-pressed="true"]) h1 .ember { animation: ember 3.2s ease-in-
 .master output, .lat b { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 500; }
 .presets { grid-column: 1 / -1; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .presets select { min-width: 140px; max-width: 220px; }
-.presets input {
-  flex: 1; min-width: 140px; max-width: 260px; background: var(--bg); border: 1px solid var(--line);
-  border-radius: 8px; padding: 8px 10px;
-}
 .presets button { padding: 8px 10px; }
-/* Tablet em pé: com o preset alterado aparece o Reverter; o nome encolhe para o Palco não cair de linha. */
-@media (max-width: 900px) { .presets input { min-width: 100px; } }
 button.small { padding: 3px 8px; font-size: 12px; border-radius: 6px; }
 #presetSave.attention { border-color: var(--accent); color: var(--accent); }
 #presetSave.attention::after { content: " *"; }
@@ -107,7 +101,7 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
 
 /* Dedo: tudo que se toca com pelo menos 44 px (Apple HIG, WCAG 2.5.5). */
 @media (pointer: coarse) {
-  button, select, .presets input { min-height: var(--touch); }
+  button, select, #presetName { min-height: var(--touch); }
   #presetPrev, #presetNext { min-width: var(--touch); }
   /* Mais compridos: no dedo, 110 px dá pouca precisão para acertar o ganho. */
   .master input { height: var(--touch); width: 150px; }
@@ -122,12 +116,12 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
 #presetSave { border-color: color-mix(in oklch, var(--accent) 45%, var(--line)); font-weight: 600; }
 @media (max-width: 760px) {
   .top { grid-template-columns: 1fr; position: static; padding: 10px 12px; gap: 8px; }
-  .presets input { order: 5; flex-basis: 100%; max-width: none; }
   .deck { padding: 0 12px 10px; }
   .scenes { gap: 6px; flex-wrap: nowrap; flex: 1 1 100%; }
   .scenes-label { display: none; }
   .scene-btn { min-width: 0; min-height: 44px; flex: 1; padding: 8px 0; font-size: 17px; }
   #sceneRec { white-space: nowrap; }
+  .lib-open { flex: 1 1 100%; min-height: 44px; }
   .levels { flex-wrap: wrap; }
   .io { flex-wrap: wrap; }
   .io #device { flex-basis: 100%; max-width: none; }
@@ -146,14 +140,17 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
 .now small {
   font-size: 12px; font-weight: 600; font-stretch: 112%; letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
 }
-.now b {
-  font-size: clamp(28px, 4.2vw, 52px); line-height: 1; font-weight: 850; font-stretch: 118%; letter-spacing: -.025em;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+/* Campo de texto com cara de título: sem caixa até tocar nele. */
+#presetName {
+  width: 100%; min-width: 0; margin: 0 0 0 -8px; padding: 2px 8px; border: 1px solid transparent; border-radius: 8px; background: transparent;
+  font-size: clamp(28px, 3.5vw, 52px); line-height: 1.05; font-weight: 850; font-stretch: 118%; letter-spacing: -.025em;
+  text-overflow: ellipsis;
 }
-.now b.none { color: var(--muted); font-weight: 700; }
-.now .dirty {
-  font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--accent); margin-left: 10px; vertical-align: middle;
-}
+#presetName::placeholder { color: var(--muted); font-weight: 700; opacity: 1; }
+#presetName:focus { outline: none; border-color: var(--line); background: var(--bg); }
+#presetName:focus-visible { border-color: var(--accent); }
+@media (hover: hover) { #presetName:hover:not(:focus) { border-color: var(--line); } }
+.now .dirty { margin-left: 10px; color: var(--accent); font-weight: 700; }
 .scenes { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .scene-btn { min-width: 52px; min-height: 52px; font-size: 20px; font-weight: 800; font-stretch: 112%; border-radius: 10px; }
 .scenes-label { font-size: 13px; color: var(--muted); margin-right: 4px; text-transform: uppercase; letter-spacing: .08em; }
@@ -256,8 +253,8 @@ main { padding: 16px 0 32px; }
 .tuner-note { font-family: ui-monospace, "DejaVu Sans Mono", monospace; font-weight: 700; fill: var(--tuner-red); }
 .tuner-note.ok { fill: var(--led-green); }
 .tuner-cents { font-family: ui-monospace, monospace; fill: var(--tuner-dim); }
-.caption { display: grid; justify-items: center; font-size: 12px; color: var(--muted); max-width: 180px; text-align: center; min-height: 34px; }
-.caption .pname { color: var(--text); font-weight: 600; font-size: 13px; }
+.caption { display: grid; justify-items: center; font-size: calc(12px * max(1, .85 / var(--z, 1))); color: var(--muted); max-width: 180px; text-align: center; min-height: 34px; }
+.caption .pname { color: var(--text); font-weight: 600; font-size: calc(13px * max(1, .85 / var(--z, 1))); }
 .caption .files { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 2px; }
 .chip { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--chip-bg); border-color: var(--chip-line); color: var(--accent); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tools { display: flex; gap: 6px; }
@@ -350,7 +347,17 @@ body.stage { overflow: hidden; }
 .empty { color: var(--muted); text-align: center; }
 
 /* ---------- Biblioteca ---------- */
-.lib-wrap { padding: 8px 16px 0; max-width: 980px; }
+/* Gaveta lateral: a biblioteca fica fora da tela principal, que é só da pedaleira. */
+.lib-sheet {
+  margin: 0 0 0 auto; width: min(540px, 100vw); height: 100%; max-height: none; border: 0; border-left: 1px solid var(--line);
+  background: var(--panel); color: var(--text); overflow-y: auto; overscroll-behavior: contain;
+  padding: calc(14px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) 16px;
+}
+.lib-sheet::backdrop { background: rgba(0,0,0,.55); }
+.lib-sheet .knob-sheet-head { position: sticky; top: calc(-14px - env(safe-area-inset-top)); background: var(--panel); padding: 4px 0 8px; z-index: 1; }
+.lib-sheet h2 { margin: 0; }
+.lib-sheet #libClose { min-width: var(--touch); min-height: var(--touch); }
+.lib-open { min-height: 52px; padding: 0 18px; font-size: 17px; font-weight: 800; border-color: var(--accent); color: var(--accent); }
 h2 { font-size: 26px; font-weight: 850; font-stretch: 118%; letter-spacing: -.02em; color: var(--text); margin: 28px 0 14px; }
 .library { display: grid; gap: 14px; }
 .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
@@ -405,6 +412,37 @@ h2 { font-size: 26px; font-weight: 850; font-stretch: 118%; letter-spacing: -.02
   .lib-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
   .add { padding: 8px 10px; gap: 8px; }
   .add small { display: none; }
+}
+
+/* ---------- Tablet e PC: uma tela só, sem rolar ---------- */
+/* Topo e cenas no tamanho natural; a pedaleira fica com o resto da altura e o zoom dela se ajusta (fitBoard). */
+@media (min-width: 761px) {
+  body { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+  /* Topo em fileiras que se completam: o aviso (status) ocupa a sobra ao lado dos níveis em vez de uma linha só dele. */
+  .top { flex: none; position: static; padding: 10px 16px; gap: 8px 14px; display: flex; flex-wrap: wrap; align-items: center; }
+  .top h1 { order: 1; }
+  .io { order: 2; flex: 0 1 auto; }
+  .io #device { min-width: 150px; max-width: 260px; }
+  .presets { order: 3; }
+  .levels { order: 4; }
+  .status { order: 5; flex: 1 1 220px; }
+  main { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 10px 0 12px; overflow-y: auto; }
+  .intro, .deck { flex: none; }
+  .deck { padding: 0 16px 10px; }
+  .board-wrap { flex: 1; min-height: 0; overflow: auto; scroll-snap-type: none; }
+  /* Cada fileira o mais baixa possível, para caberem duas com pedais grandes: o nome já está pintado no pedal,
+     e o "inspirado no" fica numa linha (inteiro na dica e na biblioteca). */
+  .board { padding: 22px calc(16px + var(--squeeze, 0px)) 14px; row-gap: 10px; }
+  .caption { min-height: 0; }
+  .caption .pname { display: none; }
+  /* A legenda não alarga o pedal: ocupa a largura dele e corta o resto. */
+  .caption { justify-self: stretch; width: 0; min-width: 100%; max-width: none; }
+  .caption .inspired { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tools { margin-top: 2px; }
+}
+/* Os botões embaixo dos pedais continuam com 44 px na tela mesmo com a pedaleira reduzida (o PC também pode ter toque). */
+.board .tools button {
+  min-width: calc(var(--touch) / var(--z, 1)); min-height: calc(var(--touch) / var(--z, 1)); font-size: calc(12px / var(--z, 1));
 }
 
 /* ---------- Controles do pedal em tamanho de dedo (toque num botão) ---------- */

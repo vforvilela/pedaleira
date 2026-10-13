@@ -35,7 +35,6 @@
     <button id="presetPrev" aria-label="Preset anterior" title="Preset anterior (atalho: [)">◀</button>
     <select id="preset" aria-label="Preset"></select>
     <button id="presetNext" aria-label="Próximo preset" title="Próximo preset (atalho: ])">▶</button>
-    <input id="presetName" type="text" placeholder="Nome do preset (ex.: a música)" aria-label="Nome do preset" maxlength="40">
     <button id="presetSave">Salvar</button>
     <button id="presetRevert" title="Descartar as mudanças e voltar para a versão salva" hidden>Reverter</button>
     <button class="more-item" id="presetDelete">Apagar</button>
@@ -64,7 +63,8 @@
     <button id="introOk" class="primary">Entendi</button>
   </section>
   <div class="deck">
-  <p class="now"><small id="nowCount">Preset</small><b id="nowPreset"></b></p>
+  <!-- O nome do preset é o maior texto da tela e é também onde se escreve o nome para salvar. -->
+  <div class="now"><small id="nowCount">Preset</small><input id="presetName" type="text" placeholder="Preset sem nome" aria-label="Nome do preset" maxlength="40" autocomplete="off" title="Nome do preset: escreva aqui e toque em Salvar"></div>
   <div id="scenes" class="scenes" role="group" aria-label="Cenas">
     <span class="scenes-label" title="Cada cena liga e desliga vários pedais de uma vez (atalhos: A, B, C, D)">Cenas</span>
     <button class="scene-btn" aria-pressed="false" title="Cena A (atalho: A)">A</button>
@@ -73,20 +73,14 @@
     <button class="scene-btn" aria-pressed="false" title="Cena D (atalho: D)">D</button>
     <button id="sceneRec" aria-pressed="false" title="Guarda numa cena os pedais ligados e a posição dos botões">Gravar cena</button>
   </div>
+  <button id="libOpen" class="lib-open" aria-haspopup="dialog" aria-controls="libSheet">+ Pedal</button>
   </div>
   <nav id="chainMap" class="chain-map" aria-label="Ordem dos pedais"></nav>
   <section class="board-wrap" aria-label="Pedaleira">
     <div id="board" class="board"></div>
-    <p id="empty" class="empty" hidden>Pedaleira vazia. Adicione um pedal abaixo.</p>
+    <p id="empty" class="empty" hidden>Pedaleira vazia. Toque em <b>+ Pedal</b> para começar.</p>
   </section>
 
-  <section class="lib-wrap">
-    <h2>Adicionar pedal</h2>
-    <div id="library" class="library"></div>
-    <p class="hint">O sinal vai da esquerda para a direita: a ordem muda o som (ex.: delay antes do drive). Dois cliques num botão voltam ao padrão (no toque, o ↺ do painel de controles).</p>
-    <p class="hint">Atalhos: <kbd>1</kbd>–<kbd>9</kbd> ligam e desligam o pedal naquela posição, <kbd>A</kbd>–<kbd>D</kbd> chamam as cenas, <kbd>T</kbd> é o tap tempo do delay, <kbd>[</kbd> <kbd>]</kbd>, as setas e PageUp/PageDown trocam de preset. Com o foco no ⠿, as setas mudam o pedal de lugar.</p>
-    <p class="hint">Footswitch: um controlador MIDI faz tudo isso pelo botão MIDI, em ⋯ Mais (no Chrome e no Edge). No celular, inclusive no iPhone, um footswitch Bluetooth de virar página troca de preset sem configurar.</p>
-  </section>
 </main>
 
 <div id="stage" class="stage-view" role="dialog" aria-modal="true" aria-label="Modo palco" hidden>
@@ -122,6 +116,13 @@
     <label for="fileUrl">Ou cole um link direto do arquivo (GitHub, Dropbox). Ele vai junto quando você compartilha o preset.</label>
     <div><input id="fileUrl" type="url" required placeholder="https://github.com/…/captura.nam" autocomplete="off"><button type="submit">Carregar</button></div>
   </form>
+</dialog>
+<dialog id="libSheet" class="lib-sheet" aria-labelledby="libTitle">
+  <div class="knob-sheet-head"><h2 id="libTitle">Adicionar pedal</h2><button id="libClose" aria-label="Fechar">✕</button></div>
+  <div id="library" class="library"></div>
+  <p class="hint">O sinal vai da esquerda para a direita: a ordem muda o som (ex.: delay antes do drive). Dois cliques num botão voltam ao padrão (no toque, o ↺ do painel de controles).</p>
+  <p class="hint">Atalhos: <kbd>1</kbd>–<kbd>9</kbd> ligam e desligam o pedal naquela posição, <kbd>A</kbd>–<kbd>D</kbd> chamam as cenas, <kbd>T</kbd> é o tap tempo do delay, <kbd>[</kbd> <kbd>]</kbd>, as setas e PageUp/PageDown trocam de preset. Com o foco no ⠿, as setas mudam o pedal de lugar.</p>
+  <p class="hint">Footswitch: um controlador MIDI faz tudo isso pelo botão MIDI, em ⋯ Mais (no Chrome e no Edge). No celular, inclusive no iPhone, um footswitch Bluetooth de virar página troca de preset sem configurar.</p>
 </dialog>
 <div id="toast" class="toast" role="status" hidden><span></span><button></button></div>
 <input id="file" type="file" hidden>

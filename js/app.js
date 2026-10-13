@@ -28,7 +28,8 @@ const addButton = def => {
   b.querySelector('.swatch').style.setProperty('--body', def.look.body);
   b.querySelector('b').textContent = def.name;
   b.querySelector('small').textContent = def.inspiredBy ? `inspirado no ${def.inspiredBy}` : 'amp + caixa, aceita captura NAM';
-  b.onclick = () => addBlock(def.type);
+  // Fecha a gaveta para o pedal novo ser visto pousando na pedaleira.
+  b.onclick = () => { $('libSheet').close(); addBlock(def.type); };
   return b;
 };
 $('library').replaceChildren(...GROUPS.map(([title, cats]) => {
@@ -42,6 +43,15 @@ $('library').replaceChildren(...GROUPS.map(([title, cats]) => {
   group.append(h, grid);
   return group;
 }));
+
+// Gaveta da biblioteca: abre por cima da pedaleira, que assim ocupa a tela inteira (tablet sem rolagem).
+$('libOpen').onclick = () => $('libSheet').showModal();
+$('libClose').onclick = () => $('libSheet').close();
+// Toque fora da gaveta (no fundo escurecido) fecha.
+$('libSheet').addEventListener('click', e => {
+  const r = e.currentTarget.getBoundingClientRect();
+  if (e.target === e.currentTarget && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom)) e.currentTarget.close();
+});
 
 // ---------- Início ----------
 
