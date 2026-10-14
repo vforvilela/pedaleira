@@ -28,7 +28,7 @@ jobs:
       - run: cd android && ./gradlew --no-daemon assembleDebug bundleRelease
         env:
           VERSION_CODE: ${{ github.run_number }}
-          VERSION_NAME: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '1.0-dev' }}
+          VERSION_NAME: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '0.1-dev' }}
       - uses: actions/upload-artifact@v4
         with:
           name: tonesmith-android
@@ -44,6 +44,8 @@ jobs:
         with:
           files: tonesmith-${{ github.ref_name }}.apk
           generate_release_notes: true
+          # v0.x é pré-lançamento: aparece marcado como "Pre-release" na página.
+          prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
 
   ios:
     runs-on: macos-latest
