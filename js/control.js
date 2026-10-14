@@ -3,7 +3,7 @@ import { undoRemove } from './board.js';
 import { t } from './i18n.js';
 import { $, blockByUid, closest, save, SCENE_NAMES, setParam, state, status, tapTempo, toggleBlock } from './core.js';
 import { Midi, midiSupported } from './midi.js';
-import { hasNativeMidi, nativeMidi } from './platform.js';
+import { hasNativeMidi, nativeMidi, pairBluetoothMidi, platform } from './platform.js';
 import { byType } from './pedals/index.js';
 import { applyPreset, stepPreset } from './presets.js';
 import { recallScene, sceneButtons } from './scenes.js';
@@ -72,6 +72,9 @@ if (midiSupported() || hasNativeMidi) {
       return;
     }
     setLearning(true);
+    // App nativo: procura o footswitch Bluetooth. No Android a busca é silenciosa, então roda sempre; no iPhone
+    // abre o painel de parear do sistema, só quando não há nenhum controlador ligado.
+    if (hasNativeMidi && (platform === 'android' || !midi.inputNames().length)) pairBluetoothMidi().catch(() => {});
     const names = midi.inputNames();
     status(`${names.length ? t('control.controllers', { names: names.join(', ') }) : t('control.noController')} ${t('control.learnHowTo')}`);
   };

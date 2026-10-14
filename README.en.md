@@ -120,6 +120,8 @@ Signing and publishing need the owner's Play Console and Apple Developer account
 button closes drawers and stage mode; with nothing open it sends the app to the background without stopping the sound.
 
 - `android/` and `ios/`: native projects. Local plugins: `MidiPlugin` (Android and iOS) and `AudioSessionPlugin` (iOS).
+- **Bluetooth MIDI footswitch** (e.g. M-VAVE Chocolate) in the app: click MIDI. On Android the app asks for the
+  Bluetooth permission and finds the footswitch by itself; on iPhone it opens the system pairing sheet the first time.
 - `assets/`: 1024 px icon and splash; `npx capacitor-assets generate` regenerates the native icons.
 - `store/listing.md`: store texts in three languages; `privacy.html`: privacy policy
   (published at https://vforvilela.github.io/pedaleira/privacy.html, required by the Play Store for apps using the mic).

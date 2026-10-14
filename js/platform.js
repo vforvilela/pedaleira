@@ -52,14 +52,25 @@ export async function prepareAudio() {
 
 // MIDI nativo (CoreMIDI no iPhone, android.media.midi no Android): os WebViews não têm Web MIDI.
 // onMessage recebe os bytes crus, como o onmidimessage do navegador. Devolve a lista de entradas ou null.
-export async function nativeMidi(onMessage) {
+export async function nativeMidi(onMessage, onInputs = () => {}) {
   const m = isNative && plugin('Midi');
   if (!m) return null;
   await m.addListener('message', e => onMessage(Uint8Array.from(e.data)));
+  await m.addListener('inputs', e => onInputs(e.inputs));
   const { inputs } = await m.start();
   return inputs;
 }
 export const hasNativeMidi = !!(isNative && plugin('Midi'));
+
+// Footswitch Bluetooth MIDI no app. Android: procura por 10 s os aparelhos que anunciam MIDI e liga (pede a
+// permissão de Bluetooth na primeira vez). iPhone: abre o painel de parear do sistema. Entradas novas chegam
+// no evento "inputs" do plugin, que nativeMidi repassa por onInputs.
+export async function pairBluetoothMidi() {
+  const m = isNative && plugin('Midi');
+  if (!m) return null;
+  const { inputs } = await m.bluetooth();
+  return inputs;
+}
 
 // Botão Voltar do Android. handler() devolve true se fechou algo; se não havia nada aberto, o app vai para o
 // fundo em vez de fechar (fechar mataria o som no meio da música). Sem listener o Capacitor fecharia o app.

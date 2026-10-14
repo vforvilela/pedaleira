@@ -26,6 +26,8 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>ToneSmith needs the audio input to hear your guitar through the USB interface.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>ToneSmith uses Bluetooth to connect a wireless MIDI footswitch.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

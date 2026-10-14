@@ -38,7 +38,7 @@ export class Midi {
     if (this.access) return this.access;
     // App nativo (WebView sem Web MIDI): o plugin do sistema entrega os bytes; o resto é igual.
     if (!navigator.requestMIDIAccess && this.native) {
-      this.nativeInputs = await this.native(data => this.handle(data));
+      this.nativeInputs = await this.native(data => this.handle(data), inputs => { this.nativeInputs = inputs; });
       this.access = { native: true };
       return this.access;
     }

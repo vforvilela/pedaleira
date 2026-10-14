@@ -1,6 +1,7 @@
 import Foundation
 import Capacitor
 import CoreMIDI
+import CoreAudioKit
 
 // MIDI nativo: o WKWebView não tem Web MIDI. Liga todas as fontes do CoreMIDI (USB pelo adaptador, Bluetooth MIDI,
 // rede) e entrega cada mensagem ao JS no evento "message" com os bytes crus, como o onmidimessage do navegador.
@@ -11,7 +12,8 @@ public class MidiPlugin: CAPPlugin, CAPBridgedPlugin {
     public let jsName = "Midi"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "start", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "list", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "list", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "bluetooth", returnType: CAPPluginReturnPromise)
     ]
 
     private var client = MIDIClientRef()
@@ -33,6 +35,23 @@ public class MidiPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func list(_ call: CAPPluginCall) { call.resolve(inputs()) }
+
+    // Footswitch Bluetooth MIDI (ex.: M-VAVE Chocolate): o iPhone só liga depois de parear pelo painel do sistema,
+    // que um app precisa mostrar. Depois de pareado, aparece como fonte do CoreMIDI e connectAll() liga.
+    @objc func bluetooth(_ call: CAPPluginCall) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, let root = self.bridge?.viewController else { call.reject("Sem tela"); return }
+            let pane = CABTMIDICentralViewController()
+            let nav = UINavigationController(rootViewController: pane)
+            pane.navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(self.closeBluetooth))
+            root.present(nav, animated: true)
+            call.resolve(self.inputs())
+        }
+    }
+
+    @objc private func closeBluetooth() {
+        bridge?.viewController?.dismiss(animated: true) { [weak self] in self?.connectAll() }
+    }
 
     private func inputs() -> [String: Any] {
         var names: [String] = []

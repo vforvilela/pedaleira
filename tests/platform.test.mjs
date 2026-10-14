@@ -13,7 +13,7 @@ globalThis.Capacitor = {
     Share: { share: async o => { calls.push(['share', o]); } },
     StatusBar: { hide: async () => { calls.push(['hide']); } },
     KeepAwake: { keepAwake: async () => calls.push(['keepAwake']), allowSleep: async () => calls.push(['allowSleep']) },
-    Midi: {},
+    Midi: { bluetooth: async () => { calls.push(['bluetooth']); return { inputs: ['Chocolate Plus'] }; } },
   },
 };
 const platform = await import('../js/platform.js');
@@ -69,4 +69,22 @@ test('MIDI nativo: sem requestMIDIAccess, a fonte nativa ensina e dispara como o
   assert.deepEqual(actions, [[{ kind: 'pedal', index: 2 }, 127]]);
   send(Uint8Array.from([0xc0, 4]));
   assert.deepEqual(actions.at(-1), [{ kind: 'program' }, 4]);
+});
+
+test('pairBluetoothMidi chama o plugin e devolve as entradas', async () => {
+  calls.length = 0;
+  assert.deepEqual(await platform.pairBluetoothMidi(), ['Chocolate Plus']);
+  assert.deepEqual(calls, [['bluetooth']]);
+});
+
+test('MIDI nativo: entradas que chegam depois (Bluetooth) atualizam inputNames', async () => {
+  let announce = null;
+  const midi = new Midi([], {
+    onAction: () => {}, onLearned: () => {}, onChange: () => {},
+    native: async (_onMessage, onInputs) => { announce = onInputs; return []; },
+  });
+  await midi.enable();
+  assert.deepEqual(midi.inputNames(), []);
+  announce(['Chocolate Plus']);
+  assert.deepEqual(midi.inputNames(), ['Chocolate Plus']);
 });
