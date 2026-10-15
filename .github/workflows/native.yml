@@ -27,10 +27,13 @@ jobs:
       # Chave de upload (secrets ANDROID_KEYSTORE_BASE64, _PASSWORD, _ALIAS, KEY_PASSWORD; ver README): com ela o AAB
       # e o APK de release saem assinados. Sem os secrets, só o APK de debug e um AAB sem assinatura.
       - id: keystore
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         run: |
-          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.keystore"
-          echo "file=$RUNNER_TEMP/upload.keystore" >> "$GITHUB_OUTPUT"
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.keystore"
+            echo "file=$RUNNER_TEMP/upload.keystore" >> "$GITHUB_OUTPUT"
+          else
+            echo "Sem ANDROID_KEYSTORE_BASE64: o AAB sai sem assinatura." && echo "file=" >> "$GITHUB_OUTPUT"
+          fi
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       # APK de debug: instala direto no celular (adb install ou pelo navegador). AAB: o que a Play Store recebe.
