@@ -919,6 +919,15 @@ try {
   check(Math.abs(trim.gain - 0.501) < 0.01 && trim.saved === -6 && trim.after === 0 && /^0 dB$/.test(trim.shown),
     `nível do preset: −6 dB vira ganho 0,5, fica salvo e outro preset volta a 0 (${JSON.stringify(trim)})`);
 
+  // EQ geral: o slider de graves muda o ganho do shelf e fica salvo fora dos presets.
+  const geq = await evaluate(`(async () => {
+    const p = __pedaleira, wait = ms => new Promise(r => setTimeout(r, ms));
+    const s = document.getElementById('eqLow'); s.value = -4; s.dispatchEvent(new Event('input'));
+    await wait(150);
+    return { gain: +p.engine.eq.low.gain.value.toFixed(1), state: p.state.eq.low, shown: document.getElementById('eqLowV').textContent };
+  })()`);
+  check(geq.gain === -4 && geq.state === -4 && geq.shown === '-4', `EQ geral: graves em −4 dB no shelf e no estado (${JSON.stringify(geq)})`);
+
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
   console.log(`screenshots em ${out}`);
   ws.close();

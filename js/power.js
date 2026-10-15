@@ -3,7 +3,7 @@ import { setStageTuner } from './stage.js';
 import { noteOf } from './audio/pitch.js';
 import { pickChannel } from './audio/channel.js';
 import { t, fmtNum } from './i18n.js';
-import { $, applyStoredFiles, changeListeners, createAudio, engine, live, reconnect, save, setTrim, state, status } from './core.js';
+import { $, applyStoredFiles, changeListeners, createAudio, engine, live, reconnect, save, setEq, setTrim, state, status } from './core.js';
 import { backgroundAudio, hasAudioSession, keepAwake, saveFile } from './platform.js';
 import { preloadFiles } from './store.js';
 
@@ -69,6 +69,7 @@ export async function start() {
   reconnect();
   engine.setMaster(state.master);
   engine.setTrim(state.trim);
+  engine.setEq(state.eq);
   engine.setInputGain(state.inputGain);
   setupChannel();
   watchAudio(track);
@@ -330,6 +331,11 @@ const showTrim = () => { $('trim').value = state.trim; $('trimV').textContent = 
 showTrim();
 changeListeners.push(showTrim);
 $('trim').oninput = () => setTrim(+$('trim').value);
+// EQ geral: igual, por faixa.
+const EQ_IDS = { low: 'eqLow', mid: 'eqMid', high: 'eqHigh' };
+const showEq = () => { for (const [band, id] of Object.entries(EQ_IDS)) { $(id).value = state.eq[band]; $(`${id}V`).textContent = `${state.eq[band] > 0 ? '+' : ''}${fmtDb(state.eq[band])}`; } };
+showEq();
+for (const [band, id] of Object.entries(EQ_IDS)) $(id).oninput = () => { setEq(band, +$(id).value); showEq(); };
 $('master').oninput = () => {
   state.master = +$('master').value;
   showMaster();

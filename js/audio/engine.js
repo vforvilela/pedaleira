@@ -91,7 +91,10 @@ export class Engine {
     this.limiter = new AudioWorkletNode(ctx, 'limiter', {
       numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2], channelCount: 2, channelCountMode: 'explicit',
     });
-    this.master.connect(this.limiter).connect(ctx.destination);
+    // EQ geral: três faixas largas entre o Volume e o limitador, para a sala ou o fone, fora dos presets.
+    const eqNode = (type, f, q) => { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; return b; };
+    this.eq = { low: eqNode('lowshelf', 120, 0.7), mid: eqNode('peaking', 800, 0.8), high: eqNode('highshelf', 3200, 0.7) };
+    this.master.connect(this.eq.low).connect(this.eq.mid).connect(this.eq.high).connect(this.limiter).connect(ctx.destination);
     this.outAnalyser = ctx.createAnalyser();
     this.outAnalyser.fftSize = 1024;
     this.limiter.connect(this.outAnalyser);
@@ -137,6 +140,14 @@ export class Engine {
     prev.connect(this.trim);
   }
 
+  setEq({ low, mid, high }) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.eq.low.gain.setTargetAtTime(low, t, 0.02);
+    this.eq.mid.gain.setTargetAtTime(mid, t, 0.02);
+    this.eq.high.gain.setTargetAtTime(high, t, 0.02);
+  }
+
   setTrim(db) {
     if (this.ctx) this.trim.gain.setTargetAtTime(dbToGain(db), this.ctx.currentTime, 0.01);
   }
@@ -178,7 +189,7 @@ export class Engine {
     } finally {
       this.input.disconnect(probe);
       probe.disconnect();
-      this.master.connect(this.limiter);
+      this.master.connect(this.eq.low);
     }
   }
 

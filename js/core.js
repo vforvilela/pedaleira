@@ -160,6 +160,13 @@ export function setTempo(bpm, from = null) {
   save();
 }
 
+// EQ geral da saída (dB por faixa), fora dos presets.
+export function setEq(band, db) {
+  state.eq[band] = Math.round(Math.max(-6, Math.min(6, db)) * 2) / 2;
+  engine.setEq(state.eq);
+  save();
+}
+
 // Nível do preset (dB), aplicado no fim da cadeia; vai salvo com o preset.
 export function setTrim(db) {
   state.trim = Math.round(Math.max(-12, Math.min(12, db)) * 2) / 2;

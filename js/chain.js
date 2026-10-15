@@ -107,6 +107,8 @@ export function migrateState(saved, { factory = [], factoryVersion = 0 } = {}) {
     bpm: num(saved?.bpm, 120, 40, 240),
     // Nível do preset (dB no fim da cadeia, antes do Volume): iguala o volume entre presets do setlist.
     trim: num(saved?.trim, 0, -12, 12),
+    // EQ geral da saída (dB): acerta a pedaleira à sala ou ao fone, fora dos presets.
+    eq: { low: num(saved?.eq?.low, 0, -6, 6), mid: num(saved?.eq?.mid, 0, -6, 6), high: num(saved?.eq?.high, 0, -6, 6) },
     chain: normalizeChain(saved?.chain || DEFAULT_CHAIN.map(newBlock)),
     presets: (Array.isArray(saved?.presets) ? saved.presets : [])
       .filter(p => p && typeof p.name === 'string' && p.name)

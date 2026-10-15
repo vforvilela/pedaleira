@@ -91,3 +91,8 @@ test('migrateState: nível e andamento do preset são opcionais e ficam na faixa
   assert.equal(s.presets[0].bpm, 90);
   assert.equal('trim' in s.presets[1], false);
 });
+
+test('migrateState: EQ geral por faixa, na faixa de ±6 dB', () => {
+  assert.deepEqual(migrateState(null).eq, { low: 0, mid: 0, high: 0 });
+  assert.deepEqual(migrateState({ eq: { low: -20, mid: 'x', high: 3 } }).eq, { low: -6, mid: 0, high: 3 });
+});

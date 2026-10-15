@@ -34,6 +34,7 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
 
 **Para tocar ao vivo**
 
+- **EQ geral** (Graves, Médios, Agudos, ±6 dB, na faixa Entrada): acerta a saída à sala ou ao fone; vale para todos os presets.
 - **Nível do preset** (slider Preset, na faixa Entrada): −12 a +12 dB no fim da cadeia, salvo com o preset, para os
   presets do setlist soarem no mesmo volume.
 - **Modo simples** na primeira visita: sem cenas, Link, Exportar, Importar, Organizar, MIDI e afins. **Mostrar tudo** (no ⋯)

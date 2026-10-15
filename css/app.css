@@ -143,6 +143,11 @@ body:has(#power[aria-pressed="true"]) h1 .ember::after { animation: ember 3.2s e
 .master output { grid-row: 1 / 3; grid-column: 2; }
 /* Vazio até o app.js escrever o valor: uma linha invisível guarda a altura e nada pula quando o número chega. */
 .master output:empty::before { content: "\00a0"; }
+/* EQ geral (na linha do ⋯): rótulo e três faixas curtas, no mesmo tom da latência e do idioma. */
+.more-row .eq { display: inline-flex; align-items: center; gap: 10px; padding: 0 6px; font-size: 11px; font-weight: 700; font-stretch: 112%; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.more-row .eq label { display: inline-flex; align-items: center; gap: 5px; }
+.more-row .eq input { width: 64px; min-width: 0; accent-color: var(--accent); }
+.more-row .eq output { min-width: 2.2em; text-align: right; font-variant-numeric: tabular-nums; color: var(--text); letter-spacing: 0; }
 /* Valores num visorzinho âmbar, igual ao do preset; largura fixa para o número não empurrar nada. */
 .master output, .lat b {
   min-width: 54px; padding: 4px 6px; border-radius: 3px; text-align: right;
@@ -286,7 +291,7 @@ body.midi-learn .scene-btn { outline: 2px dashed color-mix(in oklch, var(--accen
 /* Modo simples: só o que um iniciante usa no primeiro mês. O resto volta com "Mostrar tudo". */
 body.simple #scenes, body.simple #stageScenes, body.simple #presetOrganize, body.simple #presetShare, body.simple #presetExport,
 body.simple #presetImport, body.simple #floorView, body.simple #record, body.simple #measure, body.simple #midi,
-body.simple #midiClear, body.simple #trimRow { display: none !important; }
+body.simple #midiClear, body.simple #trimRow, body.simple #eqRow { display: none !important; }
 .more-row.show-more, .more-row:has(#record[aria-pressed="true"]) { padding-bottom: 12px; }
 .presets:not(.show-more) .more-item:not(#record[aria-pressed="true"]) { display: none; }
 .more-row button, .more-row select { padding: 6px 12px; font-size: 14px; }

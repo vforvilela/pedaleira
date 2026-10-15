@@ -39,6 +39,7 @@ Pedal names stay in Portuguese in every language. The table gives each one's mea
 
 **For playing live**
 
+- **Global EQ** (Lows, Mids, Highs, ±6 dB, in the Input strip): fits the output to the room or the headphones; applies to every preset.
 - **Preset level** (Preset slider in the Input strip): −12 to +12 dB at the end of the chain, saved with the preset, so the
   presets in a setlist sit at the same volume.
 - **Simple mode** on the first visit: no scenes, Link, Export, Import, Organize, MIDI and the like. **Show everything** (under ⋯)
