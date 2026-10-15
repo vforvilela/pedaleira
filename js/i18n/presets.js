@@ -43,6 +43,8 @@ export default {
     'presets.factoryFuzz60s': 'Fuzz anos 60',
     'presets.factoryDist80s': 'Distorção anos 80',
     'presets.factoryFuzzWall': 'Parede de fuzz',
+    'presets.factoryJcm': 'Crunch JCM800 (captura)',
+    'presets.factory5150': 'Metal 5150 (captura)',
     'presets.factoryAmbient': 'Ambiente',
   },
   en: {
@@ -88,6 +90,8 @@ export default {
     'presets.factoryFuzz60s': '60s fuzz',
     'presets.factoryDist80s': '80s distortion',
     'presets.factoryFuzzWall': 'Wall of fuzz',
+    'presets.factoryJcm': 'JCM800 crunch (capture)',
+    'presets.factory5150': '5150 metal (capture)',
     'presets.factoryAmbient': 'Ambient',
   },
   es: {
@@ -133,6 +137,8 @@ export default {
     'presets.factoryFuzz60s': 'Fuzz de los 60',
     'presets.factoryDist80s': 'Distorsión de los 80',
     'presets.factoryFuzzWall': 'Muro de fuzz',
+    'presets.factoryJcm': 'Crunch JCM800 (captura)',
+    'presets.factory5150': 'Metal 5150 (captura)',
     'presets.factoryAmbient': 'Ambient',
   },
 };

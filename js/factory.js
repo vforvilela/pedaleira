@@ -2,11 +2,16 @@
 // interno (nada para baixar). Quem já usava ganha os que ainda não tem, uma vez por versão desta lista.
 import { SCENES, newBlock } from './chain.js';
 import { DICTS, t } from './i18n.js';
+import { SUGGESTIONS } from './suggestions.js';
 
-export const FACTORY_VERSION = 2;
+export const FACTORY_VERSION = 3;
 
-// [tipo, parâmetros, ligado? (null: como o pedal vem), cenas] — cenas: { A: on/off, B: on/off, ... } (letras ausentes: fora da cena).
-const P = (type, params = {}, on = null, scenes = null) => ({ type, params, on, scenes });
+// [tipo, parâmetros, ligado? (null: como o pedal vem), cenas, arquivos] — cenas: { A: on/off, B: on/off, ... }
+// (letras ausentes: fora da cena); arquivos: { nam: { name, url } }, baixados do endereço na primeira vez que tocam.
+const P = (type, params = {}, on = null, scenes = null, files = null) => ({ type, params, on, scenes, files });
+// Capturas de rig completo sugeridas no botão NAM (amp + caixa + microfone: CAB em OFF).
+const CAP = i => ({ nam: { name: SUGGESTIONS.nam.items[i].name, url: SUGGESTIONS.nam.items[i].url } });
+const OFF = 2;
 const LETTERS = ['A', 'B', 'C', 'D'];
 
 const SPEC = [
@@ -57,6 +62,22 @@ const SPEC = [
     P('eco-8', { level: 3.5, feedback: 4, time: 6.9, mode: 1 }),
     P('salao', { room: 1, decay: 6, level: 4 }),
   ] },
+  // Com captura NAM de um amp de verdade (baixada do GitHub na primeira vez; ver js/suggestions.js).
+  // Cena A: base; B: solo com delay.
+  { key: 'presets.factoryJcm', chain: [
+    P('afinador'),
+    P('aperto', { level: 5, sustain: 3, attack: 6 }, false),
+    P('amp', { gain: 5, bass: 5, mid: 5, treble: 5, volume: 5, cab: OFF }, null, null, CAP(1)),
+    P('eco-8', { level: 3.5, feedback: 3, time: 6.4, mode: 1 }, false, { A: false, B: true }),
+    P('salao', { room: 0, decay: 4, level: 3 }),
+  ] },
+  { key: 'presets.factory5150', chain: [
+    P('afinador'),
+    P('sol-drive', { drive: 1, tone: 6, level: 6 }),
+    P('silencio', { thres: 5, decay: 3 }),
+    P('amp', { gain: 5, bass: 5, mid: 5, treble: 5, volume: 5, cab: OFF }, null, null, CAP(2)),
+    P('salao', { room: 0, decay: 3, level: 2 }),
+  ] },
   { key: 'presets.factoryAmbient', chain: [
     P('afinador'),
     P('aperto', { level: 5, sustain: 6 }),
@@ -72,10 +93,11 @@ const SPEC = [
 export const factoryPresets = () => SPEC.map(({ key, chain }) => ({
   name: t(key),
   aliases: [...new Set(Object.values(DICTS).map(d => d[key]).filter(Boolean))],
-  chain: chain.map(({ type, params, on, scenes }) => {
+  chain: chain.map(({ type, params, on, scenes, files }) => {
     const b = newBlock(type);
     Object.assign(b.params, params);
     if (on !== null) b.on = on;
+    if (files) b.files = Object.fromEntries(Object.entries(files).map(([k, f]) => [k, { ...f, key: `${b.uid}:${k}` }]));
     if (scenes) b.scenes = Array.from({ length: SCENES }, (_, i) => (LETTERS[i] in scenes ? { on: scenes[LETTERS[i]], params: null } : null));
     return b;
   }),

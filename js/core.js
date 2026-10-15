@@ -2,7 +2,8 @@
 import { Engine } from './audio/engine.js';
 import { byType } from './pedals/index.js';
 import { uid, SCENES, SCENE_NAMES, newBlock, normalizeBlock, normalizeChain, sceneMatches, sameScene, sameChain, withScene, chainDirty, safeUrl, SCHEMA_VERSION, migrateState } from './chain.js';
-import { deleteFile, getFile, loadState, saveState } from './store.js';
+import { deleteFile, getFile, loadState, putFile, saveState } from './store.js';
+import { fetchFile } from './files.js';
 import { FACTORY_VERSION, factoryPresets } from './factory.js';
 import { DICTS, t } from './i18n.js';
 
@@ -55,11 +56,29 @@ export function reconnect() {
   engine.connectChain(state.chain.map(b => live.get(b.uid)));
 }
 
+// Os dados do arquivo de um bloco: da memória ou do IndexedDB; se não estiver no aparelho mas tiver endereço
+// (preset de fábrica, link recebido), baixa agora e guarda. undefined quando não há como obter (e o bloco perde o arquivo).
+export async function fileData(block, kind) {
+  const f = block.files[kind];
+  if (!f) return undefined;
+  let data = await getFile(f.key);
+  if (data === undefined && f.url) {
+    status(t('core.downloading', { name: f.name }));
+    try {
+      data = await fetchFile(kind, f.url);
+      await putFile(f.key, data);
+    } catch (err) {
+      status(t('core.downloadFailed', { name: f.name, msg: err.message }), true);
+    }
+  }
+  if (data === undefined) { delete block.files[kind]; save(); }
+  return data;
+}
+
 export async function applyStoredFiles(block) {
   for (const kind of Object.keys(block.files)) {
-    const data = await getFile(block.files[kind].key);
-    if (data === undefined) { delete block.files[kind]; continue; }
-    await loadIntoAudio(block, kind, data, block.files[kind].name);
+    const data = await fileData(block, kind);
+    if (data !== undefined) await loadIntoAudio(block, kind, data, block.files[kind].name);
   }
   live.get(block.uid).view.update();
 }

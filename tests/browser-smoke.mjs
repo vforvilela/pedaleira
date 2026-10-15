@@ -841,7 +841,7 @@ try {
     const { byType } = await import('./js/pedals/index.js');
     const { factoryPresets } = await import('./js/factory.js');
     const levels = {};
-    for (const f of factoryPresets()) {
+    for (const f of factoryPresets().filter(f => f.chain.every(b => !Object.keys(b.files).length))) {
       const ctx = new OfflineAudioContext(2, 48000, 48000);
       await ctx.audioWorklet.addModule('js/nam/nam-worklet.js');
       await ctx.audioWorklet.addModule('js/audio/dsp-worklet.js');
@@ -862,6 +862,24 @@ try {
   const lv = Object.values(fac);
   check(lv.length === 7 && Math.min(...lv) > -30 && Math.max(...lv) - Math.min(...lv) <= 6,
     `presets de fábrica tocam com volume parecido (dB RMS: ${JSON.stringify(fac)})`);
+
+  // Preset de fábrica com captura por endereço: escolher baixa a captura do GitHub, guarda e carrega no amp.
+  const facCap = await evaluate(`(async () => {
+    const p = __pedaleira, wait = ms => new Promise(r => setTimeout(r, ms));
+    // (os presets foram zerados acima para simular outro aparelho: pega direto da lista de fábrica)
+    const { factoryPresets } = await import('./js/factory.js');
+    const preset = factoryPresets().find(x => /5150/.test(x.name));
+    if (!preset) return { preset: false };
+    p.state.presets.push(preset);
+    await p.loadChain(preset.chain, preset.name);
+    const amp = p.state.chain.find(b => b.type === 'amp');
+    for (let i = 0; i < 100 && !(amp.files.nam && await p.getFile(amp.files.nam.key)); i++) await wait(100);
+    const data = amp.files.nam ? await p.getFile(amp.files.nam.key) : null;
+    const status = document.getElementById('status').textContent;
+    return { preset: true, cab: amp.params.cab, stored: !!data?.architecture, status };
+  })()`);
+  check(facCap.preset && facCap.stored && facCap.cab === 2 && /carregad/.test(facCap.status),
+    `preset de fábrica com captura baixa e carrega a captura (${JSON.stringify(facCap)})`);
 
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
   console.log(`screenshots em ${out}`);

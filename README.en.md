@@ -40,8 +40,9 @@ Pedal names stay in Portuguese in every language. The table gives each one's mea
 **For playing live**
 
 - **Factory presets** to start from: clean with chorus, crunch (scene A rhythm, B solo with boost and delay), solo
-  with delay, 60s fuzz, 80s distortion, wall of fuzz, and ambient. All use the built-in amp at similar volumes.
-  Existing users get the ones they don't have yet.
+  with delay, 60s fuzz, 80s distortion, wall of fuzz, and ambient, all on the built-in amp at similar volumes.
+  Two more with a NAM capture of a real amp: JCM800 crunch and 5150 metal (the capture is downloaded from GitHub
+  the first time the preset plays; see "Free captures and IRs"). Existing users get the ones they don't have yet.
 - **Presets per song:** type a name, click **Save**. ◀ ▶ (or `[` `]`) switch presets.
   Changed something without saving? The preset gets a `*` and the change is kept as a draft: switching presets and
   coming back loses nothing. **Revert** goes back to the saved version.

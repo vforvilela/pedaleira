@@ -35,7 +35,9 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
 **Para tocar ao vivo**
 
 - **Presets de fábrica** para começar: Limpo com chorus, Crunch (cena A base, B solo com boost e delay), Solo com
-  delay, Fuzz anos 60, Distorção anos 80, Parede de fuzz e Ambiente. Todos com o amp interno e volumes parecidos. Quem já usava o app ganha os que não tem.
+  delay, Fuzz anos 60, Distorção anos 80, Parede de fuzz e Ambiente, todos com o amp interno e volumes parecidos.
+  Mais dois com captura NAM de amp de verdade: Crunch JCM800 e Metal 5150 (a captura é baixada do GitHub na
+  primeira vez que o preset toca; ver "Capturas e IRs grátis"). Quem já usava o app ganha os que não tem.
 
 - **Presets por música:** escreva o nome, clique em Salvar. ◀ ▶ (ou `[` `]`) trocam de preset.
   Mudou algo e não salvou? O preset ganha `*` e a mudança fica guardada como rascunho: trocar de preset e voltar

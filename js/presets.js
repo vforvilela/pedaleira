@@ -1,6 +1,6 @@
 // Presets, rascunhos, exportar e importar.
 import { ensureView, fetchFile, fileInput, renderBoard } from './board.js';
-import { $, changeListeners, hideToast, toast, createAudio, engine, live, loadIntoAudio, normalizeBlock, normalizeChain, reconnect, releaseFile, save, SCENE_NAMES, snapshot, state, status, uid } from './core.js';
+import { $, changeListeners, hideToast, toast, createAudio, engine, fileData, live, loadIntoAudio, normalizeBlock, normalizeChain, reconnect, releaseFile, save, SCENE_NAMES, snapshot, state, status, uid } from './core.js';
 import { chainDirty, sameChain, withScene } from './chain.js';
 import { t } from './i18n.js';
 import { saveFile } from './platform.js';
@@ -321,7 +321,7 @@ export async function loadChain(chain, presetName) {
     // em vez de o amp novo soar com o circuito interno e mudar de timbre quando a captura chega.
     await Promise.all(next.map(async b => {
       for (const kind of b.reload || []) {
-        const data = await getFile(b.files[kind].key);
+        const data = await fileData(b, kind);
         if (data !== undefined) await loadIntoAudio(b, kind, data, b.files[kind].name);
       }
     }));

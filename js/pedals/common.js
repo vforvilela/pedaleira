@@ -48,6 +48,12 @@ export function cabFilters(ctx) {
 export class NamSlot {
   constructor(ctx, wasmBytes) {
     this.node = monoWorklet(ctx, 'nam');
+    // O worklet só roda process() ligado à saída. O pedal novo carrega a captura antes de entrar na cadeia
+    // (presets.js), e o aquecimento acontece em process(): um ramo mudo até a saída mantém o nó rodando.
+    // dispose() do pedal desliga o nó inteiro, ramo incluído.
+    this.sink = ctx.createGain();
+    this.sink.gain.value = 0;
+    this.node.connect(this.sink).connect(ctx.destination);
     this.wasm = !!wasmBytes;
     if (wasmBytes) this.node.port.postMessage({ type: 'wasm', bytes: wasmBytes });
     this.loaded = false;
