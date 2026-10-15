@@ -26,11 +26,12 @@ addEventListener('unhandledrejection', e => {
 
 // Agrupada pela posição na cadeia, na ordem em que o sinal passa.
 const GROUPS = [
+  ['app.groupStudy', ['looper']],
   ['app.groupTune', ['tuner', 'filter']],
   ['app.groupDynamics', ['comp', 'gate', 'volume']],
   ['app.groupDrive', ['drive', 'amp', 'eq']],
   ['app.groupMod', ['mod']],
-  ['app.groupTime', ['time', 'looper']],
+  ['app.groupTime', ['time']],
 ];
 const addButton = def => {
   const b = document.createElement('button');
@@ -126,6 +127,14 @@ loadWasmBytes();
 // No app nativo os arquivos vêm empacotados: o service worker não teria o que guardar.
 if ('serviceWorker' in navigator && location.protocol !== 'file:' && !isNative)
   navigator.serviceWorker.register('sw.js').catch(() => {});
+// Modo simples: começa ligado na primeira visita; "Mostrar tudo" desliga, "Modo simples" religa.
+const applySimple = () => {
+  document.body.classList.toggle('simple', state.simple);
+  $('simpleMode').textContent = t(state.simple ? 'html.simpleOn' : 'html.simpleOff');
+  $('simpleMode').setAttribute('aria-pressed', !state.simple);
+};
+applySimple();
+$('simpleMode').onclick = () => { state.simple = !state.simple; save(); applySimple(); status(t(state.simple ? 'app.simpleOn' : 'app.simpleOff')); };
 $('floorView').onclick = () => { setFloorView(!state.floorView); save(); status(t(state.floorView ? 'app.floorOn' : 'app.floorOff')); };
 
 // Telefone: gaveta de entrada e volume (no tablet e no PC essa faixa fica sempre à vista no topo).

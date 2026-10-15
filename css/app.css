@@ -283,6 +283,10 @@ body.midi-learn .scene-btn { outline: 2px dashed color-mix(in oklch, var(--accen
 
 /* ⋯ Mais: uma fileira de teclas embaixo do painel, só quando aberta (ou gravando, para o relógio ficar à vista). */
 .more-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px; }
+/* Modo simples: só o que um iniciante usa no primeiro mês. O resto volta com "Mostrar tudo". */
+body.simple #scenes, body.simple #stageScenes, body.simple #presetOrganize, body.simple #presetShare, body.simple #presetExport,
+body.simple #presetImport, body.simple #floorView, body.simple #record, body.simple #measure, body.simple #midi,
+body.simple #midiClear { display: none !important; }
 .more-row.show-more, .more-row:has(#record[aria-pressed="true"]) { padding-bottom: 12px; }
 .presets:not(.show-more) .more-item:not(#record[aria-pressed="true"]) { display: none; }
 .more-row button, .more-row select { padding: 6px 12px; font-size: 14px; }

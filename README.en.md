@@ -39,6 +39,8 @@ Pedal names stay in Portuguese in every language. The table gives each one's mea
 
 **For playing live**
 
+- **Simple mode** on the first visit: no scenes, Link, Export, Import, Organize, MIDI and the like. **Show everything** (under ⋯)
+  brings it all back; **Simple mode** hides it again.
 - **Factory presets** to start from: clean with chorus, crunch (scene A rhythm, B solo with boost and delay), solo
   with delay, 60s fuzz, 80s distortion, wall of fuzz, and ambient, all on the built-in amp at similar volumes.
   Two more with a NAM capture of a real amp: JCM800 crunch and 5150 metal (the capture is downloaded from GitHub

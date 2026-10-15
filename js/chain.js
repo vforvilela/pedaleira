@@ -93,6 +93,8 @@ export function migrateState(saved, { factory = [], factoryVersion = 0 } = {}) {
     measuredMs: typeof saved?.measuredMs === 'number' ? saved.measuredMs : null,
     // Quem já usava o app antes do cartão de primeiros passos não precisa vê-lo.
     introDone: saved ? saved.introDone ?? true : false,
+    // Modo simples (primeira visita): sem cenas, link, exportar, MIDI… só o que um iniciante usa.
+    simple: saved ? saved.simple ?? false : true,
     // Aviso do monitor direto da interface, mostrado só na primeira vez que o som liga.
     monitorHintDone: saved?.monitorHintDone ?? false,
     // Visão do chão: o sinal corre da direita para a esquerda, como a pedaleira vista por quem pisa nela.

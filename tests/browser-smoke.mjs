@@ -73,6 +73,11 @@ try {
     `primeira visita já tem os presets de fábrica (${facNames})`);
   await shot('1-desligado.png');
   check(await evaluate(`!document.getElementById('intro').hidden`), 'primeira visita mostra os primeiros passos');
+  const simple = await evaluate(`({ on: document.body.classList.contains('simple'), scenes: getComputedStyle(document.getElementById('scenes')).display, btn: document.getElementById('simpleMode').textContent })`);
+  check(simple.on && simple.scenes === 'none', `primeira visita começa em modo simples, sem cenas (${JSON.stringify(simple)})`);
+  await evaluate(`document.getElementById('simpleMode').click()`);
+  const full = await evaluate(`({ on: document.body.classList.contains('simple'), scenes: getComputedStyle(document.getElementById('scenes')).display })`);
+  check(!full.on && full.scenes !== 'none', `"Mostrar tudo" traz as cenas de volta (${JSON.stringify(full)})`);
   await evaluate(`document.getElementById('introOk').click()`);
   check(await evaluate(`document.getElementById('intro').hidden && __pedaleira.state.introDone`), 'Entendi esconde os primeiros passos e lembra');
 

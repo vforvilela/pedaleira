@@ -34,6 +34,8 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
 
 **Para tocar ao vivo**
 
+- **Modo simples** na primeira visita: sem cenas, Link, Exportar, Importar, Organizar, MIDI e afins. **Mostrar tudo** (no ⋯)
+  traz tudo de volta; **Modo simples** esconde de novo.
 - **Presets de fábrica** para começar: Limpo com chorus, Crunch (cena A base, B solo com boost e delay), Solo com
   delay, Fuzz anos 60, Distorção anos 80, Parede de fuzz e Ambiente, todos com o amp interno e volumes parecidos.
   Mais dois com captura NAM de amp de verdade: Crunch JCM800 e Metal 5150 (a captura é baixada do GitHub na

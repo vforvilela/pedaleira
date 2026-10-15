@@ -96,6 +96,7 @@ try {
   check(await ev(`matchMedia('(pointer: coarse)').matches`), 'emulação de toque ativa (pointer: coarse)');
   // Primeiros passos: fecha com toque.
   if (!(await ev(`document.getElementById('intro').hidden`))) await tapEl(`document.getElementById('introOk')`);
+  if (await ev(`document.body.classList.contains('simple')`)) await ev(`document.getElementById('simpleMode').click()`);
 
   // ---------- Sem rolagem, em todos os tablets, em pé e deitado ----------
   const fitAll = async label => {
@@ -339,6 +340,7 @@ try {
     await viewport(1024, 768);
     await send('Page.reload'); await sleep(1800);
     if (!(await ev(`document.getElementById('intro').hidden`))) await tapEl(`document.getElementById('introOk')`);
+  if (await ev(`document.body.classList.contains('simple')`)) await ev(`document.getElementById('simpleMode').click()`);
     const info = await ev(`(() => ({
       lang: document.documentElement.lang, power: document.getElementById('power').textContent.trim(),
       presets: [...document.getElementById('preset').options].map(o => o.textContent).join(' | '),

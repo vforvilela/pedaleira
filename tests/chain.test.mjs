@@ -74,3 +74,11 @@ test('sameChain: ordem dos pedais e arquivos contam; ordem das chaves não', () 
   same[0].files.nam = { name: 'x', key: 'k' };
   assert.equal(sameChain(a, same), false);
 });
+
+test('migrateState: primeira visita começa em modo simples; quem já usava fica no modo completo', () => {
+  const first = migrateState(null, { factory, factoryVersion: 2 });
+  assert.equal(first.simple, true);
+  const old = migrateState({ chain: [{ uid: 'q', type: 'amp' }], presets: [], preset: null }, { factory, factoryVersion: 2 });
+  assert.equal(old.preset, null);
+  assert.equal(old.simple, false);
+});
