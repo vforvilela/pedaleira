@@ -38,5 +38,5 @@ export default [
   { ignores: ['node_modules/', 'www/', 'android/', 'ios/', 'nam-wasm/target/', 'sw.js'] },
   { files: ['js/**/*.js'], languageOptions: { ecmaVersion: 2024, sourceType: 'module', globals: browser }, rules },
   { files: ['js/audio/dsp-worklet.js', 'js/nam/nam-worklet.js'], languageOptions: { globals: worklet } },
-  { files: ['tests/**/*.mjs', 'eslint.config.js'], languageOptions: { ecmaVersion: 2024, sourceType: 'module', globals: { ...browser, ...node } }, rules },
+  { files: ['tests/**/*.mjs', 'scripts/**/*.mjs', 'eslint.config.js'], languageOptions: { ecmaVersion: 2024, sourceType: 'module', globals: { ...browser, ...node } }, rules },
 ];

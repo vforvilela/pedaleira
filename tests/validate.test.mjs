@@ -76,3 +76,11 @@ test('CSP: os hashes do index.html batem com os scripts embutidos; o app nativo 
   assert.doesNotMatch(csp, /'unsafe-inline'|'unsafe-eval'/);
   assert.match(readFileSync(`${root}scripts/www.sh`, 'utf8'), /sed -i '\/Content-Security-Policy\/d' www\/index\.html/);
 });
+
+test('service worker: a versão do cache acompanha os arquivos do app (rode `npm run sw` quando mudar js/, css/ ou index.html)', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { shellHash, recorded } = await import('../scripts/sw-version.mjs');
+  const m = recorded(readFileSync(new URL('../sw.js', import.meta.url), 'utf8'));
+  assert.ok(m, 'sw.js sem "// shell <hash>" ao lado do CACHE: rode npm run sw');
+  assert.equal(m[2], shellHash(), 'arquivos do app mudaram sem subir a versão do cache: rode npm run sw');
+});

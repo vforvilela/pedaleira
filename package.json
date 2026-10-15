@@ -7,6 +7,7 @@
   "scripts": {
     "test": "node --test",
     "lint": "eslint .",
+    "sw": "node scripts/sw-version.mjs",
     "www": "sh scripts/www.sh",
     "sync": "sh scripts/www.sh && cap sync",
     "android": "sh scripts/www.sh && cap sync android && cap open android",

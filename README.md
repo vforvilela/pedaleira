@@ -151,8 +151,11 @@ gavetas e o palco; sem nada aberto, manda o app para o fundo sem desligar o som.
 ## Testes
 
 ```sh
-# Unidade (afinador, MIDI, gate, compressor, limitador): sem navegador
-node --test
+# Lint (variável inexistente, código morto) e unidade (afinador, MIDI, gate, compressor, limitador, cadeia, migração)
+npm run lint && node --test
+
+# Mudou js/, css/ ou index.html? Sobe a versão do cache do service worker (o teste cobra)
+npm run sw
 
 # Compara o NAM em JS e em wasm com o render oficial do NeuralAmpModelerCore
 node tests/nam-reference.mjs <caminho>/NeuralAmpModelerCore/build/tools/render tests/fixtures/*.nam
