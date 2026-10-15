@@ -4,7 +4,8 @@ import { noteOf } from './audio/pitch.js';
 import { pickChannel } from './audio/channel.js';
 import { t, fmtNum } from './i18n.js';
 import { $, applyStoredFiles, createAudio, engine, live, reconnect, save, state, status } from './core.js';
-import { backgroundAudio, keepAwake, saveFile } from './platform.js';
+import { backgroundAudio, hasAudioSession, keepAwake, saveFile } from './platform.js';
+import { preloadFiles } from './store.js';
 
 export async function listDevices(selectedId) {
   const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput');
@@ -60,7 +61,7 @@ export function runMeter() {
 
 export async function start() {
   status(t('power.starting'));
-  const track = await engine.start($('device').value || state.deviceId);
+  const track = await engine.start($('device').value || state.deviceId, state.bufferMs);
   state.deviceId = track.getSettings().deviceId || state.deviceId;
   await listDevices(state.deviceId);
   if (!engine.wasmBytes) status(t('power.noWasm'), true);
@@ -71,6 +72,10 @@ export async function start() {
   setupChannel();
   watchAudio(track);
   await Promise.all(state.chain.map(applyStoredFiles));
+  // Capturas e IRs dos outros presets vão para a memória agora, para a troca de preset não esperar o disco.
+  const used = [...state.presets.flatMap(p => p.chain), ...Object.values(state.drafts).flat()]
+    .flatMap(b => Object.values(b.files).map(f => f.key));
+  preloadFiles(used).catch(() => {});
   runMeter();
   tunerTimer = setInterval(runTuners, 80);
   let warned = false;
@@ -78,7 +83,8 @@ export async function start() {
     const ms = engine.latencyMs();
     // Um veredito ao lado do número: quem nunca mediu latência não sabe se 23 ms é bom.
     const verdict = ms > 80 ? t('power.latHigh') : ms <= 25 ? t('power.latGood') : '';
-    $('latency').textContent = t('power.latencyMs', { ms: fmtNum(ms, 1) }) + (verdict ? ` · ${verdict}` : '');
+    const buf = engine.session?.bufferSeconds ? ` · ${t('power.bufferMs', { ms: fmtNum(engine.session.bufferSeconds * 1000, 1) })}` : '';
+    $('latency').textContent = t('power.latencyMs', { ms: fmtNum(ms, 1) }) + (verdict ? ` · ${verdict}` : '') + buf;
     $('latency').parentElement.classList.toggle('high', ms > 80);
     // Fone ou caixa Bluetooth somam 150 ms ou mais: dá para ouvir, não para tocar.
     if (ms > 80 && !warned) {
@@ -140,6 +146,19 @@ $('power').onclick = async () => {
     $('power').disabled = false;
   }
 };
+
+// Tamanho do buffer: só onde dá para pedir ao sistema (iPhone como app). Trocar religa o som.
+if (hasAudioSession) {
+  $('buffer').hidden = $('bufferRow').hidden = false;
+  $('buffer').value = String(state.bufferMs);
+  $('buffer').onchange = async () => {
+    state.bufferMs = +$('buffer').value;
+    save();
+    if (!engine.running) return;
+    await stop();
+    $('power').click();
+  };
+}
 
 $('device').onchange = async () => {
   state.deviceId = $('device').value;

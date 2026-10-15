@@ -99,6 +99,8 @@ export function migrateState(saved, { factory = [], factoryVersion = 0 } = {}) {
     floorView: saved?.floorView ?? false,
     deviceId: str(saved?.deviceId, 200),
     inputChannel: ['auto', 0, 1].includes(saved?.inputChannel) ? saved.inputChannel : 'auto',
+    // Buffer de áudio pedido ao sistema (iPhone como app): menor = menos atraso, mais risco de estalo.
+    bufferMs: [2.7, 5, 10, 20].includes(saved?.bufferMs) ? saved.bufferMs : 5,
     chain: normalizeChain(saved?.chain || DEFAULT_CHAIN.map(newBlock)),
     presets: (Array.isArray(saved?.presets) ? saved.presets : [])
       .filter(p => p && typeof p.name === 'string' && p.name)

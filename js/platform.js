@@ -44,11 +44,13 @@ export async function backgroundAudio(on, text = 'ToneSmith') {
 
 // Antes de ligar o áudio: no iPhone, pede ao sistema a sessão de gravação com buffer curto (plugin AudioSession,
 // ver native/). Sem o plugin (ou no Android, que já usa o caminho de baixa latência), não faz nada.
-export async function prepareAudio() {
+// bufferMs: tamanho pedido ao sistema (2,7 a 20 ms); o iPhone pode arredondar. Devolve o que o sistema deu, ou null.
+export async function prepareAudio(bufferMs = 5) {
   const s = isNative && plugin('AudioSession');
-  if (!s) return;
-  try { await s.prepare({ sampleRate: 48000, bufferSeconds: 0.005 }); } catch { /* segue com o padrão do sistema */ }
+  if (!s) return null;
+  try { return await s.prepare({ sampleRate: 48000, bufferSeconds: bufferMs / 1000 }); } catch { return null; /* segue com o padrão do sistema */ }
 }
+export const hasAudioSession = !!(isNative && plugin('AudioSession'));
 
 // MIDI nativo (CoreMIDI no iPhone, android.media.midi no Android): os WebViews não têm Web MIDI.
 // onMessage recebe os bytes crus, como o onmidimessage do navegador. Devolve a lista de entradas ou null.

@@ -1,5 +1,5 @@
 // Service worker: rede primeiro (assim você sempre recebe a versão nova), cache quando estiver offline.
-const CACHE = 'pedaleira-v44';
+const CACHE = 'pedaleira-v45';
 const SHELL = [
   './', 'index.html', 'css/app.css', 'fonts/archivo-latin.woff2', 'fonts/damion-latin.woff2', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png',
   'js/app.js', 'js/fit.js', 'js/i18n.js', 'js/i18n-apply.js', 'js/i18n/app.js', 'js/i18n/board.js', 'js/i18n/control.js', 'js/i18n/core.js', 'js/i18n/help.js', 'js/i18n/html.js', 'js/i18n/pedal-view.js', 'js/i18n/pedals.js', 'js/i18n/power.js', 'js/i18n/presets.js', 'js/i18n/scenes.js', 'js/i18n/stage.js', 'js/suggestions.js', 'js/core.js', 'js/chain.js', 'js/board.js', 'js/power.js', 'js/presets.js', 'js/scenes.js', 'js/control.js', 'js/stage.js', 'js/store.js', 'js/platform.js', 'js/midi.js', 'js/audio/engine.js', 'js/audio/reverb-ir.js', 'js/audio/pitch.js', 'js/audio/dynamics.js', 'js/audio/dsp-worklet.js', 'js/ui/pedal-view.js',

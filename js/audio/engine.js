@@ -29,7 +29,7 @@ export class Engine {
 
   get running() { return !!this.ctx; }
 
-  async start(deviceId) {
+  async start(deviceId, bufferMs = 5) {
     const ask = id => navigator.mediaDevices.getUserMedia({
       audio: {
         deviceId: id ? { exact: id } : undefined,
@@ -37,7 +37,7 @@ export class Engine {
         latency: 0, channelCount: { ideal: 2 },
       },
     });
-    await prepareAudio(); // iPhone como app: sessão de gravação com buffer curto, antes de pedir a entrada
+    this.session = await prepareAudio(bufferMs); // iPhone como app: sessão de gravação com buffer curto, antes de pedir a entrada
     try {
       this.stream = await ask(deviceId);
     } catch (e) {
