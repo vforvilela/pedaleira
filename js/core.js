@@ -1,91 +1,19 @@
 // Estado da pedaleira, áudio de cada bloco e ações básicas (ligar, girar, tap) usadas por todos os módulos.
 import { Engine } from './audio/engine.js';
-import { DEFAULT_CHAIN, byType, defaultParams, validParams } from './pedals/index.js';
+import { byType } from './pedals/index.js';
+import { uid, SCENES, SCENE_NAMES, newBlock, normalizeBlock, normalizeChain, sceneMatches, sameScene, sameChain, withScene, chainDirty, safeUrl, SCHEMA_VERSION, migrateState } from './chain.js';
 import { deleteFile, getFile, loadState, saveState } from './store.js';
 import { FACTORY_VERSION, factoryPresets } from './factory.js';
 import { t } from './i18n.js';
 
 export const $ = id => document.getElementById(id);
 export const engine = new Engine();
-export const uid = () => Math.random().toString(36).slice(2, 10);
-export const SCENES = 4, SCENE_NAMES = ['A', 'B', 'C', 'D'];
+export { uid, SCENES, SCENE_NAMES, newBlock, normalizeBlock, normalizeChain, sceneMatches, sameScene, sameChain, withScene, chainDirty, safeUrl, SCHEMA_VERSION };
 
 // ---------- Estado ----------
 
-export function newBlock(type) {
-  const def = byType[type];
-  return { uid: uid(), type, on: def.defaultOn !== false, params: defaultParams(def), files: {}, scenes: Array(SCENES).fill(null) };
-}
-
-// Completa um bloco salvo com os padrões do pedal (o pedal pode ter ganhado controles novos) e só deixa
-// passar o que faz sentido: isto é a porta de entrada do localStorage, dos links e dos arquivos importados.
-const UID_RE = /^[\w-]{1,24}$/;
-// Endereços de onde um arquivo pode ser baixado: https, ou http só no próprio computador (desenvolvimento).
-export const safeUrl = url => /^https:\/\//.test(url) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//.test(url);
-const str = (v, n) => (typeof v === 'string' ? v.slice(0, n) : '');
-export function normalizeBlock(b) {
-  const def = byType[b.type];
-  const id = UID_RE.test(b.uid) ? b.uid : uid();
-  const files = {};
-  for (const [k, f] of Object.entries(b.files || {})) {
-    if (!def.files?.[k] || !f || typeof f !== 'object') continue;
-    const url = str(f.url, 2048);
-    files[k] = { name: str(f.name, 60), key: str(f.key, 80) || `${id}:${k}`, ...(safeUrl(url) ? { url } : {}) };
-  }
-  return {
-    uid: id, type: b.type, on: b.on !== false,
-    params: validParams(def, b.params),
-    files,
-    scenes: Array.from({ length: SCENES }, (_, i) => normalizeScene(b.scenes?.[i], def)),
-  };
-}
-
-// scenes[i] de um pedal: null (fora da cena i) ou { on, params } (ligado/desligado e posição dos botões).
-// Versões antigas guardavam só true/false.
-function normalizeScene(s, def) {
-  if (typeof s === 'boolean') return { on: s, params: null };
-  if (!s || typeof s !== 'object') return null;
-  return { on: !!s.on, params: s.params ? validParams(def, s.params) : null };
-}
-
-// O pedal está como a cena i manda? (true também quando ele está fora da cena)
-export function sceneMatches(b, i) {
-  const s = b.scenes[i];
-  if (!s) return true;
-  return s.on === b.on && (!s.params || Object.keys(s.params).every(k => s.params[k] === b.params[k]));
-}
-
-export const sameScene = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-export const normalizeChain = chain => (Array.isArray(chain) ? chain : []).filter(b => b && byType[b.type]).map(normalizeBlock);
-
 export const saved = loadState();
-export const state = {
-  master: saved?.master ?? -6,
-  inputGain: saved?.inputGain ?? 0,
-  measuredMs: saved?.measuredMs ?? null,
-  // Quem já usava o app antes do cartão de primeiros passos não precisa vê-lo.
-  introDone: saved ? saved.introDone ?? true : false,
-  // Aviso do monitor direto da interface, mostrado só na primeira vez que o som liga.
-  monitorHintDone: saved?.monitorHintDone ?? false,
-  // Visão do chão: o sinal corre da direita para a esquerda, como a pedaleira vista por quem pisa nela.
-  floorView: saved?.floorView ?? false,
-  deviceId: saved?.deviceId ?? '',
-  inputChannel: saved?.inputChannel ?? 'auto',
-  chain: normalizeChain(saved?.chain || DEFAULT_CHAIN.map(newBlock)),
-  presets: (saved?.presets || []).map(p => ({ name: p.name, chain: normalizeChain(p.chain) })),
-  preset: saved?.preset ?? null,
-  factory: saved?.factory ?? 0,
-  // Rascunhos: mudanças não salvas por preset ('' = sem preset).
-  drafts: Object.fromEntries(Object.entries(saved?.drafts || {}).map(([k, c]) => [k, normalizeChain(c)])),
-  midi: saved?.midi || [],
-};
-// Presets de fábrica que a pessoa ainda não tem (pelo nome: um preset dela com o mesmo nome fica).
-if (state.factory < FACTORY_VERSION) {
-  // (Pelos nomes nos três idiomas: quem trocou de idioma não ganha cópias.)
-  const add = factoryPresets().filter(f => !state.presets.some(p => (f.aliases || [f.name]).includes(p.name)));
-  state.presets.push(...add.map(p => ({ name: p.name, chain: normalizeChain(p.chain) })));
-  state.factory = FACTORY_VERSION;
-}
+export const state = migrateState(saved, { factory: factoryPresets(), factoryVersion: FACTORY_VERSION });
 
 // Quem precisa reagir a qualquer mudança (asterisco do preset, botões de cena) se inscreve aqui.
 export const changeListeners = [];

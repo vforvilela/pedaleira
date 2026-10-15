@@ -1,6 +1,6 @@
 // Presets de fábrica: quem abre o app pela primeira vez já tem sons prontos para tocar, todos com o amp
 // interno (nada para baixar). Quem já usava ganha os que ainda não tem, uma vez por versão desta lista.
-import { SCENES, newBlock } from './core.js';
+import { SCENES, newBlock } from './chain.js';
 import { DICTS, t } from './i18n.js';
 
 export const FACTORY_VERSION = 2;

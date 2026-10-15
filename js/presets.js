@@ -1,6 +1,7 @@
 // Presets, rascunhos, exportar e importar.
 import { ensureView, fetchFile, fileInput, renderBoard } from './board.js';
-import { $, changeListeners, hideToast, sameScene, toast, createAudio, engine, live, loadIntoAudio, normalizeBlock, normalizeChain, reconnect, releaseFile, save, SCENE_NAMES, snapshot, state, status, uid } from './core.js';
+import { $, changeListeners, hideToast, toast, createAudio, engine, live, loadIntoAudio, normalizeBlock, normalizeChain, reconnect, releaseFile, save, SCENE_NAMES, snapshot, state, status, uid } from './core.js';
+import { chainDirty, sameChain, withScene } from './chain.js';
 import { t } from './i18n.js';
 import { saveFile } from './platform.js';
 import { getFile, putFile } from './store.js';
@@ -9,32 +10,9 @@ import { getFile, putFile } from './store.js';
 // Mudança não salva num preset vira rascunho: trocar de preset não perde nada
 // (nem quando a troca vem do pé, pelo MIDI ou pelo teclado). O * no nome indica rascunho.
 
-// Compara duas cadeias pelo que importa para o som (ignora a ordem das chaves).
-export function sameChain(a, b) {
-  if (a.length !== b.length) return false;
-  return a.every((x, i) => {
-    const y = b[i];
-    if (x.uid !== y.uid || x.type !== y.type || x.on !== y.on) return false;
-    if (x.scenes.some((v, i) => !sameScene(v, y.scenes[i]))) return false;
-    const pk = new Set([...Object.keys(x.params), ...Object.keys(y.params)]);
-    for (const k of pk) if (x.params[k] !== y.params[k]) return false;
-    const fk = new Set([...Object.keys(x.files), ...Object.keys(y.files)]);
-    for (const k of fk) if (x.files[k]?.key !== y.files[k]?.key) return false;
-    return true;
-  });
-}
-
+export { sameChain, withScene };
 export const presetByName = name => state.presets.find(p => p.name === name);
-// A cadeia salva com a cena i aplicada: trocar de cena não conta como mudança no preset.
-export const withScene = (chain, i) => chain.map(b => {
-  const s = b.scenes[i];
-  return s ? { ...b, on: s.on, params: s.params ? { ...b.params, ...s.params } : b.params } : b;
-});
-export const isDirty = () => {
-  const p = presetByName(state.preset);
-  if (!p || sameChain(state.chain, p.chain)) return false;
-  return !SCENE_NAMES.some((_, i) => sameChain(state.chain, withScene(p.chain, i)));
-};
+export const isDirty = () => chainDirty(state.chain, presetByName(state.preset)?.chain);
 export const hasDraft = name => !!state.drafts[name] || (name === state.preset && isDirty());
 
 export function renderPresets() {
