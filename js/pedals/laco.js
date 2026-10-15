@@ -1,5 +1,5 @@
 // Looper inspirado no TC Electronic Ditto: pise para gravar, pise para tocar, pise para sobrepor.
-// Duas pisadas rápidas param. STOP e APAGAR também ficam embaixo do pedal.
+// Duas pisadas rápidas param. STOP, DESFAZER (a última camada; de novo, refaz) e APAGAR ficam embaixo do pedal.
 import { monoWorklet } from './common.js';
 import { t } from '../i18n.js';
 
@@ -23,6 +23,7 @@ export default {
   controls: [{ id: 'level', label: 'LOOP LVL', default: 7 }],
   actions: [
     { id: 'stop', get label() { return t('pedals.loopStopLabel'); }, get title() { return t('pedals.loopStopTitle'); } },
+    { id: 'undo', get label() { return t('pedals.loopUndoLabel'); }, get title() { return t('pedals.loopUndoTitle'); } },
     { id: 'clear', get label() { return t('pedals.loopClearLabel'); }, get title() { return t('pedals.loopClearTitle'); } },
   ],
 

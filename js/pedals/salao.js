@@ -17,6 +17,7 @@ export default {
     { id: 'decay', label: 'DECAY', default: 5 },
     { id: 'room', label: 'TYPE', type: 'select', options: ROOM_NAMES, default: 1 },
     { id: 'tone', label: 'TONE', default: 6 },
+    { id: 'pre', label: 'PRE', default: 0, show: v => `${Math.round(v * 12)} ms` },
     { id: 'level', label: 'LEVEL', default: 4 },
   ],
 
@@ -28,8 +29,10 @@ export default {
     const send = ctx.createGain();
     const hp = biquad(ctx, 'highpass', 120, 0.7);
     const tone = biquad(ctx, 'lowpass', 6000, 0.5);
+    // Pré-delay: um atraso antes da reverberação (0 a 120 ms) separa a nota da cauda, como numa sala grande.
+    const pre = ctx.createDelay(0.13);
     const wet = ctx.createGain();
-    input.connect(send).connect(hp);
+    input.connect(send).connect(hp).connect(pre);
     tone.connect(wet).connect(output);
 
     // Dois convolvers: a IR nova entra no que está mudo e os dois trocam com crossfade,
@@ -39,7 +42,7 @@ export default {
       conv.normalize = false;
       const gain = ctx.createGain();
       gain.gain.value = 0;
-      hp.connect(conv).connect(gain).connect(tone);
+      pre.connect(conv).connect(gain).connect(tone);
       return { conv, gain };
     });
     let active = 1;
@@ -65,6 +68,7 @@ export default {
     };
     const apply = () => {
       smooth(ctx, tone.frequency, logMap(p.tone, 1500, 14000));
+      smooth(ctx, pre.delayTime, (p.pre / 10) * 0.12, 0.03);
       smooth(ctx, wet.gain, Math.pow(p.level / 10, 1.5) * 1.6);
       // Gerar a IR custa alguns ms: espera o botão parar de girar.
       clearTimeout(irTimer);

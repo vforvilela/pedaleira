@@ -147,6 +147,22 @@ test('looper grava, toca em loop, sobrepõe e para', () => {
   assert.equal(l.state, 'empty');
 });
 
+test('looper: desfazer tira a última camada sobreposta e, de novo, traz de volta', () => {
+  const l = new Looper(1000, 10);
+  const run = (n, v) => { const inp = new Float32Array(n).fill(v), out = new Float32Array(n); l.process(inp, out); return out; };
+  l.command('press'); run(500, 0.5); l.command('press'); // loop de 0,5 s com 0,5
+  l.command('press'); run(500, 0.25); l.command('press'); // sobrepõe 0,25 → 0,75
+  assert.ok(Math.abs(run(10, 0)[0] - 0.75) < 1e-6);
+  l.command('undo');
+  assert.ok(Math.abs(run(10, 0)[0] - 0.5) < 1e-6, 'desfez a camada');
+  l.command('undo');
+  assert.ok(Math.abs(run(10, 0)[0] - 0.75) < 1e-6, 'refez a camada');
+  l.command('press'); run(500, 0.1); // sobrepondo: desfazer no meio volta a tocar sem a camada
+  l.command('undo');
+  assert.equal(l.state, 'play');
+  assert.ok(Math.abs(run(10, 0)[0] - 0.75) < 1e-6);
+});
+
 test('looper ignora gravação de menos de 0,1 s (pisada sem querer)', () => {
   const l = new Looper(1000, 10);
   l.command('press');

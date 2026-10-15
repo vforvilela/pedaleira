@@ -33,9 +33,9 @@ Pedal names stay in Portuguese in every language. The table gives each one's mea
 | Ondas | Waves | Boss TR-2 | Tremolo, from triangle to square |
 | Volume | Volume | Ernie Ball VP Jr | Volume pedal with audio taper and adjustable minimum |
 | Eco 8 | Echo 8 | Boss DD-8 | Delay, STD, ANLG, MOD and P.PONG (stereo) modes, with trails. SYNC locks the time to the song tempo (1/4, 1/8., 1/8, 1/8T, 1/16) |
-| Salão | Hall | TC Electronic Hall of Fame 2 | Stereo convolution reverb, 5 rooms, with trails |
+| Salão | Hall | TC Electronic Hall of Fame 2 | Stereo convolution reverb, 5 rooms, pre-delay, with trails |
 | Pulso | Pulse | Boss DB-90 | Metronome: BPM with TAP, time signature with accent, volume. Click goes to the headphones, outside the effects |
-| Laço | Loop | TC Electronic Ditto | Looper up to 2 min: record, play, overdub; step twice to stop |
+| Laço | Loop | TC Electronic Ditto | Looper up to 2 min: record, play, overdub, undo the last layer; step twice to stop |
 
 **For playing live**
 

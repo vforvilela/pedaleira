@@ -35,7 +35,7 @@ registerProcessor('comp', class extends DspProcessor {
   configure(p) { this.dsp.set(p); }
 });
 
-// Looper: { cmd: 'press' | 'stop' | 'clear' } ou { level }. Avisa a cada troca de estado.
+// Looper: { cmd: 'press' | 'stop' | 'clear' | 'undo' } ou { level }. Avisa a cada troca de estado.
 registerProcessor('looper', class extends DspProcessor {
   constructor() { super(() => new Looper(sampleRate)); this.last = ''; }
   configure({ cmd, level }) {
