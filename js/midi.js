@@ -13,17 +13,17 @@ export const LATCH_MS = 1000, QUICK_MS = 400;
 
 export const midiSupported = () => typeof navigator !== 'undefined' && !!navigator.requestMIDIAccess;
 
-// Converte uma mensagem MIDI em { key, value, press } ou null.
+// Converte uma mensagem MIDI em { key, kind, n, ch, value, press } ou null. O texto para a pessoa é da UI.
 export function parseMidi([status, d1, d2 = 0]) {
   const type = status & 0xf0, ch = (status & 0x0f) + 1;
-  if (type === 0xb0) return { key: `cc:${ch}:${d1}`, label: `CC ${d1} (canal ${ch})`, value: d2, press: d2 >= 64 };
-  if (type === 0x90 && d2 > 0) return { key: `note:${ch}:${d1}`, label: `nota ${d1} (canal ${ch})`, value: d2, press: true };
-  if (type === 0xc0) return { key: `pc:${ch}`, label: `Program Change ${d1}`, value: d1, program: d1 };
+  if (type === 0xb0) return { key: `cc:${ch}:${d1}`, kind: 'cc', n: d1, ch, value: d2, press: d2 >= 64 };
+  if (type === 0x90 && d2 > 0) return { key: `note:${ch}:${d1}`, kind: 'note', n: d1, ch, value: d2, press: true };
+  if (type === 0xc0) return { key: `pc:${ch}`, kind: 'pc', n: d1, ch, value: d1, program: d1 };
   return null;
 }
 
 export class Midi {
-  // mappings: [{ key, label, target }] (persistido pelo app). onAction(target, msg).
+  // mappings: [{ key, target, momentary? }] (persistido pelo app). onAction(target, msg).
   // native(onMessage) → nomes das entradas: fonte MIDI do app nativo, usada quando não há navigator.requestMIDIAccess.
   constructor(mappings, { onAction, onLearned, onChange, native = null, now = () => Date.now() }) {
     this.now = now;
@@ -85,7 +85,7 @@ export class Midi {
       // Um botão do controlador faz uma coisa só; um alvo recebe um botão só.
       this.mappings.splice(0, this.mappings.length,
         ...this.mappings.filter(m => m.key !== msg.key && JSON.stringify(m.target) !== JSON.stringify(target)),
-        { key: msg.key, label: msg.label, target });
+        { key: msg.key, target });
       this.onChange();
       this.onLearned(target, msg);
       return;

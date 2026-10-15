@@ -14,7 +14,15 @@ function fastTanh(x) {
     / (2.44506634652299 + (2.44506634652299 + x2) * Math.abs(x + 0.814642734961073 * x * ax));
 }
 
-export class NamError extends Error {}
+// code: 'invalid' (não é um .nam), 'unsupported' (recurso que o motor não tem; detail diz qual),
+// 'inconsistent' (pesos e configuração não batem; detail diz onde), 'noWasm'. A UI traduz pelo code.
+export class NamError extends Error {
+  constructor(code, detail = '') {
+    super(detail ? `${code}: ${detail}` : code);
+    this.code = code;
+    this.detail = detail;
+  }
+}
 
 // Ativações: código (o mesmo do motor wasm), parâmetros e função (x, canal).
 function parseActivation(j) {
@@ -44,15 +52,15 @@ function parseActivation(j) {
     }
     case 'Softsign': return mk(10, [], x => x / (1 + Math.abs(x)));
   }
-  throw new NamError(`Ativação ${JSON.stringify(j)} não suportada.`);
+  throw new NamError('unsupported', `activation ${JSON.stringify(j)}`);
 }
 
 // SlimmableContainer: sem controle de tamanho no app, usa o último submodelo (o completo).
 function unwrap(nam) {
-  if (!nam || typeof nam !== 'object') throw new NamError('Arquivo .nam inválido.');
+  if (!nam || typeof nam !== 'object') throw new NamError('invalid');
   if (nam.architecture !== 'SlimmableContainer') return nam;
   const subs = nam.config?.submodels;
-  if (!Array.isArray(subs) || !subs.length) throw new NamError('SlimmableContainer sem submodelos.');
+  if (!Array.isArray(subs) || !subs.length) throw new NamError('inconsistent', 'SlimmableContainer');
   return unwrap(subs[subs.length - 1].model);
 }
 
@@ -63,7 +71,7 @@ export function createModel(nam, { deferWarm = false } = {}) {
   let model;
   if (inner.architecture === 'WaveNet') model = new WaveNet(parseWaveNet(inner));
   else if (inner.architecture === 'LSTM') model = new LSTM(inner.config, Float32Array.from(inner.weights || []));
-  else throw new NamError(`Arquitetura "${inner.architecture}" ainda não suportada (só WaveNet e LSTM).`);
+  else throw new NamError('unsupported', `architecture "${inner.architecture}"`);
   model.sampleRate = inner.sample_rate || nam.sample_rate || 48000;
   model.loudness = nam.metadata?.loudness ?? inner.metadata?.loudness ?? null;
   if (!deferWarm) model.prewarm();
@@ -73,21 +81,21 @@ export function createModel(nam, { deferWarm = false } = {}) {
 class WeightReader {
   constructor(weights) { this.w = weights; this.i = 0; }
   take(n) {
-    if (this.i + n > this.w.length) throw new NamError('Arquivo .nam com pesos faltando.');
+    if (this.i + n > this.w.length) throw new NamError('inconsistent', 'weights missing');
     const out = this.w.subarray(this.i, this.i + n);
     this.i += n;
     return out;
   }
   next() { return this.take(1)[0]; }
   done() {
-    if (this.i !== this.w.length) throw new NamError(`Arquivo .nam com ${this.w.length - this.i} pesos sobrando.`);
+    if (this.i !== this.w.length) throw new NamError('inconsistent', `${this.w.length - this.i} weights left over`);
   }
 }
 
 // Conv1D causal (Conv1x1 quando K = 1). No arquivo: por grupo, [saída][entrada do grupo][k], depois o bias.
 // Expando os grupos para uma matriz densa [k][saída][entrada] (zeros fora dos blocos).
 function readConv(r, inCh, outCh, K, d, bias, groups = 1) {
-  if (inCh % groups || outCh % groups) throw new NamError('Canais não divisíveis pelo número de grupos.');
+  if (inCh % groups || outCh % groups) throw new NamError('inconsistent', 'groups');
   const opg = outCh / groups, ipg = inCh / groups;
   const raw = r.take(outCh * ipg * K);
   const w = new Float32Array(K * outCh * inCh);
@@ -106,19 +114,19 @@ const FILMS = ['conv_pre_film', 'conv_post_film', 'input_mixin_pre_film', 'input
 
 const perLayer = (v, n, what) => {
   if (!Array.isArray(v)) return Array(n).fill(v);
-  if (v.length !== n) throw new NamError(`"${what}" com tamanho diferente de "dilations".`);
+  if (v.length !== n) throw new NamError('inconsistent', `${what} vs dilations`);
   return v;
 };
 
 // Config + pesos → árvore com matrizes densas, usada pelos dois motores (JS e wasm).
 function parseWaveNet(nam) {
   const config = nam.config;
-  if (!config || !Array.isArray(config.layers) || !config.layers.length) throw new NamError('Configuração WaveNet inválida.');
-  if ((config.in_channels ?? 1) !== 1) throw new NamError('WaveNet com mais de um canal de entrada não suportado.');
+  if (!config || !Array.isArray(config.layers) || !config.layers.length) throw new NamError('invalid', 'WaveNet config');
+  if ((config.in_channels ?? 1) !== 1) throw new NamError('unsupported', 'in_channels > 1');
   let condition = null;
   if (config.condition_dsp) {
     if (config.condition_dsp.architecture !== 'WaveNet')
-      throw new NamError(`condition_dsp "${config.condition_dsp.architecture}" não suportado (só WaveNet).`);
+      throw new NamError('unsupported', `condition_dsp "${config.condition_dsp.architecture}"`);
     condition = parseWaveNet(config.condition_dsp);
   }
   const condSize = condition ? condition.outCh : 1;
@@ -127,17 +135,17 @@ function parseWaveNet(nam) {
   const arrays = config.layers.map((c, ai) => {
     const sl = c.slimmable;
     if (sl && typeof sl === 'object' && sl.method && sl.method !== 'slice_channels_uniform')
-      throw new NamError(`Método slimmable "${sl.method}" não suportado.`);
+      throw new NamError('unsupported', `slimmable "${sl.method}"`);
     // (slimmable "slice_channels_uniform" no tamanho máximo é a WaveNet normal.)
     const C = c.channels, Bn = c.bottleneck ?? C, n = c.dilations?.length;
-    if (!C || !n) throw new NamError('Configuração WaveNet inválida.');
-    if (c.condition_size !== condSize) throw new NamError('condition_size não bate com a entrada de condição.');
+    if (!C || !n) throw new NamError('invalid', 'WaveNet config');
+    if (c.condition_size !== condSize) throw new NamError('inconsistent', 'condition_size');
     const kernels = c.kernel_sizes !== undefined ? perLayer(c.kernel_sizes, n, 'kernel_sizes') : Array(n).fill(c.kernel_size);
     const acts = perLayer(c.activation, n, 'activation').map(parseActivation);
     let gatings, acts2;
     if (c.gating_mode !== undefined) {
       gatings = perLayer(c.gating_mode, n, 'gating_mode').map(g => {
-        if (!(g in GATING)) throw new NamError(`gating_mode "${g}" desconhecido.`);
+        if (!(g in GATING)) throw new NamError('unsupported', `gating_mode "${g}"`);
         return GATING[g];
       });
       acts2 = gatings.map((g, i) => {
@@ -151,26 +159,26 @@ function parseWaveNet(nam) {
     }
     const l1 = c.layer1x1 ?? { active: true, groups: 1 };
     const h1 = c.head1x1 ?? { active: false, out_channels: C, groups: 1 };
-    if (!l1.active && Bn !== C) throw new NamError('layer1x1 inativo exige bottleneck igual a channels.');
+    if (!l1.active && Bn !== C) throw new NamError('inconsistent', 'layer1x1 / bottleneck');
     const films = FILMS.map(key => {
       const f = c[key];
       if (!f || f.active === false) return null;
       return { shift: f.shift ?? true, groups: f.groups ?? 1 };
     });
-    if (films[6] && !l1.active) throw new NamError('layer1x1_post_film sem layer1x1.');
-    if (films[7] && !h1.active) throw new NamError('head1x1_post_film sem head1x1.');
+    if (films[6] && !l1.active) throw new NamError('inconsistent', 'layer1x1_post_film');
+    if (films[7] && !h1.active) throw new NamError('inconsistent', 'head1x1_post_film');
     let head;
     if (c.head && typeof c.head === 'object')
       head = { size: c.head.out_channels, K: c.head.kernel_size, d: c.head.head_dilation ?? 1, bias: !!c.head.bias };
     else if (c.head_size !== undefined) head = { size: c.head_size, K: 1, d: 1, bias: !!c.head_bias };
-    else throw new NamError('WaveNet sem "head" nem "head_size".');
+    else throw new NamError('inconsistent', 'head');
     const headIn = h1.active ? h1.out_channels : Bn;
     if (ai > 0) {
       const prev = config.layers[ai - 1];
       const prevHead = prev.head?.out_channels ?? prev.head_size;
       if (prevHead !== C || c.input_size !== prev.channels || prevHead !== headIn)
-        throw new NamError('Dimensões entre blocos da WaveNet não batem.');
-    } else if (c.input_size !== 1) throw new NamError('input_size do primeiro bloco diferente de 1.');
+        throw new NamError('inconsistent', 'block dimensions');
+    } else if (c.input_size !== 1) throw new NamError('inconsistent', 'input_size');
 
     // Ordem dos pesos: rechannel, camadas (conv, mixin, layer1x1, head1x1, FiLMs), cabeça do bloco.
     const Z = gatings.map(g => (g ? 2 * Bn : Bn));
@@ -197,7 +205,7 @@ function parseWaveNet(nam) {
   let post = null, outCh = arrays[arrays.length - 1].headSize;
   if (config.head) {
     const h = config.head, ks = h.kernel_sizes;
-    if (!Array.isArray(ks) || !ks.length) throw new NamError('"head" da WaveNet sem kernel_sizes.');
+    if (!Array.isArray(ks) || !ks.length) throw new NamError('inconsistent', 'head kernel_sizes');
     let cin = outCh;
     post = { act: parseActivation(h.activation), convs: ks.map((k, i) => {
       const cout = i + 1 === ks.length ? h.out_channels : h.channels;
@@ -452,7 +460,7 @@ export function encodeForWasm(nam) {
 class LSTM {
   constructor(config, weights) {
     const { input_size: I = 1, hidden_size: H, num_layers: Ln } = config || {};
-    if (!H || !Ln) throw new NamError('Configuração LSTM inválida.');
+    if (!H || !Ln) throw new NamError('invalid', 'LSTM config');
     const r = new WeightReader(weights);
     this.H = H;
     this.cells = [];

@@ -10,7 +10,7 @@ class WasmWaveNet {
     const wPtr = e.alloc(enc.weights.byteLength);
     new Float32Array(e.memory.buffer, wPtr, enc.weights.length).set(enc.weights);
     if (e.init(cfgPtr, enc.cfg.length, wPtr, enc.weights.length) !== 0)
-      throw new NamError('Arquivo .nam inconsistente (pesos ou configuração).');
+      throw new NamError('inconsistent', 'wasm init');
     this.e = e;
     if (!deferWarm) e.prewarm();
     // A memória não cresce depois do init, então as vistas continuam válidas.
@@ -48,7 +48,7 @@ export function createEngine(nam, wasmModule, { deferWarm = false } = {}) {
       /* cai para o motor JS, que dá o erro certo se o arquivo for inválido */
     }
   }
-  if (pre) throw new NamError('Motor WebAssembly indisponível para a captura já codificada.');
+  if (pre) throw new NamError('noWasm');
   const m = createModel(nam, { deferWarm });
   m.engine = 'js';
   return m;

@@ -59,7 +59,7 @@ export class NamSlot {
       const done = fn => arg => { clearTimeout(timer); fn(arg); };
       this.node.port.onmessage = ({ data }) => {
         if (data.type === 'loaded') { this.loaded = true; done(resolve)(data); }
-        else { this.loaded = false; done(reject)(new Error(data.message)); }
+        else { this.loaded = false; done(reject)(Object.assign(new Error(data.message), { code: data.code, detail: data.detail })); }
       };
       this.node.port.onmessageerror = done(reject);
       let enc = null;

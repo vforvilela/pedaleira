@@ -51,7 +51,7 @@ test('nome da nota e cents', () => {
 });
 
 test('mensagens MIDI', () => {
-  assert.deepEqual(parseMidi([0xB0, 64, 127]), { key: 'cc:1:64', label: 'CC 64 (canal 1)', value: 127, press: true });
+  assert.deepEqual(parseMidi([0xB0, 64, 127]), { key: 'cc:1:64', kind: 'cc', n: 64, ch: 1, value: 127, press: true });
   assert.equal(parseMidi([0xB1, 64, 0]).press, false);
   assert.equal(parseMidi([0x90, 60, 100]).key, 'note:1:60');
   assert.equal(parseMidi([0x90, 60, 0]), null); // note on com velocidade 0 = soltar

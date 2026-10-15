@@ -26,7 +26,7 @@ class NamProcessor extends AudioWorkletProcessor {
         this.pending = createEngine(data.enc ?? data.nam, wasmModule, { deferWarm: true });
       } catch (err) {
         this.pending = null;
-        this.port.postMessage({ type: 'error', message: err.message });
+        this.port.postMessage({ type: 'error', message: err.message, code: err.code, detail: err.detail });
       }
     };
   }

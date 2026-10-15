@@ -48,7 +48,7 @@ export const midi = new Midi(state.midi, {
   native: nativeMidi,
   onAction: runAction,
   onChange: save,
-  onLearned(target, msg) { status(t('control.learned', { msg: msg.label, target: describeTarget(target) })); },
+  onLearned(target, msg) { status(t('control.learned', { msg: t(`control.midi.${msg.kind}`, { n: msg.n, ch: msg.ch }), target: describeTarget(target) })); },
 });
 
 let learning = false;

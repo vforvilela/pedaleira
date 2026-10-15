@@ -4,7 +4,7 @@ import { byType } from './pedals/index.js';
 import { uid, SCENES, SCENE_NAMES, newBlock, normalizeBlock, normalizeChain, sceneMatches, sameScene, sameChain, withScene, chainDirty, safeUrl, SCHEMA_VERSION, migrateState } from './chain.js';
 import { deleteFile, getFile, loadState, saveState } from './store.js';
 import { FACTORY_VERSION, factoryPresets } from './factory.js';
-import { t } from './i18n.js';
+import { DICTS, t } from './i18n.js';
 
 export const $ = id => document.getElementById(id);
 export const engine = new Engine();
@@ -74,7 +74,8 @@ export async function loadIntoAudio(block, kind, data, name) {
       status(t('core.rateMismatch', { name, rate: info.sampleRate, ctxRate: engine.ctx.sampleRate }), true);
     else status(t(heavy ? 'core.loadedJs' : 'core.loaded', { name }));
   } catch (err) {
-    status(t('core.loadFailed', { name, msg: err.message }), true);
+    const msg = err.code && `core.nam.${err.code}` in DICTS.pt ? t(`core.nam.${err.code}`, { detail: err.detail || '' }) : err.message;
+    status(t('core.loadFailed', { name, msg }), true);
     const key = block.files[kind]?.key;
     delete block.files[kind];
     if (key) releaseFile(key);
