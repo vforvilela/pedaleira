@@ -23,6 +23,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - run: npm ci
+      - name: Lint (variável inexistente, código morto, promessa solta)
+        run: npm run lint
       - name: Testes de unidade
         run: node --test
       - name: Teste no Chrome headless

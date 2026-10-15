@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
+    "lint": "eslint .",
     "www": "sh scripts/www.sh",
     "sync": "sh scripts/www.sh && cap sync",
     "android": "sh scripts/www.sh && cap sync android && cap open android",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
-    "@capacitor/cli": "^8.5.3"
+    "@capacitor/cli": "^8.5.3",
+    "eslint": "^9.39.5"
   }
 }

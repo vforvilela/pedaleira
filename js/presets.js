@@ -1,6 +1,6 @@
 // Presets, rascunhos, exportar e importar.
 import { ensureView, fetchFile, fileInput, renderBoard } from './board.js';
-import { $, changeListeners, hideToast, toast, createAudio, engine, fileData, live, loadIntoAudio, setTempo, setTrim, tapGlobal, normalizeBlock, normalizeChain, reconnect, releaseFile, save, SCENE_NAMES, snapshot, state, status, uid } from './core.js';
+import { $, changeListeners, hideToast, toast, createAudio, engine, fileData, live, loadIntoAudio, setTempo, setTrim, tapGlobal, normalizeBlock, normalizeChain, reconnect, releaseFile, save, snapshot, state, status, uid } from './core.js';
 import { chainDirty, sameChain, withScene } from './chain.js';
 import { t } from './i18n.js';
 import { saveFile } from './platform.js';
