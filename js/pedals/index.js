@@ -34,3 +34,18 @@ export const ORDER = { tuner: 0, filter: 1, comp: 2, drive: 3, gate: 4, amp: 5, 
 export function defaultParams(def) {
   return Object.fromEntries(def.controls.map(c => [c.id, c.default]));
 }
+
+// Posições dos botões vindas de fora (localStorage, link, arquivo importado): só números finitos dentro da
+// faixa do controle; o que não presta volta ao padrão. Controles que o pedal não tem são descartados.
+export function validParams(def, params) {
+  const out = defaultParams(def);
+  if (!params || typeof params !== 'object') return out;
+  for (const c of def.controls) {
+    const v = params[c.id];
+    if (typeof v !== 'number' || !Number.isFinite(v)) continue;
+    out[c.id] = c.type === 'select'
+      ? Math.min(c.options.length - 1, Math.max(0, Math.round(v)))
+      : Math.min(c.max ?? 10, Math.max(c.min ?? 0, v));
+  }
+  return out;
+}

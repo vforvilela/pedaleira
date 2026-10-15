@@ -1,6 +1,6 @@
 // Presets, rascunhos, exportar e importar.
 import { ensureView, fetchFile, fileInput, renderBoard } from './board.js';
-import { $, changeListeners, hideToast, sameScene, toast, createAudio, engine, live, loadIntoAudio, normalizeBlock, normalizeChain, reconnect, releaseFile, save, SCENE_NAMES, snapshot, state, status } from './core.js';
+import { $, changeListeners, hideToast, sameScene, toast, createAudio, engine, live, loadIntoAudio, normalizeBlock, normalizeChain, reconnect, releaseFile, save, SCENE_NAMES, snapshot, state, status, uid } from './core.js';
 import { t } from './i18n.js';
 import { saveFile } from './platform.js';
 import { getFile, putFile } from './store.js';
@@ -242,19 +242,28 @@ export async function openSharedLink() {
     let bytes = new Uint8Array(unb64url(m[2]));
     if (m[1] === '1') bytes = await pipe(bytes, new DecompressionStream('deflate-raw'));
     const doc = JSON.parse(new TextDecoder().decode(bytes));
-    const chain = normalizeChain(doc.chain || []);
+    // Arquivos de um link só existem pelo endereço: a chave local é sempre nova, para um link forjado
+    // não poder trocar um arquivo que já está no aparelho.
+    const chain = normalizeChain((Array.isArray(doc.chain) ? doc.chain : []).map(b => ({
+      ...b,
+      files: Object.fromEntries(Object.entries(b?.files || {}).map(([k, f]) => [k, { name: f?.name, url: f?.url, key: `link:${uid()}` }])),
+    })));
     if (!chain.length) throw new Error('vazio');
+    // O mesmo link aberto de novo (arquivos comparados pelo endereço) só seleciona o preset que já existe.
+    const byUrl = ch => snapshot(ch).map(b => ({ ...b, files: Object.fromEntries(Object.entries(b.files).map(([k, f]) => [k, { key: f.url || f.key }])) }));
+    const same = state.presets.find(p => sameChain(byUrl(p.chain), byUrl(chain)));
     // Capturas que vieram por endereço: baixa agora; se falhar, o pedal fica sem ela (e avisa).
     const failed = [];
-    for (const b of chain)
-      for (const [kind, f] of Object.entries(b.files)) {
-        try {
-          if (!f.url) throw new Error('no-url'); // interno: cai no catch e entra na lista de falhas
-          await putFile(f.key, await fetchFile(kind, f.url));
-        } catch { failed.push(f.name); delete b.files[kind]; }
-      }
+    if (!same) {
+      for (const b of chain)
+        for (const [kind, f] of Object.entries(b.files)) {
+          try {
+            if (!f.url) throw new Error('no-url'); // interno: cai no catch e entra na lista de falhas
+            await putFile(f.key, await fetchFile(kind, f.url));
+          } catch { failed.push(f.name); delete b.files[kind]; }
+        }
+    }
     const base = String(doc.name || t('presets.sharedDefaultName')).slice(0, 34);
-    const same = state.presets.find(p => sameChain(p.chain, chain));
     let name = same?.name || base;
     if (!same) {
       for (let n = 2; presetByName(name); n++) name = `${base} (${n})`;
@@ -418,8 +427,10 @@ export async function importPresets(file) {
     status(t('presets.notPresetFile', { file: file.name }), true);
     return;
   }
-  for (const [key, f] of Object.entries(doc.files || {}))
+  for (const [key, f] of Object.entries(doc.files || {})) {
+    if (typeof key !== 'string' || key.length > 80 || !f || typeof f.data !== 'string' && typeof f.data !== 'object') continue;
     await putFile(key, f.type === 'base64' ? fromBase64(f.data) : f.data);
+  }
   let added = 0, same = 0;
   for (const p of doc.presets) {
     const chain = normalizeChain(p.chain || []);

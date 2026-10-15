@@ -460,17 +460,24 @@ export function directUrl(text) {
 }
 
 // Baixa a captura (.nam) ou IR (.wav) de um link direto. Devolve os dados ou lança um erro legível.
+const MAX_FILE_BYTES = 64 << 20; // capturas têm dezenas de KB a poucos MB; IRs, até alguns MB
+
 export async function fetchFile(kind, url) {
+  if (!/^https:\/\//.test(url)) throw new Error(t('board.errBlocked'));
   let res;
   try { res = await fetch(url); } catch {
     throw new Error(t('board.errBlocked'));
   }
   if (!res.ok) throw new Error(t('board.errStatus', { code: res.status }));
+  if (+res.headers.get('content-length') > MAX_FILE_BYTES) throw new Error(t('board.errTooBig'));
   const lfs = new URL(url).hostname === 'raw.githubusercontent.com' && res.headers.get('content-length') < 1024
     && (await res.clone().text()).startsWith('version https://git-lfs');
   // Arquivo no Git LFS: o raw só tem um ponteiro; o conteúdo está no media.githubusercontent.com.
   if (lfs) return fetchFile(kind, url.replace('https://raw.githubusercontent.com/', 'https://media.githubusercontent.com/media/'));
-  try { return await parseFile(kind, res); } catch {
+  const data = await res.arrayBuffer().catch(() => null);
+  if (!data) throw new Error(t('board.errBlocked'));
+  if (data.byteLength > MAX_FILE_BYTES) throw new Error(t('board.errTooBig'));
+  try { return await parseFile(kind, new Response(data)); } catch {
     throw new Error(t('board.errNotFile', { ext: kind === 'nam' ? '.nam' : '.wav' }));
   }
 }

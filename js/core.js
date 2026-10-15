@@ -1,6 +1,6 @@
 // Estado da pedaleira, áudio de cada bloco e ações básicas (ligar, girar, tap) usadas por todos os módulos.
 import { Engine } from './audio/engine.js';
-import { DEFAULT_CHAIN, byType, defaultParams } from './pedals/index.js';
+import { DEFAULT_CHAIN, byType, defaultParams, validParams } from './pedals/index.js';
 import { deleteFile, getFile, loadState, saveState } from './store.js';
 import { FACTORY_VERSION, factoryPresets } from './factory.js';
 import { t } from './i18n.js';
@@ -17,20 +17,33 @@ export function newBlock(type) {
   return { uid: uid(), type, on: def.defaultOn !== false, params: defaultParams(def), files: {}, scenes: Array(SCENES).fill(null) };
 }
 
-// Completa um bloco salvo com os padrões do pedal (o pedal pode ter ganhado controles novos).
-export const normalizeBlock = b => ({
-  uid: b.uid, type: b.type, on: b.on !== false,
-  params: { ...defaultParams(byType[b.type]), ...b.params },
-  files: Object.fromEntries(Object.entries(b.files || {}).map(([k, f]) => [k, { ...f, key: f.key || `${b.uid}:${k}` }])),
-  scenes: Array.from({ length: SCENES }, (_, i) => normalizeScene(b.scenes?.[i], b.type)),
-});
+// Completa um bloco salvo com os padrões do pedal (o pedal pode ter ganhado controles novos) e só deixa
+// passar o que faz sentido: isto é a porta de entrada do localStorage, dos links e dos arquivos importados.
+const UID_RE = /^[\w-]{1,24}$/;
+const str = (v, n) => (typeof v === 'string' ? v.slice(0, n) : '');
+export function normalizeBlock(b) {
+  const def = byType[b.type];
+  const id = UID_RE.test(b.uid) ? b.uid : uid();
+  const files = {};
+  for (const [k, f] of Object.entries(b.files || {})) {
+    if (!def.files?.[k] || !f || typeof f !== 'object') continue;
+    const url = str(f.url, 2048);
+    files[k] = { name: str(f.name, 60), key: str(f.key, 80) || `${id}:${k}`, ...(/^https:\/\//.test(url) ? { url } : {}) };
+  }
+  return {
+    uid: id, type: b.type, on: b.on !== false,
+    params: validParams(def, b.params),
+    files,
+    scenes: Array.from({ length: SCENES }, (_, i) => normalizeScene(b.scenes?.[i], def)),
+  };
+}
 
 // scenes[i] de um pedal: null (fora da cena i) ou { on, params } (ligado/desligado e posição dos botões).
 // Versões antigas guardavam só true/false.
-function normalizeScene(s, type) {
+function normalizeScene(s, def) {
   if (typeof s === 'boolean') return { on: s, params: null };
   if (!s || typeof s !== 'object') return null;
-  return { on: !!s.on, params: s.params ? { ...defaultParams(byType[type]), ...s.params } : null };
+  return { on: !!s.on, params: s.params ? validParams(def, s.params) : null };
 }
 
 // O pedal está como a cena i manda? (true também quando ele está fora da cena)
@@ -41,7 +54,7 @@ export function sceneMatches(b, i) {
 }
 
 export const sameScene = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-export const normalizeChain = chain => chain.filter(b => byType[b.type]).map(normalizeBlock);
+export const normalizeChain = chain => (Array.isArray(chain) ? chain : []).filter(b => b && byType[b.type]).map(normalizeBlock);
 
 export const saved = loadState();
 export const state = {
@@ -84,8 +97,8 @@ export const save = () => {
 // em vez de serializar o estado e refazer a tela a cada pixel.
 export const saveSoon = () => { if (!saveTimer) saveTimer = setTimeout(save, 150); };
 export const flushSave = () => { if (saveTimer) save(); };
-addEventListener('pagehide', flushSave);
-document.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible') flushSave(); });
+globalThis.addEventListener?.('pagehide', flushSave);
+globalThis.document?.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible') flushSave(); });
 export const snapshot = chain => JSON.parse(JSON.stringify(chain));
 
 // Um arquivo (.nam, IR) só sai do IndexedDB quando nem a pedaleira nem algum preset usa mais.
