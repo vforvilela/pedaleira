@@ -318,14 +318,9 @@ export async function loadChain(chain, presetName) {
     ex.reload = reload;
     return ex;
   });
-  // Delay e reverb ligados que saem continuam com a cauda (spillover); o resto sai na hora.
-  const spills = [];
-  for (const gone of current.values()) {
-    const l = live.get(gone.uid);
-    live.delete(gone.uid);
-    if (l?.audio && engine.running && gone.on && SPILL_SECONDS[l.def.category]) spills.push([l.audio, SPILL_SECONDS[l.def.category]]);
-    else l?.audio?.dispose();
-  }
+  // Quem sai: delay e reverb ligados continuam com a cauda (spillover); o resto sai quando a cadeia nova entra.
+  const gone = [...current.values()].map(g => [g, live.get(g.uid)]).filter(([, l]) => l);
+  for (const g of current.values()) live.delete(g.uid);
   state.chain = next;
   state.preset = presetName;
   if (presetName && state.drafts[presetName] && sameChain(next, presetByName(presetName).chain)) delete state.drafts[presetName];
@@ -335,14 +330,21 @@ export async function loadChain(chain, presetName) {
       const l = live.get(b.uid);
       if (!l.audio) { createAudio(b); b.reload = Object.keys(b.files); }
     }
-    reconnect();
-    for (const [audio, seconds] of spills) engine.spill(audio, seconds);
+    // Capturas e IRs dos pedais novos carregam antes da troca: a cadeia antiga continua tocando até então,
+    // em vez de o amp novo soar com o circuito interno e mudar de timbre quando a captura chega.
     await Promise.all(next.map(async b => {
       for (const kind of b.reload || []) {
         const data = await getFile(b.files[kind].key);
         if (data !== undefined) await loadIntoAudio(b, kind, data, b.files[kind].name);
       }
     }));
+    reconnect();
+    for (const [g, l] of gone) {
+      if (l.audio && g.on && SPILL_SECONDS[l.def.category]) engine.spill(l.audio, SPILL_SECONDS[l.def.category]);
+      else l.audio?.dispose();
+    }
+  } else {
+    for (const [, l] of gone) l.audio?.dispose();
   }
   for (const b of next) { delete b.reload; live.get(b.uid).view.update(); }
   renderBoard();

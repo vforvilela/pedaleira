@@ -290,22 +290,39 @@ pub extern "C" fn init(cfg: *const i32, cfg_len: usize, w: *const f32, w_len: us
     match r.model() {
         Some(m) if r.wi == w.len() && r.ci == cfg.len() => {
             unsafe { MODEL = Some(m) };
-            prewarm();
+            // O pré-aquecimento (encher o campo receptivo com silêncio) fica para `warm`, em pedaços,
+            // para não travar a thread de áudio de uma vez.
+            unsafe { WARM_LEFT = receptive_field() };
             0
         }
         _ => -1,
     }
 }
 
+static mut WARM_LEFT: usize = 0;
+
+// Pré-aquece até `max_blocks` blocos de B amostras e devolve quantas amostras ainda faltam.
+#[no_mangle]
+pub extern "C" fn warm(max_blocks: usize) -> usize {
+    let mut left = unsafe { WARM_LEFT };
+    if left == 0 {
+        return 0;
+    }
+    unsafe { (*core::ptr::addr_of_mut!(INPUT)).fill(0.0) };
+    let mut done = 0;
+    while left > 0 && done < max_blocks {
+        process(B);
+        left = left.saturating_sub(B);
+        done += 1;
+    }
+    unsafe { WARM_LEFT = left };
+    left
+}
+
+// Pré-aquece tudo de uma vez.
 #[no_mangle]
 pub extern "C" fn prewarm() {
-    let rf = receptive_field();
-    unsafe { (*core::ptr::addr_of_mut!(INPUT)).fill(0.0) };
-    let mut n = 0;
-    while n < rf {
-        process(B);
-        n += B;
-    }
+    while warm(usize::MAX) > 0 {}
 }
 
 #[inline(always)]

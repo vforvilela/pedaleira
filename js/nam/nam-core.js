@@ -57,7 +57,8 @@ function unwrap(nam) {
 }
 
 // Lê o JSON do .nam e devolve um modelo pronto para process().
-export function createModel(nam) {
+// Com deferWarm, o pré-aquecimento fica para chamadas a model.warm(blocos), que devolve quantas amostras faltam.
+export function createModel(nam, { deferWarm = false } = {}) {
   const inner = unwrap(nam);
   let model;
   if (inner.architecture === 'WaveNet') model = new WaveNet(parseWaveNet(inner));
@@ -65,7 +66,7 @@ export function createModel(nam) {
   else throw new NamError(`Arquitetura "${inner.architecture}" ainda não suportada (só WaveNet e LSTM).`);
   model.sampleRate = inner.sample_rate || nam.sample_rate || 48000;
   model.loudness = nam.metadata?.loudness ?? inner.metadata?.loudness ?? null;
-  model.prewarm();
+  if (!deferWarm) model.prewarm();
   return model;
 }
 
@@ -296,8 +297,21 @@ class WaveNet {
   }
 
   prewarm() {
-    const zeros = new Float32Array(BLOCK), out = new Float32Array(BLOCK);
-    for (let n = 0; n < this.receptiveField; n += BLOCK) this.process(zeros, out);
+    while (this.warm(Infinity) > 0);
+  }
+
+  // Pré-aquece até `maxBlocks` blocos de silêncio; devolve quantas amostras do campo receptivo ainda faltam.
+  warm(maxBlocks) {
+    this.warmLeft ??= this.receptiveField;
+    if (this.warmLeft > 0) {
+      this.zeros ??= new Float32Array(BLOCK);
+      this.scratch ??= new Float32Array(BLOCK);
+      for (let i = 0; i < maxBlocks && this.warmLeft > 0; i++) {
+        this.process(this.zeros, this.scratch);
+        this.warmLeft = Math.max(0, this.warmLeft - BLOCK);
+      }
+    }
+    return this.warmLeft;
   }
 
   // Processa qualquer tamanho de bloco, em pedaços de até BLOCK amostras.
@@ -462,6 +476,12 @@ class LSTM {
     const zeros = new Float32Array(BLOCK), out = new Float32Array(BLOCK);
     for (let i = 0; i < n; i += BLOCK) this.process(zeros, out);
   }
+  // O LSTM aquece pouco; faz tudo na primeira chamada.
+  warm() {
+    if (!this.warmed) { this.warmed = true; this.prewarm(); }
+    return 0;
+  }
+
 
   process(input, output) {
     const H = this.H;

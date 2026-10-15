@@ -6,8 +6,9 @@ export function loadState() {
   try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch { return null; }
 }
 
+// Devolve false quando não conseguiu guardar (janela anônima, armazenamento bloqueado ou cheio).
 export function saveState(state) {
-  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* sem armazenamento */ }
+  try { localStorage.setItem(KEY, JSON.stringify(state)); return true; } catch { return false; }
 }
 
 let dbPromise = null;

@@ -1,6 +1,7 @@
 // Peças comuns aos pedais.
 import { dbToGain, monoWorklet } from '../audio/engine.js';
 import { t } from '../i18n.js';
+import { encodeForWasm } from '../nam/nam-core.js';
 
 export { dbToGain, monoWorklet };
 
@@ -42,9 +43,12 @@ export function cabFilters(ctx) {
 }
 
 // Nó que roda uma captura .nam no AudioWorklet.
+// A parte pesada de abrir a captura (achatar pesos e configuração) acontece aqui, na thread principal;
+// o worklet só instancia e aquece em pedaços, com o modelo anterior ainda tocando.
 export class NamSlot {
   constructor(ctx, wasmBytes) {
     this.node = monoWorklet(ctx, 'nam');
+    this.wasm = !!wasmBytes;
     if (wasmBytes) this.node.port.postMessage({ type: 'wasm', bytes: wasmBytes });
     this.loaded = false;
   }
@@ -58,7 +62,10 @@ export class NamSlot {
         else { this.loaded = false; done(reject)(new Error(data.message)); }
       };
       this.node.port.onmessageerror = done(reject);
-      this.node.port.postMessage({ type: 'load', nam });
+      let enc = null;
+      try { enc = this.wasm ? encodeForWasm(nam) : null; } catch (err) { done(reject)(err); return; }
+      if (enc) this.node.port.postMessage({ type: 'load', enc }, [enc.cfg.buffer, enc.weights.buffer]);
+      else this.node.port.postMessage({ type: 'load', nam });
     });
   }
 

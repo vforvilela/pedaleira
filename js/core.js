@@ -74,7 +74,18 @@ if (state.factory < FACTORY_VERSION) {
 
 // Quem precisa reagir a qualquer mudança (asterisco do preset, botões de cena) se inscreve aqui.
 export const changeListeners = [];
-export const save = () => { saveState(state); for (const f of changeListeners) f(); };
+let saveTimer = 0, storageWarned = false;
+export const save = () => {
+  clearTimeout(saveTimer); saveTimer = 0;
+  if (!saveState(state) && !storageWarned) { storageWarned = true; status(t('core.saveFailed'), true); }
+  for (const f of changeListeners) f();
+};
+// Para o arraste de um botão: salva e avisa quem escuta só quando a mão para (ou a página sai),
+// em vez de serializar o estado e refazer a tela a cada pixel.
+export const saveSoon = () => { if (!saveTimer) saveTimer = setTimeout(save, 150); };
+export const flushSave = () => { if (saveTimer) save(); };
+addEventListener('pagehide', flushSave);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible') flushSave(); });
 export const snapshot = chain => JSON.parse(JSON.stringify(chain));
 
 // Um arquivo (.nam, IR) só sai do IndexedDB quando nem a pedaleira nem algum preset usa mais.
@@ -157,7 +168,7 @@ export function setParam(block, id, v) {
   const l = live.get(block.uid);
   l?.audio?.set(id, v);
   l?.view?.update();
-  save();
+  saveSoon();
 }
 
 export function toggleBlock(block) {

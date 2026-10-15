@@ -7,6 +7,7 @@ export default {
     'core.loadFailed': 'Não consegui carregar {name}: {msg}',
     'core.tapAgain': '{name}: toque mais uma vez no ritmo.',
     'core.tapTempo': '{name}: {ms} ms ({bpm} BPM).',
+    'core.saveFailed': 'Não consegui guardar a pedaleira neste navegador (armazenamento bloqueado ou cheio). Exporte seus presets por segurança.',
     'core.turnOnFirst': '{name}: clique em Ligar primeiro.',
   },
   en: {
@@ -16,6 +17,7 @@ export default {
     'core.loadFailed': 'Couldn’t load {name}: {msg}',
     'core.tapAgain': '{name}: tap once more in time.',
     'core.tapTempo': '{name}: {ms} ms ({bpm} BPM).',
+    'core.saveFailed': 'Couldn’t save the board in this browser (storage blocked or full). Export your presets to be safe.',
     'core.turnOnFirst': '{name}: click Turn on first.',
   },
   es: {
@@ -25,6 +27,7 @@ export default {
     'core.loadFailed': 'No pude cargar {name}: {msg}',
     'core.tapAgain': '{name}: toca una vez más al ritmo.',
     'core.tapTempo': '{name}: {ms} ms ({bpm} BPM).',
+    'core.saveFailed': 'No pude guardar la pedalera en este navegador (almacenamiento bloqueado o lleno). Exporta tus presets por seguridad.',
     'core.turnOnFirst': '{name}: haz clic en Encender primero.',
   },
 };
