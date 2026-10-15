@@ -333,13 +333,13 @@ export function pedalView(block, cb) {
   for (const c of def.controls) {
     const k = knobs[c.id], g = k.g;
     const max = c.type === 'select' ? c.options.length - 1 : 10;
-    const setV = v => {
+    const setV = (v, live = !!drag) => {
       v = Math.max(0, Math.min(max, v));
       v = c.type === 'select' ? Math.round(v) : Math.round(v * 10) / 10;
       if (v === block.params[c.id]) return;
       block.params[c.id] = v;
       k.render(v);
-      cb.change(c.id, v);
+      cb.change(c.id, v, live); // no arraste o salvamento espera a mão parar
     };
     setters[c.id] = setV;
     let drag = null;
@@ -359,10 +359,12 @@ export function pedalView(block, cb) {
     });
     const end = e => {
       // Toque sem arrastar: abre os controles do pedal em tamanho de dedo (o botão desenhado é pequeno demais).
-      if (drag && !drag.moved && e.pointerType === 'touch') openKnobSheet(def, block, setters, c.id);
+      if (drag && !drag.moved && e.pointerType === 'touch') openKnobSheet(def, block, setters, c.id, cb);
       else if (drag && !drag.moved && c.type === 'select') setV((block.params[c.id] + 1) % (max + 1));
+      const moved = drag?.moved;
       drag = null;
       root.classList.remove('turning');
+      if (moved) cb.settle?.();
     };
     g.addEventListener('pointerup', end);
     g.addEventListener('pointercancel', () => { drag = null; root.classList.remove('turning'); });
@@ -412,7 +414,7 @@ export function pedalView(block, cb) {
 // Painel de controles em tamanho de dedo: um slider de 44 px por botão do pedal.
 // No celular, os botões de um pedal de 4 controles não cabem em 44 px sem se sobrepor; este é o equivalente.
 let sheet = null;
-function openKnobSheet(def, block, setters, focusId) {
+function openKnobSheet(def, block, setters, focusId, cb) {
   if (!sheet) {
     sheet = document.createElement('dialog');
     sheet.className = 'knob-sheet';
@@ -447,7 +449,8 @@ function openKnobSheet(def, block, setters, focusId) {
       out.textContent = c.type === 'select' ? c.options[v] : c.show ? c.show(v) : fmtNum(v, 1);
     };
     show();
-    input.oninput = () => { setters[c.id](+input.value); show(); };
+    input.oninput = () => { setters[c.id](+input.value, true); show(); };
+    input.onchange = () => cb.settle?.();
     // No toque não há duplo clique: o ↺ faz o papel dele (volta o botão ao padrão).
     const reset = label.querySelector('.reset');
     reset.title = t('pedal.resetTitle');

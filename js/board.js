@@ -1,5 +1,5 @@
 // Pedaleira na tela: desenha a cadeia, adiciona, remove, arrasta e carrega arquivos nos pedais.
-import { $, applyStoredFiles, changeListeners, createAudio, setParam, engine, live, loadIntoAudio, newBlock, reconnect, releaseFile, save, saveSoon, state, status, tapTempo, toast, hideToast, toggleBlock } from './core.js';
+import { $, applyStoredFiles, changeListeners, createAudio, setParam, engine, live, loadIntoAudio, newBlock, reconnect, releaseFile, safeUrl, save, saveSoon, flushSave, state, status, tapTempo, toast, hideToast, toggleBlock } from './core.js';
 import { ORDER, byType } from './pedals/index.js';
 import { putFile } from './store.js';
 import { pedalView } from './ui/pedal-view.js';
@@ -30,7 +30,8 @@ export function ensureView(block) {
   const l = live.get(block.uid);
   if (l.view) return l.view;
   l.view = pedalView({ ...block, def: l.def, get on() { return block.on; }, params: block.params, get files() { return block.files; } }, {
-    change(id, v) { block.params[id] = v; l.audio?.set(id, v); saveSoon(); },
+    change(id, v, live) { block.params[id] = v; l.audio?.set(id, v); live ? saveSoon() : save(); },
+    settle: flushSave,
     toggle: () => toggleBlock(block),
     action: id => l.audio?.action?.(id),
     tap: () => tapTempo(block),
@@ -463,7 +464,7 @@ export function directUrl(text) {
 const MAX_FILE_BYTES = 64 << 20; // capturas têm dezenas de KB a poucos MB; IRs, até alguns MB
 
 export async function fetchFile(kind, url) {
-  if (!/^https:\/\//.test(url)) throw new Error(t('board.errBlocked'));
+  if (!safeUrl(url)) throw new Error(t('board.errBlocked'));
   let res;
   try { res = await fetch(url); } catch {
     throw new Error(t('board.errBlocked'));

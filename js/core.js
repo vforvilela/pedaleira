@@ -20,6 +20,8 @@ export function newBlock(type) {
 // Completa um bloco salvo com os padrões do pedal (o pedal pode ter ganhado controles novos) e só deixa
 // passar o que faz sentido: isto é a porta de entrada do localStorage, dos links e dos arquivos importados.
 const UID_RE = /^[\w-]{1,24}$/;
+// Endereços de onde um arquivo pode ser baixado: https, ou http só no próprio computador (desenvolvimento).
+export const safeUrl = url => /^https:\/\//.test(url) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//.test(url);
 const str = (v, n) => (typeof v === 'string' ? v.slice(0, n) : '');
 export function normalizeBlock(b) {
   const def = byType[b.type];
@@ -28,7 +30,7 @@ export function normalizeBlock(b) {
   for (const [k, f] of Object.entries(b.files || {})) {
     if (!def.files?.[k] || !f || typeof f !== 'object') continue;
     const url = str(f.url, 2048);
-    files[k] = { name: str(f.name, 60), key: str(f.key, 80) || `${id}:${k}`, ...(/^https:\/\//.test(url) ? { url } : {}) };
+    files[k] = { name: str(f.name, 60), key: str(f.key, 80) || `${id}:${k}`, ...(safeUrl(url) ? { url } : {}) };
   }
   return {
     uid: id, type: b.type, on: b.on !== false,
