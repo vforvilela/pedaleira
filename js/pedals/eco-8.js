@@ -11,6 +11,12 @@ const MODES = {
   'P.PONG': { lp: 10000, hp: 60, depth: 0, pingPong: true },
 };
 
+// SYNC: D.TIME segue o andamento global (TAP em qualquer lugar, ou o BPM do Pulso) na subdivisão escolhida.
+export const SYNC = ['OFF', '1/4', '1/8.', '1/8', '1/8T', '1/16'];
+const SYNC_BEATS = [0, 1, 0.75, 0.5, 1 / 3, 0.25];
+// Tempo do delay em segundos: pela subdivisão e BPM (SYNC ligado) ou pelo botão D.TIME (20 ms a 2 s, log).
+export const delaySeconds = (p, bpm) => (p.sync ? Math.min(2, Math.max(0.02, (60 / bpm) * SYNC_BEATS[p.sync])) : logMap(p.time, 0.02, 2.0));
+
 // Saturação suave na realimentação: quase linear em volume baixo, segura a auto-oscilação.
 const loopClip = curve(x => Math.tanh(1.2 * x) / 1.2);
 
@@ -25,11 +31,13 @@ export default {
   },
   // Tap tempo: segundos entre toques → posição do D.TIME (20 ms a 2 s, escala log).
   tap: { param: 'time', fromSeconds: s => (10 * Math.log(s / 0.02)) / Math.log(100) },
+  syncsTempo: true, // recebe setTempo(bpm) quando o andamento global muda
   controls: [
     { id: 'level', label: 'E.LEVEL', default: 4 },
     { id: 'feedback', label: 'F.BACK', default: 4 },
     { id: 'time', label: 'D.TIME', default: 5 },
     { id: 'mode', label: 'MODE', type: 'select', options: Object.keys(MODES), default: 0 },
+    { id: 'sync', label: 'SYNC', type: 'select', options: SYNC, default: 0 },
   ],
 
   create(ctx, env) {
@@ -69,9 +77,10 @@ export default {
     lfo.start();
 
     const p = { ...env.params };
+    let bpm = env.bpm || 120;
     const apply = () => {
       const m = MODES[Object.keys(MODES)[p.mode]] || MODES.STD;
-      const t = logMap(p.time, 0.02, 2.0), f = Math.min(1.05, (p.feedback / 10) * 1.05), w = (p.level / 10) * 1.2;
+      const t = delaySeconds(p, bpm), f = Math.min(1.05, (p.feedback / 10) * 1.05), w = (p.level / 10) * 1.2;
       smooth(ctx, delay.delayTime, t, 0.06);
       smooth(ctx, delay2.delayTime, t, 0.06);
       const pp = !!m.pingPong;
@@ -90,6 +99,7 @@ export default {
     return {
       input, output,
       set(id, v) { p[id] = v; apply(); },
+      setTempo(b) { bpm = b; apply(); },
       setOn: on => smooth(ctx, send.gain, on ? 1 : 0, 0.004),
       dispose() { lfo.stop(); output.disconnect(); },
     };

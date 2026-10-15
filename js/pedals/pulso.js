@@ -3,7 +3,9 @@
 import { monoWorklet } from './common.js';
 
 const BEATS = ['—', '2', '3', '4', '6'];
-const bpmOf = v => Math.round(40 + v * 20);
+export const bpmOf = v => Math.round(40 + v * 20);
+// Sem arredondar a 0,1: o botão tem passo de 2 BPM, e 97 BPM precisa continuar 97.
+export const knobOfBpm = bpm => Math.max(0, Math.min(10, (bpm - 40) / 20));
 
 export default {
   type: 'pulso',

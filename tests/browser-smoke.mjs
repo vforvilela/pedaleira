@@ -881,6 +881,23 @@ try {
   check(facCap.preset && facCap.stored && facCap.cab === 2 && /carregad/.test(facCap.status),
     `preset de fábrica com captura baixa e carrega a captura (${JSON.stringify(facCap)})`);
 
+  // Andamento global: duas teclas T a 500 ms dão 120 BPM; o Pulso espelha no botão e o Eco 8 em SYNC 1/4 fica em 500 ms.
+  const tempo = await evaluate(`(async () => {
+    const p = __pedaleira, wait = ms => new Promise(r => setTimeout(r, ms));
+    const key = () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 't', bubbles: true }));
+    key(); await wait(500); key(); await wait(500); key();
+    const bpm = p.state.bpm, shown = +document.getElementById('tempoBpm').textContent;
+    const pulso = p.state.chain.find(b => b.type === 'pulso');
+    const { bpmOf } = await import('./js/pedals/pulso.js');
+    const { delaySeconds, SYNC } = await import('./js/pedals/eco-8.js');
+    const eco = p.state.chain.find(b => b.type === 'eco-8');
+    const sec = eco ? delaySeconds({ ...eco.params, sync: SYNC.indexOf('1/4') }, bpm) : null;
+    return { bpm, shown, pulsoBpm: pulso ? bpmOf(pulso.params.bpm) : null, sec };
+  })()`);
+  check(tempo.bpm >= 112 && tempo.bpm <= 128 && tempo.shown === tempo.bpm && (tempo.pulsoBpm === null || tempo.pulsoBpm === tempo.bpm)
+    && (tempo.sec === null || Math.abs(tempo.sec - 60 / tempo.bpm) < 1e-9),
+    `andamento global: tecla T acerta o BPM, o Pulso espelha, o Eco 8 em SYNC segue (${JSON.stringify(tempo)})`);
+
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
   console.log(`screenshots em ${out}`);
   ws.close();

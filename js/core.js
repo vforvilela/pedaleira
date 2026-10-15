@@ -1,6 +1,7 @@
 // Estado da pedaleira, áudio de cada bloco e ações básicas (ligar, girar, tap) usadas por todos os módulos.
 import { Engine } from './audio/engine.js';
 import { byType } from './pedals/index.js';
+import { bpmOf, knobOfBpm } from './pedals/pulso.js';
 import { uid, SCENES, SCENE_NAMES, newBlock, normalizeBlock, normalizeChain, sceneMatches, sameScene, sameChain, withScene, chainDirty, safeUrl, SCHEMA_VERSION, migrateState } from './chain.js';
 import { deleteFile, getFile, loadState, putFile, saveState } from './store.js';
 import { fetchFile } from './files.js';
@@ -46,7 +47,7 @@ export const live = new Map(); // uid → { def, audio, view }
 
 export function createAudio(block) {
   const l = live.get(block.uid);
-  l.audio = l.def.create(engine.ctx, { params: { ...block.params }, wasmBytes: engine.wasmBytes });
+  l.audio = l.def.create(engine.ctx, { params: { ...block.params }, wasmBytes: engine.wasmBytes, bpm: state.bpm });
   l.audio.setOn(block.on);
   l.audio.onState?.(s => { l.view?.setState(s, l.def.stateLabels?.[s]); for (const f of changeListeners) f(); });
 }
@@ -111,19 +112,57 @@ export function status(msg, err = false) {
 // ---------- Tap tempo ----------
 
 export const taps = new Map(); // uid → tempos dos últimos toques (ms)
+// Segundos entre as últimas batidas de `key` (null até a segunda batida).
+function tapInterval(key) {
+  const now = performance.now();
+  const times = (taps.get(key) || []).filter(x => now - x < 2500);
+  times.push(now);
+  taps.set(key, times.slice(-4));
+  if (times.length < 2) return null;
+  const gaps = times.slice(1).map((x, i) => x - times[i]);
+  return gaps.reduce((a, b) => a + b, 0) / gaps.length / 1000;
+}
+
+// TAP de um pedal: acerta o botão dele (D.TIME, BPM) e o andamento global.
 export function tapTempo(block) {
   const def = byType[block.type];
   if (!def.tap) return;
-  const now = performance.now();
-  const times = (taps.get(block.uid) || []).filter(x => now - x < 2500);
-  times.push(now);
-  taps.set(block.uid, times.slice(-4));
-  if (times.length < 2) { status(t('core.tapAgain', { name: def.name })); return; }
-  const gaps = times.slice(1).map((x, i) => x - times[i]);
-  const sec = gaps.reduce((a, b) => a + b, 0) / gaps.length / 1000;
+  const sec = tapInterval(block.uid);
+  if (sec === null) { status(t('core.tapAgain', { name: def.name })); return; }
   const v = Math.round(Math.max(0, Math.min(10, def.tap.fromSeconds(sec))) * 10) / 10;
   setParam(block, def.tap.param, v);
+  setTempo(60 / sec, block);
   status(t('core.tapTempo', { name: def.name, ms: Math.round(sec * 1000), bpm: Math.round(60 / sec) }));
+}
+
+// TAP global (botão de andamento, tecla T): só o andamento; quem segue é o Pulso e o Eco 8 em SYNC.
+export function tapGlobal() {
+  const sec = tapInterval('global');
+  if (sec === null) { status(t('core.tapAgainGlobal')); return; }
+  setTempo(60 / sec);
+  status(t('core.tempoSet', { bpm: state.bpm }));
+}
+
+// Andamento global. from: o bloco que originou a mudança (não recebe de volta). O Pulso espelha no botão BPM;
+// pedais com syncsTempo recebem setTempo.
+export function setTempo(bpm, from = null) {
+  bpm = Math.round(Math.max(40, Math.min(240, bpm)));
+  if (bpm === state.bpm) return;
+  state.bpm = bpm;
+  for (const b of state.chain) {
+    if (b === from) continue;
+    const l = live.get(b.uid);
+    if (b.type === 'pulso') {
+      const v = knobOfBpm(bpm);
+      if (b.params.bpm !== v) { b.params.bpm = v; l?.audio?.set('bpm', v); l?.view?.update(); }
+    } else if (l?.def.syncsTempo) l.audio?.setTempo?.(bpm);
+  }
+  save();
+}
+
+// Botão BPM do Pulso girado: o andamento global acompanha.
+export function paramChanged(block, id, v) {
+  if (block.type === 'pulso' && id === 'bpm') setTempo(bpmOf(v), block);
 }
 
 export function setParam(block, id, v) {
@@ -131,6 +170,7 @@ export function setParam(block, id, v) {
   const l = live.get(block.uid);
   l?.audio?.set(id, v);
   l?.view?.update();
+  paramChanged(block, id, v);
   saveSoon();
 }
 

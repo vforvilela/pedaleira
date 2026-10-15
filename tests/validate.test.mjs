@@ -44,3 +44,20 @@ test('www.sh e pages.yml copiam a mesma lista de pastas do app (o app nativo e o
   const outside = shell.filter(f => f !== './' && !www.some(d => f === d || f.startsWith(`${d}/`)));
   assert.deepEqual(outside, [], 'arquivos do SHELL fora das pastas copiadas');
 });
+
+test('Eco 8 SYNC: subdivisões do andamento; OFF usa o D.TIME', async () => {
+  const { delaySeconds, SYNC } = await import('../js/pedals/eco-8.js');
+  const at = (sync, bpm = 120) => delaySeconds({ time: 5, sync: SYNC.indexOf(sync) }, bpm);
+  assert.equal(at('1/4'), 0.5);
+  assert.equal(at('1/8'), 0.25);
+  assert.equal(at('1/8.'), 0.375);
+  assert.ok(Math.abs(at('1/8T') - 1 / 6) < 1e-9);
+  assert.equal(at('1/16'), 0.125);
+  assert.equal(at('1/4', 20), 2, 'nunca passa dos 2 s do buffer');
+  assert.ok(Math.abs(at('OFF') - 0.2) < 1e-9, 'OFF: D.TIME 5 na escala log de 20 ms a 2 s = 200 ms');
+});
+
+test('Pulso: botão BPM ↔ BPM', async () => {
+  const { bpmOf, knobOfBpm } = await import('../js/pedals/pulso.js');
+  for (const bpm of [40, 60, 97, 120, 240]) assert.equal(bpmOf(knobOfBpm(bpm)), bpm);
+});

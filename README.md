@@ -27,7 +27,7 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
 | Fase 90 | MXR Phase 90 | Phaser de 4 estágios, um botão |
 | Ondas | Boss TR-2 | Tremolo, de triângulo a quadrada |
 | Volume | Ernie Ball VP Jr | Pedal de volume com curva de áudio e mínimo ajustável |
-| Eco 8 | Boss DD-8 | Delay, modos STD, ANLG, MOD e P.PONG (estéreo), com trails |
+| Eco 8 | Boss DD-8 | Delay, modos STD, ANLG, MOD e P.PONG (estéreo), com trails. SYNC prende o tempo ao andamento (1/4, 1/8., 1/8, 1/8T, 1/16) |
 | Salão | TC Electronic Hall of Fame 2 | Reverb estéreo por convolução, 5 salas, com trails |
 | Pulso | Boss DB-90 | Metrônomo: BPM com TAP, compasso com acento, volume. Clique no fone, fora dos efeitos |
 | Laço | TC Electronic Ditto | Looper de até 2 min: grava, toca, sobrepõe; 2 pisadas param |
@@ -68,7 +68,8 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
   (`.webm` no Chrome, `.m4a` no Safari).
 - **Medir latência real**: com o áudio ligado, botão Medir ao lado da latência. Ligue um cabo da saída da
   interface na entrada; o app toca 6 cliques e mede quanto tempo eles levam para voltar.
-- **Tap tempo** no Eco 8 (botão TAP ou tecla `T`), de 20 ms a 2 s.
+- **Andamento da música** (♩ ao lado dos presets, tecla `T`, ou um footswitch MIDI): o Pulso e o Eco 8 em SYNC seguem o
+  mesmo BPM, que fica salvo com o preset. O TAP do Eco 8 continua acertando o D.TIME (20 ms a 2 s) e o do Pulso o BPM.
 - **Teclado como footswitch:** `1`–`9` ligam e desligam o pedal naquela posição (o número aparece em cima de cada pedal).
 - **Footswitch Bluetooth de virar página** (funciona no iPhone): setas e PageUp/PageDown trocam de preset.
 - **Controlador MIDI** (Chrome/Edge, não no iPhone): botão MIDI → toque no alvo (pedal, TAP, botão, ◀ ▶) →

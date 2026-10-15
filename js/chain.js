@@ -101,10 +101,12 @@ export function migrateState(saved, { factory = [], factoryVersion = 0 } = {}) {
     inputChannel: ['auto', 0, 1].includes(saved?.inputChannel) ? saved.inputChannel : 'auto',
     // Buffer de áudio pedido ao sistema (iPhone como app): menor = menos atraso, mais risco de estalo.
     bufferMs: [2.7, 5, 10, 20].includes(saved?.bufferMs) ? saved.bufferMs : 5,
+    // Andamento global (BPM): TAP em qualquer lugar, o BPM do Pulso e o SYNC do Eco 8 seguem o mesmo número.
+    bpm: num(saved?.bpm, 120, 40, 240),
     chain: normalizeChain(saved?.chain || DEFAULT_CHAIN.map(newBlock)),
     presets: (Array.isArray(saved?.presets) ? saved.presets : [])
       .filter(p => p && typeof p.name === 'string' && p.name)
-      .map(p => ({ name: p.name.slice(0, 40), chain: normalizeChain(p.chain) })),
+      .map(p => ({ name: p.name.slice(0, 40), chain: normalizeChain(p.chain), ...(typeof p.bpm === 'number' ? { bpm: num(p.bpm, 120, 40, 240) } : {}) })),
     preset: typeof saved?.preset === 'string' ? saved.preset : null,
     factory: num(saved?.factory, 0, 0, 1e6),
     // Rascunhos: mudanças não salvas por preset ('' = sem preset).

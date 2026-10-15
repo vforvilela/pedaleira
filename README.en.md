@@ -32,7 +32,7 @@ Pedal names stay in Portuguese in every language. The table gives each one's mea
 | Fase 90 | Phase 90 | MXR Phase 90 | 4-stage phaser, one knob |
 | Ondas | Waves | Boss TR-2 | Tremolo, from triangle to square |
 | Volume | Volume | Ernie Ball VP Jr | Volume pedal with audio taper and adjustable minimum |
-| Eco 8 | Echo 8 | Boss DD-8 | Delay, STD, ANLG, MOD and P.PONG (stereo) modes, with trails |
+| Eco 8 | Echo 8 | Boss DD-8 | Delay, STD, ANLG, MOD and P.PONG (stereo) modes, with trails. SYNC locks the time to the song tempo (1/4, 1/8., 1/8, 1/8T, 1/16) |
 | Salão | Hall | TC Electronic Hall of Fame 2 | Stereo convolution reverb, 5 rooms, with trails |
 | Pulso | Pulse | Boss DB-90 | Metronome: BPM with TAP, time signature with accent, volume. Click goes to the headphones, outside the effects |
 | Laço | Loop | TC Electronic Ditto | Looper up to 2 min: record, play, overdub; step twice to stop |
@@ -72,7 +72,8 @@ Pedal names stay in Portuguese in every language. The table gives each one's mea
   when you stop (`.webm` in Chrome, `.m4a` in Safari).
 - **Measure latency**: with audio on, click **Measure latency**. Connect a cable from the interface output to its
   input; the app plays 6 clicks and measures how long they take to come back.
-- **Tap tempo** on Eco 8 (TAP button or `T` key), from 20 ms to 2 s.
+- **Song tempo** (♩ next to the presets, `T` key, or a MIDI footswitch): Pulso and Eco 8 in SYNC follow the same BPM,
+  saved with the preset. Eco 8's own TAP still sets D.TIME (20 ms to 2 s) and Pulso's sets its BPM.
 - **Keyboard as footswitch:** `1`–`9` toggle the pedal in that position (the number shows above each pedal).
 - **Bluetooth page-turner footswitch** (works on iPhone): arrows and PageUp/PageDown switch presets.
 - **MIDI controller** (Chrome/Edge, not on iPhone): MIDI button → tap the target (pedal, TAP, knob, ◀ ▶) →
