@@ -5,8 +5,11 @@
 // - momentâneo: manda 127 ao pisar e 0 ao soltar → dispara no 127, ignora o 0 que vem logo depois;
 // - de trava (latching): manda 127 numa pisada e 0 na seguinte → dispara nos dois.
 // A diferença é o tempo: um 0 que chega mais de LATCH_MS depois do último 127 é outra pisada.
+// Só que um momentâneo segurado (esperando a virada) também solta tarde. Por isso um botão que alguma vez
+// soltou rápido (0 menos de QUICK_MS depois do 127) fica marcado como momentâneo no mapeamento, e daí em
+// diante o 0 dele nunca mais dispara, segure o tempo que segurar. A pisada que ensina já costuma marcar.
 
-export const LATCH_MS = 1000;
+export const LATCH_MS = 1000, QUICK_MS = 400;
 
 export const midiSupported = () => typeof navigator !== 'undefined' && !!navigator.requestMIDIAccess;
 
@@ -56,11 +59,25 @@ export class Midi {
 
   learn(target) { this.learnTarget = target; }
 
+  isMomentary(key) { return this.mappings.some(m => m.key === key && m.momentary); }
+
+  // Um 0 chegou para o botão `key`. Devolve se ele conta como pisada (só num botão de trava).
+  release(key, now) {
+    const since = now - (this.lastPress[key] ?? -Infinity);
+    if (since < QUICK_MS && !this.isMomentary(key)) {
+      let changed = false;
+      for (const m of this.mappings) if (m.key === key && !m.momentary) { m.momentary = true; changed = true; }
+      if (changed) this.onChange();
+    }
+    return !this.isMomentary(key) && since > LATCH_MS;
+  }
+
   handle(data) {
     const msg = parseMidi(data);
     if (!msg) return;
     const now = this.now();
     if (this.learnTarget && msg.key.startsWith('pc:') === false) {
+      if (msg.key.startsWith('cc:') && !msg.press) { this.release(msg.key, now); return; } // soltar do botão que ensinou
       const target = this.learnTarget;
       this.learnTarget = null;
       // A pisada que ensinou conta como pisada: o 0 do "soltar" logo depois não dispara nada.
@@ -77,7 +94,7 @@ export class Midi {
     msg.trigger = true;
     if (msg.key.startsWith('cc:')) {
       if (msg.press) this.lastPress[msg.key] = now;
-      else msg.trigger = now - (this.lastPress[msg.key] ?? -Infinity) > LATCH_MS;
+      else msg.trigger = this.release(msg.key, now);
     }
     // Botões contínuos recebem todo valor; pedais, TAP e presets só as pisadas que contam.
     for (const m of this.mappings)

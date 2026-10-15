@@ -17,6 +17,14 @@ export async function listDevices(selectedId) {
 
 let meterRaf = 0, latencyTimer = 0, tunerTimer = 0, channelTimer = 0;
 
+// A entrada parece ser o microfone do próprio aparelho (não uma interface de guitarra)?
+export function isBuiltInMic(track) {
+  const label = track.label || '';
+  if (/\b(mic|micro|microphone|microfone|micrófono|built-?in|internal|interno|integrado|array|webcam|camera|default|padrão|predeterminado)\b/i.test(label)) return true;
+  // Interfaces de guitarra têm 2 canais ou um nome de produto; "Entrada 1" sem nome é o celular.
+  return !label.trim();
+}
+
 // Lê os afinadores ligados ~12 vezes por segundo; desligados, o visor apaga.
 export function runTuners() {
   let tuner = null, tunerOn = false;
@@ -68,7 +76,9 @@ export async function start() {
   let warned = false;
   const showLat = () => {
     const ms = engine.latencyMs();
-    $('latency').textContent = t('power.latencyMs', { ms: fmtNum(ms, 1) });
+    // Um veredito ao lado do número: quem nunca mediu latência não sabe se 23 ms é bom.
+    const verdict = ms > 80 ? t('power.latHigh') : ms <= 25 ? t('power.latGood') : '';
+    $('latency').textContent = t('power.latencyMs', { ms: fmtNum(ms, 1) }) + (verdict ? ` · ${verdict}` : '');
     $('latency').parentElement.classList.toggle('high', ms > 80);
     // Fone ou caixa Bluetooth somam 150 ms ou mais: dá para ouvir, não para tocar.
     if (ms > 80 && !warned) {
@@ -79,9 +89,13 @@ export async function start() {
   showLat();
   latencyTimer = setInterval(showLat, 1000);
   if (!$('status').classList.contains('err')) {
-    // Primeira vez tocando: o engano mais comum é o monitor direto da interface dobrando o som limpo.
-    status(t(state.monitorHintDone ? 'power.playing' : 'power.playingFirst', { device: track.label }));
-    if (!state.monitorHintDone) { state.monitorHintDone = true; save(); }
+    // Microfone do aparelho (uma entrada só, ou nome de microfone): o perigo é o som voltar pela caixa e
+    // microfonar; o aviso de fone fica até a pessoa trocar para uma interface. Com interface, a primeira vez
+    // avisa do engano mais comum: o monitor direto dobrando o som limpo.
+    const mic = isBuiltInMic(track);
+    const key = mic ? 'power.playingMic' : state.monitorHintDone ? 'power.playing' : 'power.playingFirst';
+    status(t(key, { device: track.label }));
+    if (!mic && !state.monitorHintDone) { state.monitorHintDone = true; save(); }
   }
   $('measure').hidden = false;
   $('record').hidden = false;

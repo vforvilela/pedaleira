@@ -22,3 +22,12 @@ test('validParams: select fora da lista é cortado para a última opção', () =
   assert.equal(validParams(eco, { [sel.id]: 999 })[sel.id], sel.options.length - 1);
   assert.equal(validParams(eco, { [sel.id]: -4 })[sel.id], 0);
 });
+
+test('ajuda: todo pedal tem uma linha "o que faz" e todo botão uma dica, nos três idiomas', async () => {
+  const { DICTS } = await import('../js/i18n.js');
+  for (const lang of ['pt', 'en', 'es'])
+    for (const def of Object.values(byType)) {
+      assert.ok(DICTS[lang][`help.about.${def.type}`], `${lang}: help.about.${def.type}`);
+      for (const c of def.controls) assert.ok(DICTS[lang][`help.knob.${def.type}.${c.id}`], `${lang}: help.knob.${def.type}.${c.id}`);
+    }
+});

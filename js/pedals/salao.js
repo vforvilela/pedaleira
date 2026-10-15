@@ -45,7 +45,7 @@ export default {
     let active = 1;
 
     const p = { ...env.params };
-    let irKey = '', irTimer = 0;
+    let irKey = '', irTimer = 0, idleTimer = 0;
     const buildIR = () => {
       const key = `${p.room}:${p.decay}`;
       if (key === irKey) return;
@@ -58,6 +58,10 @@ export default {
       smooth(ctx, next.gain.gain, 1, 0.08);
       smooth(ctx, prev.gain.gain, 0, 0.08);
       active = 1 - active;
+      // Terminado o crossfade, o convolver que saiu perde a IR: sem ela não processa nada. Com ganho zero
+      // ele continuaria convoluindo até 11 s de cauda em estéreo, o dobro do custo do pedal.
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => { if (slots[active] !== prev) prev.conv.buffer = null; }, 700);
     };
     const apply = () => {
       smooth(ctx, tone.frequency, logMap(p.tone, 1500, 14000));
@@ -73,7 +77,7 @@ export default {
       input, output,
       set(id, v) { p[id] = v; apply(); },
       setOn: on => smooth(ctx, send.gain, on ? 1 : 0, 0.004),
-      dispose() { clearTimeout(irTimer); output.disconnect(); },
+      dispose() { clearTimeout(irTimer); clearTimeout(idleTimer); output.disconnect(); },
     };
   },
 };

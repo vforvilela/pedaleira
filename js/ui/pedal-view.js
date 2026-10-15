@@ -1,5 +1,5 @@
 // Desenha cada pedal em SVG (réplica desenhada) e liga botões, chaves e footswitch.
-import { t, fmtNum } from '../i18n.js';
+import { t, fmtNum, help } from '../i18n.js';
 const NS = 'http://www.w3.org/2000/svg';
 
 function el(tag, attrs = {}, parent) {
@@ -22,11 +22,12 @@ const knobAngle = (c, v) =>
   c.type === 'select' ? -120 + (240 * v) / Math.max(1, c.options.length - 1) : -135 + 27 * v;
 
 // hit: raio da área de toque (unidades do SVG ≈ px); no mínimo 20, o que dá ~44 px na tela.
-function drawKnob(svg, c, x, y, r, ink, hit = Math.max(r + 6, 20)) {
+function drawKnob(svg, c, x, y, r, ink, hit = Math.max(r + 6, 20), hint = '') {
   const g = el('g', {
-    class: 'knob', tabindex: 0, role: 'slider', 'aria-label': c.label, 'data-param': c.id,
+    class: 'knob', tabindex: 0, role: 'slider', 'aria-label': hint ? `${c.label}: ${hint}` : c.label, 'data-param': c.id,
     'aria-valuemin': 0, 'aria-valuemax': c.type === 'select' ? c.options.length - 1 : 10,
   }, svg);
+  if (hint) el('title', {}, g).textContent = `${c.label}: ${hint}`;
   text(g, x, y - r - 7, c.label, { class: 'klabel', fill: ink, 'font-size': r >= 13 ? 10 : 8.5 });
   el('circle', { cx: x, cy: y + 1.5, r: r + 2.5, fill: 'rgba(0,0,0,.35)' }, g);
   el('circle', { cx: x, cy: y, r: r + 2, fill: '#2a2a2a' }, g);
@@ -48,11 +49,12 @@ function drawKnob(svg, c, x, y, r, ink, hit = Math.max(r + 6, 20)) {
 }
 
 // Fader vertical (equalizador gráfico). Centro = 0 dB nos controles bipolares.
-function drawSlider(svg, c, x, y0, y1, ink) {
+function drawSlider(svg, c, x, y0, y1, ink, hint = '') {
   const g = el('g', {
-    class: 'knob slider', tabindex: 0, role: 'slider', 'aria-label': c.label, 'data-param': c.id,
+    class: 'knob slider', tabindex: 0, role: 'slider', 'aria-label': hint ? `${c.label}: ${hint}` : c.label, 'data-param': c.id,
     'aria-valuemin': 0, 'aria-valuemax': 10,
   }, svg);
+  if (hint) el('title', {}, g).textContent = `${c.label}: ${hint}`;
   el('rect', { x: x - 7, y: y0 - 4, width: 14, height: y1 - y0 + 8, fill: 'transparent' }, g); // área de toque
   el('rect', { x: x - 1.5, y: y0, width: 3, height: y1 - y0, rx: 1.5, fill: '#111' }, g);
   if (c.bipolar) el('line', { x1: x - 5, x2: x + 5, y1: (y0 + y1) / 2, y2: (y0 + y1) / 2, stroke: ink, 'stroke-width': 0.6, opacity: 0.6 }, g);
@@ -126,7 +128,7 @@ function drawPedal(def) {
     el('rect', { x: 12, y: 14, width: W - 24, height: 78, rx: 4, fill: 'url(#metalGrad)', opacity: 0.6 }, svg);
     const n = def.controls.length;
     def.controls.forEach((c, i) => {
-      knobs[c.id] = drawKnob(svg, c, 12 + ((W - 24) * (i + 0.5)) / n, 56, 13, look.ink, Math.min(20, (W - 24) / n / 2));
+      knobs[c.id] = drawKnob(svg, c, 12 + ((W - 24) * (i + 0.5)) / n, 56, 13, look.ink, Math.min(20, (W - 24) / n / 2), help(`help.knob.${def.type}.${c.id}`));
     });
     text(svg, 26, 128, def.name, { 'text-anchor': 'start', class: 'amp-logo', fill: '#e9e3d0', 'font-size': 24 });
     foot = el('g', footAttrs, svg);
@@ -142,7 +144,7 @@ function drawPedal(def) {
     el('rect', { x: 2, y: 2, width: W - 4, height: H - 4, rx: 12, fill: 'url(#metalGrad)', opacity: 0.35 }, svg);
     const [main, ...rest] = def.controls;
     knobs[main.id] = drawTreadle(svg, main, W, look);
-    rest.forEach((c, i) => { knobs[c.id] = drawKnob(svg, c, 26 + i * 30, 214, 8, look.ink, 15); });
+    rest.forEach((c, i) => { knobs[c.id] = drawKnob(svg, c, 26 + i * 30, 214, 8, look.ink, 15, help(`help.knob.${def.type}.${c.id}`)); });
     led = el('circle', { cx: W - 48, cy: 214, r: 3.6, class: 'led', stroke: 'rgba(0,0,0,.5)' }, svg);
     text(svg, W / 2, 262, look.subtitle, { fill: look.ink, 'font-size': 8, 'letter-spacing': 1.5 });
     foot = el('g', footAttrs, svg);
@@ -161,12 +163,12 @@ function drawPedal(def) {
     // Afinador: visor no alto, chaves pequenas nos cantos de baixo.
     display = drawTunerDisplay(svg, W);
     def.controls.forEach((c, i) => {
-      knobs[c.id] = drawKnob(svg, c, i === 0 ? 26 : W - 26, 73, 6.5, look.ink, 23); // chave pequena, toque de ~45 px
+      knobs[c.id] = drawKnob(svg, c, i === 0 ? 26 : W - 26, 73, 6.5, look.ink, 23, help(`help.knob.${def.type}.${c.id}`)); // chave pequena, toque de ~45 px
     });
   } else if (def.controls.every(c => c.type === 'slider')) {
     // Equalizador gráfico: uma fileira de faders.
     const n = def.controls.length, step = (W - 20) / n;
-    def.controls.forEach((c, i) => { knobs[c.id] = drawSlider(svg, c, 10 + step * (i + 0.5), 22, 76, look.ink); });
+    def.controls.forEach((c, i) => { knobs[c.id] = drawSlider(svg, c, 10 + step * (i + 0.5), 22, 76, look.ink, help(`help.knob.${def.type}.${c.id}`)); });
   } else {
     const n = def.controls.length;
     const r = n > 3 ? 12 : 14.5;
@@ -175,7 +177,7 @@ function drawPedal(def) {
     // Área de toque até a metade da distância para o vizinho, senão um botão rouba o toque do outro.
     const hit = Math.max(r + 4, Math.min(20, (W - 2 * pad) / n / 2));
     def.controls.forEach((c, i) => {
-      knobs[c.id] = drawKnob(svg, c, pad + ((W - 2 * pad) * (i + 0.5)) / n, 46, c.type === 'select' ? r - 2 : r, look.ink, hit);
+      knobs[c.id] = drawKnob(svg, c, pad + ((W - 2 * pad) * (i + 0.5)) / n, 46, c.type === 'select' ? r - 2 : r, look.ink, hit, help(`help.knob.${def.type}.${c.id}`));
     });
   }
 
@@ -258,6 +260,8 @@ export function pedalView(block, cb) {
   caption.innerHTML = `<span class="pname"></span><span class="inspired"></span><span class="files"></span>`;
   caption.querySelector('.pname').textContent = def.name;
   caption.querySelector('.inspired').textContent = caption.querySelector('.inspired').title = def.inspiredBy ? t('pedal.inspiredBy', { name: def.inspiredBy }) : '';
+  // O que o pedal faz, ao passar o mouse no nome (no toque, o painel de controles mostra a mesma linha).
+  caption.querySelector('.pname').title = help(`help.about.${def.type}`);
   root.append(caption);
 
   const tools = document.createElement('div');
@@ -419,7 +423,7 @@ function openKnobSheet(def, block, setters, focusId, cb) {
     sheet = document.createElement('dialog');
     sheet.className = 'knob-sheet';
     sheet.setAttribute('aria-labelledby', 'knobSheetTitle');
-    sheet.innerHTML = '<div class="knob-sheet-head"><h2 id="knobSheetTitle"></h2><button class="primary"></button></div><div class="knob-sheet-rows"></div>';
+    sheet.innerHTML = '<div class="knob-sheet-head"><h2 id="knobSheetTitle"></h2><button class="primary"></button></div><p class="knob-sheet-about"></p><div class="knob-sheet-rows"></div>';
     sheet.querySelector('button').textContent = t('pedal.sheetDone');
     sheet.querySelector('button').onclick = () => sheet.close();
     // Toque fora do painel (no fundo escurecido) fecha. pointerdown, não click: o click sintético do próprio
@@ -431,19 +435,27 @@ function openKnobSheet(def, block, setters, focusId, cb) {
     document.body.append(sheet);
   }
   sheet.querySelector('h2').textContent = def.name;
+  const about = sheet.querySelector('.knob-sheet-about');
+  about.textContent = help(`help.about.${def.type}`);
+  about.hidden = !about.textContent;
   const rows = def.controls.map(c => {
     const max = c.type === 'select' ? c.options.length - 1 : 10;
     const label = document.createElement('div');
     label.className = 'knob-row';
-    label.innerHTML = '<label></label><input type="range" min="0"><output></output><button class="reset">↺</button>';
+    label.innerHTML = '<label></label><input type="range" min="0"><output></output><button class="reset">↺</button><small class="hint"></small>';
     label.querySelector('label').textContent = c.label;
     label.querySelector('label').htmlFor = `ks-${c.id}`;
+    const hint = help(`help.knob.${def.type}.${c.id}`);
+    label.querySelector('.hint').textContent = hint;
+    label.querySelector('.hint').hidden = !hint;
+    label.querySelector('.hint').id = `ksh-${c.id}`;
     const input = label.querySelector('input'), out = label.querySelector('output');
     input.id = `ks-${c.id}`;
     input.max = max;
     input.step = c.type === 'select' ? 1 : 0.1;
     input.value = block.params[c.id];
     input.dataset.param = c.id;
+    if (hint) input.setAttribute('aria-describedby', `ksh-${c.id}`);
     const show = () => {
       const v = +input.value;
       out.textContent = c.type === 'select' ? c.options[v] : c.show ? c.show(v) : fmtNum(v, 1);

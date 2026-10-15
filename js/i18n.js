@@ -12,6 +12,7 @@ import app from './i18n/app.js';
 import board from './i18n/board.js';
 import core from './i18n/core.js';
 import control from './i18n/control.js';
+import helpDict from './i18n/help.js';
 import html from './i18n/html.js';
 import pedalView from './i18n/pedal-view.js';
 import pedals from './i18n/pedals.js';
@@ -25,7 +26,9 @@ const LOCALES = { pt: 'pt-BR', en: 'en', es: 'es' };
 const KEY = 'brasa.lang';
 
 export const DICTS = { pt: {}, en: {}, es: {} };
-for (const part of [app, board, core, control, html, pedalView, pedals, power, presets, scenes, stage])
+// Texto de ajuda opcional (o que um pedal faz, o que um botão muda): '' quando não existe.
+export const help = (key, params) => (key in DICTS.pt ? t(key, params) : '');
+for (const part of [app, board, core, control, helpDict, html, pedalView, pedals, power, presets, scenes, stage])
   for (const l of Object.keys(DICTS)) Object.assign(DICTS[l], part[l]);
 
 // Escolha guardada > idiomas do sistema > inglês (para quem não fala nenhum dos três, é o mais provável de ler).

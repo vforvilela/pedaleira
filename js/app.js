@@ -1,6 +1,6 @@
 // Pedaleira: junta os módulos e inicia o app.
 import './i18n-apply.js';
-import { LANGS, lang, setLang, t } from './i18n.js';
+import { LANGS, lang, setLang, t, help } from './i18n.js';
 import { loadWasmBytes } from './audio/engine.js';
 import { addBlock, directUrl, renderBoard, setFloorView } from './board.js';
 import { midi } from './control.js';
@@ -14,6 +14,13 @@ import { installDefs } from './ui/pedal-view.js';
 import { PEDALS } from './pedals/index.js';
 import './power.js';
 import './stage.js';
+
+// Uma promessa que falhou sem ninguém tratar (troca de preset, MIDI, arquivo) vira aviso na tela,
+// não só uma linha no console que ninguém vê no palco.
+addEventListener('unhandledrejection', e => {
+  const msg = e.reason?.message || String(e.reason ?? '');
+  status(t('app.unexpected', { msg }), true);
+});
 
 // ---------- Biblioteca ----------
 
@@ -31,7 +38,10 @@ const addButton = def => {
   b.innerHTML = `<span class="swatch ${def.look.style}" aria-hidden="true"></span><span><b></b><small></small></span>`;
   b.querySelector('.swatch').style.setProperty('--body', def.look.body);
   b.querySelector('b').textContent = def.name;
-  b.querySelector('small').textContent = def.inspiredBy ? t('app.inspired', { name: def.inspiredBy }) : t('app.ampDesc');
+  // O que o pedal faz, para quem nunca ouviu falar do original; o original fica no title.
+  const about = help(`help.about.${def.type}`);
+  b.querySelector('small').textContent = about || (def.inspiredBy ? t('app.inspired', { name: def.inspiredBy }) : t('app.ampDesc'));
+  if (about && def.inspiredBy) b.title = t('app.inspired', { name: def.inspiredBy });
   // Fecha a gaveta para o pedal novo ser visto pousando na pedaleira.
   b.onclick = () => { $('libSheet').close(); addBlock(def.type); };
   return b;

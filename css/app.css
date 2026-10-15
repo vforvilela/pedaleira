@@ -641,6 +641,8 @@ h2 { font-size: 26px; font-weight: 850; font-stretch: 118%; letter-spacing: -.02
 .knob-row input { width: 100%; height: var(--touch); accent-color: var(--accent); }
 .knob-row output { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
 .knob-row .reset { min-width: var(--touch); min-height: var(--touch); padding: 0; color: var(--muted); }
+.knob-row .hint { grid-column: 1 / -1; margin: -6px 0 2px; color: var(--muted); font-size: .85em; line-height: 1.3; }
+.knob-sheet-about { margin: 0 0 10px; color: var(--muted); line-height: 1.35; }
 
 /* ---------- Carregar captura ou IR ---------- */
 .file-sheet { display: none; }

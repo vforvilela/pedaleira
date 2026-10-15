@@ -69,6 +69,10 @@ test('footswitch momentâneo dispara uma vez por pisada; de trava dispara em tod
   // Momentâneo: 3 pisadas, cada uma 127 e logo 0.
   for (let i = 0; i < 3; i++) { t += 2000; midi.handle([0xB0, 64, 127]); t += 150; midi.handle([0xB0, 64, 0]); }
   assert.equal(fired, 3);
+  // Segurou o pé esperando a virada (3 s) e soltou: o soltar não é pisada num momentâneo já conhecido.
+  t += 2000; midi.handle([0xB0, 64, 127]); t += 3000; midi.handle([0xB0, 64, 0]);
+  assert.equal(fired, 4, 'segurar o momentâneo não dispara duas vezes');
+  assert.equal(midi.mappings[0].momentary, true, 'o mapeamento lembra que o botão é momentâneo');
 
   // De trava: cada pisada manda só um valor, alternando.
   fired = 0;
