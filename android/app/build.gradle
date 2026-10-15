@@ -18,10 +18,25 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Assinatura de release pela chave de upload, quando o CI (ou quem compila) passa as variáveis:
+    // ANDROID_KEYSTORE_FILE (caminho do .keystore), ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
+    // Sem elas, o AAB sai sem assinatura (serve para conferir que compila; a Play Store não aceita).
+    def ks = System.getenv("ANDROID_KEYSTORE_FILE")
+    if (ks && file(ks).exists()) {
+        signingConfigs {
+            upload {
+                storeFile file(ks)
+                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (ks && file(ks).exists()) signingConfig signingConfigs.upload
         }
     }
 }

@@ -109,8 +109,22 @@ npm run ios       # idem, Xcode (só no macOS)
 celular e abra (o Android avisa que veio de fora da loja; é o build de debug).
 
 Cada tag `v*` (ou um clique em "Apps Android e iOS" nas Actions) gera o APK de teste e o AAB da Play Store,
-anexa o APK à release e confere que o projeto iOS compila (`.github/workflows/native.yml`). Assinar e publicar
-nas lojas é com as contas do dono (Play Console e Apple Developer). No app, o botão Voltar do Android fecha
+anexa o APK à release e confere que o projeto iOS compila (`.github/workflows/native.yml`). Publicar
+nas lojas é com as contas do dono (Play Console e Apple Developer).
+
+**Assinatura do Android.** Com quatro secrets no repositório o CI assina o AAB e o APK de release com a chave de upload
+(sem eles, o AAB sai sem assinatura e o APK anexado à release é o de debug):
+
+```sh
+keytool -genkeypair -keystore upload.keystore -storetype PKCS12 -alias tonesmith-upload -keyalg RSA -keysize 2048 -validity 10000
+base64 -w0 upload.keystore | gh secret set ANDROID_KEYSTORE_BASE64
+gh secret set ANDROID_KEYSTORE_PASSWORD   # a senha do keystore
+gh secret set ANDROID_KEY_ALIAS --body tonesmith-upload
+gh secret set ANDROID_KEY_PASSWORD        # a mesma senha (PKCS12)
+```
+
+Guarde o `upload.keystore` fora do repositório. Com o Play App Signing ligado, a Play Console aceita trocar a chave de
+upload se ela se perder. Local: `ANDROID_KEYSTORE_FILE=… ANDROID_KEYSTORE_PASSWORD=… ANDROID_KEY_ALIAS=… ANDROID_KEY_PASSWORD=… npm run android`. No app, o botão Voltar do Android fecha
 gavetas e o palco; sem nada aberto, manda o app para o fundo sem desligar o som.
 
 - `android/` e `ios/`: projetos nativos. Plugins locais: `MidiPlugin` (Android e iOS) e `AudioSessionPlugin` (iOS).
