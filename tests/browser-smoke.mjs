@@ -903,6 +903,22 @@ try {
     && (tempo.sec === null || Math.abs(tempo.sec - 60 / tempo.bpm) < 1e-9),
     `andamento global: tecla T acerta o BPM, o Pulso espelha, o Eco 8 em SYNC segue (${JSON.stringify(tempo)})`);
 
+  // Nível do preset: o slider muda o ganho no fim da cadeia e vai salvo com o preset; outro preset volta a 0.
+  const trim = await evaluate(`(async () => {
+    const p = __pedaleira, wait = ms => new Promise(r => setTimeout(r, ms));
+    const s = document.getElementById('trim'); s.value = -6; s.dispatchEvent(new Event('input'));
+    await wait(100);
+    const gain = p.engine.trim.gain.value;
+    document.getElementById('presetName').value = 'Baixo'; document.getElementById('presetSave').click();
+    const saved = p.state.presets.find(x => x.name === 'Baixo')?.trim;
+    const other = p.state.presets.find(x => x.name !== 'Baixo');
+    document.getElementById('preset').value = other.name; document.getElementById('preset').dispatchEvent(new Event('change'));
+    await wait(300);
+    return { gain: +gain.toFixed(3), saved, after: p.state.trim, shown: document.getElementById('trimV').textContent };
+  })()`);
+  check(Math.abs(trim.gain - 0.501) < 0.01 && trim.saved === -6 && trim.after === 0 && /^0 dB$/.test(trim.shown),
+    `nível do preset: −6 dB vira ganho 0,5, fica salvo e outro preset volta a 0 (${JSON.stringify(trim)})`);
+
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
   console.log(`screenshots em ${out}`);
   ws.close();

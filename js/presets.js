@@ -1,6 +1,6 @@
 // Presets, rascunhos, exportar e importar.
 import { ensureView, fetchFile, fileInput, renderBoard } from './board.js';
-import { $, changeListeners, hideToast, toast, createAudio, engine, fileData, live, loadIntoAudio, setTempo, tapGlobal, normalizeBlock, normalizeChain, reconnect, releaseFile, save, SCENE_NAMES, snapshot, state, status, uid } from './core.js';
+import { $, changeListeners, hideToast, toast, createAudio, engine, fileData, live, loadIntoAudio, setTempo, setTrim, tapGlobal, normalizeBlock, normalizeChain, reconnect, releaseFile, save, SCENE_NAMES, snapshot, state, status, uid } from './core.js';
 import { chainDirty, sameChain, withScene } from './chain.js';
 import { t } from './i18n.js';
 import { saveFile } from './platform.js';
@@ -57,8 +57,8 @@ export function savePreset() {
   if (!name) { status(t('presets.nameRequired'), true); $('presetName').focus(); return; }
   const existing = presetByName(name);
   const old = existing?.chain;
-  if (existing) { existing.chain = snapshot(state.chain); existing.bpm = state.bpm; }
-  else state.presets.push({ name, chain: snapshot(state.chain), bpm: state.bpm });
+  if (existing) { existing.chain = snapshot(state.chain); existing.bpm = state.bpm; existing.trim = state.trim; }
+  else state.presets.push({ name, chain: snapshot(state.chain), bpm: state.bpm, trim: state.trim });
   // Salvar a partir de outro preset deixa aquele como estava salvo.
   if (state.preset !== name) delete state.drafts[state.preset ?? ''];
   delete state.drafts[name];
@@ -282,6 +282,7 @@ export async function applyPreset(name) {
   if (!target) { state.preset = name || null; save(); renderPresets(); return; }
   const bpm = presetByName(name)?.bpm;
   if (bpm) setTempo(bpm); // o andamento da música vem com o preset (não conta como rascunho)
+  setTrim(presetByName(name)?.trim ?? 0); // idem o nível
   await loadChain(target, name || null);
   status('');
 }

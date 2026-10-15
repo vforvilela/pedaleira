@@ -83,7 +83,10 @@ export class Engine {
     this.analyser.fftSize = 1024;
     this.input.connect(this.analyser);
 
+    // Nível do preset: um ganho entre a cadeia e o Volume, para igualar presets entre si.
+    this.trim = ctx.createGain();
     this.master = ctx.createGain();
+    this.trim.connect(this.master);
     // Limitador de segurança antes do fone (sem o atraso de ~6 ms do DynamicsCompressorNode).
     this.limiter = new AudioWorkletNode(ctx, 'limiter', {
       numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2], channelCount: 2, channelCountMode: 'explicit',
@@ -131,16 +134,21 @@ export class Engine {
       prev.connect(b.audio.input);
       prev = b.audio.output;
     }
-    prev.connect(this.master);
+    prev.connect(this.trim);
+  }
+
+  setTrim(db) {
+    if (this.ctx) this.trim.gain.setTargetAtTime(dbToGain(db), this.ctx.currentTime, 0.01);
   }
 
   // Spillover: um delay ou reverb que sai da pedaleira (troca de preset) não recebe mais sinal, mas a cauda
   // continua soando por `seconds` e some aos poucos no último 1,5 s, como numa pedaleira digital boa.
   // Chamar depois de connectChain, que desliga as saídas da cadeia antiga.
+  // (A cauda sai pelo nível do preset novo: o spill liga no trim, como a cadeia.)
   spill(audio, seconds) {
     const ctx = this.ctx, fade = ctx.createGain(), t = ctx.currentTime;
     audio.output.disconnect();
-    audio.output.connect(fade).connect(this.master);
+    audio.output.connect(fade).connect(this.trim);
     fade.gain.setValueAtTime(1, t + seconds - 1.5);
     fade.gain.linearRampToValueAtTime(0, t + seconds);
     setTimeout(() => { fade.disconnect(); audio.dispose(); }, seconds * 1000 + 100);

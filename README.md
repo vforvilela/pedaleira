@@ -34,6 +34,8 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
 
 **Para tocar ao vivo**
 
+- **Nível do preset** (slider Preset, na faixa Entrada): −12 a +12 dB no fim da cadeia, salvo com o preset, para os
+  presets do setlist soarem no mesmo volume.
 - **Modo simples** na primeira visita: sem cenas, Link, Exportar, Importar, Organizar, MIDI e afins. **Mostrar tudo** (no ⋯)
   traz tudo de volta; **Modo simples** esconde de novo.
 - **Presets de fábrica** para começar: Limpo com chorus, Crunch (cena A base, B solo com boost e delay), Solo com

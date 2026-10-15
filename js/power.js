@@ -3,7 +3,7 @@ import { setStageTuner } from './stage.js';
 import { noteOf } from './audio/pitch.js';
 import { pickChannel } from './audio/channel.js';
 import { t, fmtNum } from './i18n.js';
-import { $, applyStoredFiles, createAudio, engine, live, reconnect, save, state, status } from './core.js';
+import { $, applyStoredFiles, changeListeners, createAudio, engine, live, reconnect, save, setTrim, state, status } from './core.js';
 import { backgroundAudio, hasAudioSession, keepAwake, saveFile } from './platform.js';
 import { preloadFiles } from './store.js';
 
@@ -68,6 +68,7 @@ export async function start() {
   for (const b of state.chain) createAudio(b);
   reconnect();
   engine.setMaster(state.master);
+  engine.setTrim(state.trim);
   engine.setInputGain(state.inputGain);
   setupChannel();
   watchAudio(track);
@@ -324,6 +325,11 @@ navigator.mediaDevices?.addEventListener?.('devicechange', () => listDevices(sta
 $('master').value = state.master;
 export const showMaster = () => { $('masterV').textContent = `${fmtDb(state.master)} dB`; };
 showMaster();
+// Nível do preset: o slider segue o estado (muda ao trocar de preset) e o estado segue o slider.
+const showTrim = () => { $('trim').value = state.trim; $('trimV').textContent = `${state.trim > 0 ? '+' : ''}${fmtDb(state.trim)} dB`; };
+showTrim();
+changeListeners.push(showTrim);
+$('trim').oninput = () => setTrim(+$('trim').value);
 $('master').oninput = () => {
   state.master = +$('master').value;
   showMaster();

@@ -39,6 +39,8 @@ Pedal names stay in Portuguese in every language. The table gives each one's mea
 
 **For playing live**
 
+- **Preset level** (Preset slider in the Input strip): −12 to +12 dB at the end of the chain, saved with the preset, so the
+  presets in a setlist sit at the same volume.
 - **Simple mode** on the first visit: no scenes, Link, Export, Import, Organize, MIDI and the like. **Show everything** (under ⋯)
   brings it all back; **Simple mode** hides it again.
 - **Factory presets** to start from: clean with chorus, crunch (scene A rhythm, B solo with boost and delay), solo

@@ -105,10 +105,16 @@ export function migrateState(saved, { factory = [], factoryVersion = 0 } = {}) {
     bufferMs: [2.7, 5, 10, 20].includes(saved?.bufferMs) ? saved.bufferMs : 5,
     // Andamento global (BPM): TAP em qualquer lugar, o BPM do Pulso e o SYNC do Eco 8 seguem o mesmo número.
     bpm: num(saved?.bpm, 120, 40, 240),
+    // Nível do preset (dB no fim da cadeia, antes do Volume): iguala o volume entre presets do setlist.
+    trim: num(saved?.trim, 0, -12, 12),
     chain: normalizeChain(saved?.chain || DEFAULT_CHAIN.map(newBlock)),
     presets: (Array.isArray(saved?.presets) ? saved.presets : [])
       .filter(p => p && typeof p.name === 'string' && p.name)
-      .map(p => ({ name: p.name.slice(0, 40), chain: normalizeChain(p.chain), ...(typeof p.bpm === 'number' ? { bpm: num(p.bpm, 120, 40, 240) } : {}) })),
+      .map(p => ({
+        name: p.name.slice(0, 40), chain: normalizeChain(p.chain),
+        ...(typeof p.bpm === 'number' ? { bpm: num(p.bpm, 120, 40, 240) } : {}),
+        ...(typeof p.trim === 'number' ? { trim: num(p.trim, 0, -12, 12) } : {}),
+      })),
     preset: typeof saved?.preset === 'string' ? saved.preset : null,
     factory: num(saved?.factory, 0, 0, 1e6),
     // Rascunhos: mudanças não salvas por preset ('' = sem preset).

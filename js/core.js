@@ -160,6 +160,13 @@ export function setTempo(bpm, from = null) {
   save();
 }
 
+// Nível do preset (dB), aplicado no fim da cadeia; vai salvo com o preset.
+export function setTrim(db) {
+  state.trim = Math.round(Math.max(-12, Math.min(12, db)) * 2) / 2;
+  engine.setTrim(state.trim);
+  save();
+}
+
 // Botão BPM do Pulso girado: o andamento global acompanha.
 export function paramChanged(block, id, v) {
   if (block.type === 'pulso' && id === 'bpm') setTempo(bpmOf(v), block);

@@ -82,3 +82,12 @@ test('migrateState: primeira visita começa em modo simples; quem já usava fica
   assert.equal(old.preset, null);
   assert.equal(old.simple, false);
 });
+
+test('migrateState: nível e andamento do preset são opcionais e ficam na faixa', () => {
+  const s = migrateState({ trim: 40, bpm: 'x', presets: [{ name: 'a', chain: [], trim: -30, bpm: 90 }, { name: 'b', chain: [] }] });
+  assert.equal(s.trim, 12);
+  assert.equal(s.bpm, 120);
+  assert.equal(s.presets[0].trim, -12);
+  assert.equal(s.presets[0].bpm, 90);
+  assert.equal('trim' in s.presets[1], false);
+});
