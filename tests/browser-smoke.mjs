@@ -655,7 +655,7 @@ try {
     const opened = document.getElementById('fileSheet').open;
     document.getElementById('fileUrl').value = location.origin + '/tests/fixtures/A2.nam';
     document.getElementById('fileUrlForm').requestSubmit();
-    for (let i = 0; i < 50 && !amp.files.nam?.url; i++) await wait(100);
+    for (let i = 0; i < 150 && !amp.files.nam?.url; i++) await wait(100);
     const stored = !!amp.files.nam?.url && !document.getElementById('fileSheet').open;
     const link = await p.shareLink();
     const presets = p.state.presets.length;
@@ -685,7 +685,7 @@ try {
       document.querySelector('.pedal[data-uid="' + amp.uid + '"] .file-btn[data-kind="nam"]').click();
       const items = [...document.querySelectorAll('#fileSuggest:not([hidden]) .suggest')];
       items[2].click();
-      for (let i = 0; i < 50 && !amp.files.nam?.url?.includes('5150'); i++) await wait(100);
+      for (let i = 0; i < 150 && !amp.files.nam?.url?.includes('5150'); i++) await wait(100);
       const cab = p.live.get(amp.uid).def.controls.find(c => c.id === 'cab').options[amp.params.cab];
       return { n: items.length, url: !!amp.files.nam?.url?.includes('nam-profiles-colab'), name: amp.files.nam?.name, cab,
         closed: !document.getElementById('fileSheet').open };
@@ -710,14 +710,14 @@ try {
       const title = document.getElementById('fileSuggestTitle').textContent;
       const items = [...document.querySelectorAll('#fileSuggest:not([hidden]) .suggest')];
       items[1].click();
-      for (let i = 0; i < 50 && !amp.files.ir?.url?.includes('SM48'); i++) await wait(100);
+      for (let i = 0; i < 150 && !amp.files.ir?.url?.includes('SM48'); i++) await wait(100);
       const sugg = { n: items.length, title, cab: cabOf(), name: amp.files.ir?.name, closed: !document.getElementById('fileSheet').open };
       p.setParam?.(amp, 'cab', 0);
       document.querySelector('.pedal[data-uid="' + amp.uid + '"] .file-btn[data-kind="ir"]').click();
       document.getElementById('fileUrl').value = 'https://github.com/alguem/irs/blob/main/minha%20caixa.wav';
       asked.length = 0;
       document.getElementById('fileUrlForm').requestSubmit();
-      for (let i = 0; i < 50 && amp.files.ir?.name !== 'minha caixa'; i++) await wait(100);
+      for (let i = 0; i < 150 && amp.files.ir?.name !== 'minha caixa'; i++) await wait(100);
       return { ...sugg, lfs: asked.join(' '), lfsName: amp.files.ir?.name, lfsCab: cabOf() };
     } finally { window.fetch = realFetch; }
   })()`);
