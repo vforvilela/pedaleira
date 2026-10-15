@@ -163,6 +163,28 @@ test('looper: desfazer tira a última camada sobreposta e, de novo, traz de volt
   assert.ok(Math.abs(run(10, 0)[0] - 0.75) < 1e-6);
 });
 
+test('looper com SYNC: o loop fecha no múltiplo de batida mais perto (para cima, segue gravando; para baixo, corta)', () => {
+  const l = new Looper(1000, 10);
+  l.quantum = 500; // uma batida = 0,5 s a 1 kHz
+  const run = (n, v = 0) => { const inp = new Float32Array(n).fill(v), out = new Float32Array(n); l.process(inp, out); return out; };
+  // Pisou cedo, em 0,9 s: alvo 1,0 s → continua gravando até lá e só então toca.
+  l.command('press'); run(900, 0.5); l.command('press');
+  assert.equal(l.state, 'rec');
+  run(100, 0.5);
+  assert.equal(l.state, 'play');
+  assert.equal(l.len, 1000);
+  // Pisou tarde, em 1,6 s: alvo 1,5 s → corta.
+  l.command('clear'); l.command('press'); run(1600); l.command('press');
+  assert.equal(l.state, 'play');
+  assert.equal(l.len, 1500);
+  // Gravação mais curta que uma batida sobe para uma batida.
+  l.command('clear'); l.command('press'); run(150); l.command('press'); run(400);
+  assert.equal(l.len, 500);
+  // Sem quantização, fica como pisou.
+  l.quantum = 0; l.command('clear'); l.command('press'); run(730); l.command('press');
+  assert.equal(l.len, 730);
+});
+
 test('looper ignora gravação de menos de 0,1 s (pisada sem querer)', () => {
   const l = new Looper(1000, 10);
   l.command('press');

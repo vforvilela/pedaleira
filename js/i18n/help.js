@@ -94,6 +94,7 @@ export default {
     'help.knob.pulso.beats': 'Batidas por compasso; a primeira é acentuada. — sem acento',
     'help.knob.pulso.level': 'Volume do clique',
     'help.knob.laco.level': 'Volume do loop em relação à guitarra',
+    'help.knob.laco.sync': 'Fecha o loop em batidas do andamento (♩): 1, 2 ou 4. Pise perto da batida e o loop fica redondo, junto com o Pulso',
   },
   en: {
     'help.about.afinador': 'Tunes the guitar: the note lights up on the display, green when it is right. MUTE silences the sound while you tune.',
@@ -188,6 +189,7 @@ export default {
     'help.knob.pulso.beats': 'Beats per bar; the first is accented. — no accent',
     'help.knob.pulso.level': 'Volume of the click',
     'help.knob.laco.level': 'Volume of the loop relative to the guitar',
+    'help.knob.laco.sync': 'Rounds the loop to beats of the song tempo (♩): 1, 2 or 4. Step near the beat and the loop lands square, in time with Pulso',
   },
   es: {
     'help.about.afinador': 'Afina la guitarra: la nota se enciende en la pantalla, verde cuando está bien. MUTE silencia el sonido mientras afinas.',
@@ -282,5 +284,6 @@ export default {
     'help.knob.pulso.beats': 'Pulsos por compás; el primero va acentuado. — sin acento',
     'help.knob.pulso.level': 'Volumen del clic',
     'help.knob.laco.level': 'Volumen del loop respecto a la guitarra',
+    'help.knob.laco.sync': 'Cierra el loop en pulsos del tempo (♩): 1, 2 o 4. Pisa cerca del pulso y el loop queda redondo, junto con Pulso',
   },
 };

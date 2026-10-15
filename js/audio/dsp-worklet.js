@@ -35,12 +35,13 @@ registerProcessor('comp', class extends DspProcessor {
   configure(p) { this.dsp.set(p); }
 });
 
-// Looper: { cmd: 'press' | 'stop' | 'clear' | 'undo' } ou { level }. Avisa a cada troca de estado.
+// Looper: { cmd: 'press' | 'stop' | 'clear' | 'undo' }, { level } ou { quantum } (amostras; 0 livre). Avisa a cada troca de estado.
 registerProcessor('looper', class extends DspProcessor {
   constructor() { super(() => new Looper(sampleRate)); this.last = ''; }
-  configure({ cmd, level }) {
+  configure({ cmd, level, quantum }) {
     if (cmd) this.dsp.command(cmd);
     if (level !== undefined) this.dsp.level = level;
+    if (quantum !== undefined) this.dsp.quantum = Math.round(quantum);
   }
   process(inputs, outputs) {
     super.process(inputs, outputs);

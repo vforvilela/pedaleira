@@ -30,7 +30,7 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
 | Eco 8 | Boss DD-8 | Delay, modos STD, ANLG, MOD e P.PONG (estéreo), com trails. SYNC prende o tempo ao andamento (1/4, 1/8., 1/8, 1/8T, 1/16) |
 | Salão | TC Electronic Hall of Fame 2 | Reverb estéreo por convolução, 5 salas, pré-delay, com trails |
 | Pulso | Boss DB-90 | Metrônomo: BPM com TAP, compasso com acento, volume. Clique no fone, fora dos efeitos |
-| Laço | TC Electronic Ditto | Looper de até 2 min: grava, toca, sobrepõe, desfaz a última camada; 2 pisadas param |
+| Laço | TC Electronic Ditto | Looper de até 2 min: grava, toca, sobrepõe, desfaz a última camada; 2 pisadas param. SYNC fecha o loop em batidas do andamento |
 
 **Para tocar ao vivo**
 
