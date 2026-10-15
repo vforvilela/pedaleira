@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#2b2420">
+<!-- CSP (só no site; scripts/www.sh tira esta linha do app nativo, cuja ponte do Capacitor é um script embutido).
+     Os hashes são dos três scripts embutidos: tests/validate.test.mjs confere; mudou um deles, rode o teste e copie o hash.
+     wasm-unsafe-eval: sem ele o navegador recusa compilar o nam.wasm. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-p7J4Sc04dhwv+vnetsMLzN9USDtRN48QLXI36EBFcp8=' 'sha256-a4tw9UoOqmyx/m+JCHBghfn91VNy6J87TZHzL/ig75o=' 'sha256-pdoh/sIew/nQWSS0xXxZr9PmFgiHVG5fwwFvNbhzlYY='; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https:; media-src 'self' blob:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Aberta da tela de início, roda como app: sem barra do navegador, com a chapa do topo por baixo da barra de status. -->
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">

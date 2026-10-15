@@ -93,7 +93,8 @@ function drawTreadle(svg, c, W, look) {
 
 // Gradientes compartilhados por todos os pedais: um SVG escondido na página, criado uma vez.
 export function installDefs() {
-  const host = el('svg', { width: 0, height: 0, 'aria-hidden': 'true', style: 'position:absolute' });
+  const host = el('svg', { width: 0, height: 0, 'aria-hidden': 'true' });
+  host.style.position = 'absolute'; // (pela CSSOM, não pelo atributo: a CSP do site bloqueia style= inline)
   document.body.append(host);
   const d = el('defs', {}, host);
   const kg = el('radialGradient', { id: 'knobGrad', cx: '40%', cy: '35%', r: '70%' }, d);

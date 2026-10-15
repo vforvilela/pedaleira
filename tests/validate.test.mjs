@@ -61,3 +61,18 @@ test('Pulso: botão BPM ↔ BPM', async () => {
   const { bpmOf, knobOfBpm } = await import('../js/pedals/pulso.js');
   for (const bpm of [40, 60, 97, 120, 240]) assert.equal(bpmOf(knobOfBpm(bpm)), bpm);
 });
+
+test('CSP: os hashes do index.html batem com os scripts embutidos; o app nativo (www/) fica sem a CSP', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { createHash } = await import('node:crypto');
+  const root = new URL('..', import.meta.url).pathname;
+  const html = readFileSync(`${root}index.html`, 'utf8');
+  const csp = html.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/)[1];
+  const inline = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+  const want = inline.map(s => `'sha256-${createHash('sha256').update(s).digest('base64')}'`);
+  const have = [...csp.matchAll(/'sha256-[^']+'/g)].map(m => m[0]);
+  assert.deepEqual(have, want, 'hash de script embutido desatualizado na CSP');
+  assert.match(csp, /script-src 'self'/);
+  assert.doesNotMatch(csp, /'unsafe-inline'|'unsafe-eval'/);
+  assert.match(readFileSync(`${root}scripts/www.sh`, 'utf8'), /sed -i '\/Content-Security-Policy\/d' www\/index\.html/);
+});
