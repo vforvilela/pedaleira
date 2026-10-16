@@ -281,8 +281,7 @@ export async function applyPreset(name) {
   else delete state.drafts[from];
   const target = name === '' ? state.drafts[''] : state.drafts[name] || presetByName(name)?.chain;
   if (!target) { state.preset = name || null; save(); renderPresets(); return; }
-  setTrim(presetByName(name)?.trim ?? 0); // o nível vem com o preset (não conta como rascunho); o andamento, no loadChain
-  state.sceneMeta = normalizeSceneMeta(presetByName(name)?.sceneMeta);
+  state.sceneMeta = normalizeSceneMeta(presetByName(name)?.sceneMeta); // nível e andamento entram no loadChain, junto com a cadeia
   await loadChain(target, name || null);
   status('');
 }
@@ -350,6 +349,8 @@ async function loadChainNow(chain, presetName) {
     for (const [, l] of gone) l.audio?.dispose();
   }
   for (const b of next) { delete b.reload; live.get(b.uid).view.update(); }
+  // Nível e andamento do preset entram com a cadeia (não antes: a cadeia antiga tocaria no nível do novo).
+  setTrim((presetName && presetByName(presetName)?.trim) ?? 0);
   syncTempoFromChain(presetName ? presetByName(presetName)?.bpm : null);
   renderBoard();
   lastDirty = null;

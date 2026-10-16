@@ -134,18 +134,33 @@ export class Engine {
   }
 
   // blocks: [{ audio: { input, output } }] na ordem do sinal.
+  // A troca de ligações é seca e estalaria: o nível do preset mergulha a zero em 5 ms, a troca acontece no
+  // vale, e sobe de novo em 8 ms já no nível do preset novo (setTrim durante o vale só guarda o valor).
   connectChain(blocks) {
     if (!this.ctx) return;
-    this.input.disconnect();
-    this.input.connect(this.analyser);
-    for (const b of this.blocks) b.audio?.output.disconnect();
+    const ctx = this.ctx, g = this.trim.gain, t = ctx.currentTime;
+    g.cancelScheduledValues(t);
+    g.setValueAtTime(g.value, t);
+    g.linearRampToValueAtTime(0, t + 0.005);
+    this.dipUntil = performance.now() + 14;
+    const old = this.blocks;
     this.blocks = blocks;
-    let prev = this.input;
-    for (const b of blocks) {
-      prev.connect(b.audio.input);
-      prev = b.audio.output;
-    }
-    prev.connect(this.trim);
+    setTimeout(() => {
+      this.input.disconnect();
+      this.input.connect(this.analyser);
+      for (const b of old) if (!b.audio?.spilled) b.audio?.output.disconnect();
+      let prev = this.input;
+      for (const b of blocks) {
+        prev.connect(b.audio.input);
+        prev = b.audio.output;
+      }
+      prev.connect(this.trim);
+      const t2 = ctx.currentTime;
+      g.cancelScheduledValues(t2);
+      g.setValueAtTime(0, t2);
+      g.linearRampToValueAtTime(dbToGain(this.trimDb ?? 0), t2 + 0.008);
+      this.dipUntil = 0;
+    }, 6);
   }
 
   setEq({ low, mid, high }) {
@@ -157,7 +172,9 @@ export class Engine {
   }
 
   setTrim(db) {
-    if (this.ctx) this.trim.gain.setTargetAtTime(dbToGain(db), this.ctx.currentTime, 0.01);
+    this.trimDb = db;
+    if (!this.ctx || performance.now() < (this.dipUntil || 0)) return; // no vale da troca: o fim da troca aplica
+    this.trim.gain.setTargetAtTime(dbToGain(db), this.ctx.currentTime, 0.01);
   }
 
   // Spillover: um delay ou reverb que sai da pedaleira (troca de preset) não recebe mais sinal, mas a cauda
@@ -166,6 +183,7 @@ export class Engine {
   // (A cauda sai pelo nível do preset novo: o spill liga no trim, como a cadeia.)
   spill(audio, seconds) {
     const ctx = this.ctx, fade = ctx.createGain(), t = ctx.currentTime;
+    audio.spilled = true; // connectChain não desliga mais esta saída
     audio.output.disconnect();
     audio.output.connect(fade).connect(this.trim);
     fade.gain.setValueAtTime(1, t + seconds - 1.5);
