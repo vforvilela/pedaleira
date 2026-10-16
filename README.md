@@ -77,6 +77,9 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
 - **Andamento da música** (♩ ao lado dos presets, tecla `T`, ou um footswitch MIDI): o Pulso e o Eco 8 em SYNC seguem o
   mesmo BPM, que fica salvo com o preset. O TAP do Eco 8 continua acertando o D.TIME (20 ms a 2 s) e o do Pulso o BPM.
 - **Teclado como footswitch:** `1`–`9` ligam e desligam o pedal naquela posição (o número aparece em cima de cada pedal).
+- **Looper e metrônomo atravessam a troca de preset** quando o preset novo também tem um Laço ou um Pulso: o loop
+  continua tocando e o clique não perde o compasso.
+- **MIDI Clock**: um sequenciador, bateria eletrônica ou playback mandando clock acerta o andamento sozinho.
 - **Afinador geral** (tecla `U`, botão Afinar no palco, ou um footswitch MIDI): cala a saída e mostra a nota em qualquer
   preset, sem precisar de um Afinador na cadeia.
 - **Footswitch Bluetooth de virar página** (funciona no iPhone): setas e PageUp/PageDown trocam de preset.

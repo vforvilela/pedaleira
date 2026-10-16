@@ -48,7 +48,10 @@ export const live = new Map(); // uid → { def, audio, view }
 
 export function createAudio(block) {
   const l = live.get(block.uid);
-  l.audio = l.def.create(engine.ctx, { params: { ...block.params }, wasmBytes: engine.wasmBytes, bpm: state.bpm, monitor: engine.monitor });
+  l.audio = l.def.create(engine.ctx, {
+    params: { ...block.params }, wasmBytes: engine.wasmBytes, bpm: state.bpm, monitor: engine.monitor,
+    guitarLeft: on => engine.setGuitarLeft(on),
+  });
   l.audio.setOn(block.on);
   l.audio.onState?.(s => { l.view?.setState(s, l.def.stateLabels?.[s]); for (const f of changeListeners) f(); });
 }

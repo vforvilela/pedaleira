@@ -37,10 +37,11 @@ export default {
     node.connect(right).connect(merger, 0, 1);
     merger.connect(sink);
     const p = { ...env.params };
-    let first = true;
+    let first = true, on = false;
     const apply = () => {
       node.port.postMessage({ bpm: bpmOf(p.bpm), beats: +BEATS[p.beats] || 0, level: (p.level / 10) ** 2 * 0.8 });
       const r = p.out === 1;
+      env.guitarLeft?.(r && on); // clique no direito: a guitarra vai somada em mono para o esquerdo
       // Na criação, o valor direto (sem rampa: senão o primeiro clique sai pelos dois caminhos); depois, suave.
       if (first) { mix.gain.value = r ? 0 : 1; right.gain.value = r ? 1 : 0; first = false; }
       else { mix.gain.setTargetAtTime(r ? 0 : 1, ctx.currentTime, 0.01); right.gain.setTargetAtTime(r ? 1 : 0, ctx.currentTime, 0.01); }
@@ -49,8 +50,8 @@ export default {
     return {
       input, output,
       set(id, v) { p[id] = v; apply(); },
-      setOn: on => node.port.postMessage({ on }),
-      dispose() { output.disconnect(); node.disconnect(); mix.disconnect(); merger.disconnect(); },
+      setOn(v) { on = v; node.port.postMessage({ on: v }); apply(); },
+      dispose() { env.guitarLeft?.(false); output.disconnect(); node.disconnect(); mix.disconnect(); merger.disconnect(); },
     };
   },
 };

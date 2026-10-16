@@ -103,6 +103,12 @@ export class Engine {
     const eqNode = (type, f, q) => { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; return b; };
     this.eq = { low: eqNode('lowshelf', 120, 0.7), mid: eqNode('peaking', 800, 0.8), high: eqNode('highshelf', 3200, 0.7) };
     this.master.connect(this.eq.low).connect(this.eq.mid).connect(this.eq.high).connect(this.limiter).connect(ctx.destination);
+    // Guitarra em mono no canal esquerdo (quando o clique vai só para o direito): o PA recebe os efeitos estéreo
+    // somados, sem perder metade das repetições do ping-pong. Ligado por setGuitarLeft.
+    this.monoL = ctx.createGain();
+    Object.assign(this.monoL, { channelCount: 1, channelCountMode: 'explicit', channelInterpretation: 'speakers' });
+    this.monoMerge = ctx.createChannelMerger(2);
+    this.monoL.connect(this.monoMerge, 0, 0);
     // Monitor: o que vai só para o fone (clique do metrônomo), fora da cadeia, do limitador e da gravação.
     // Segue o Volume, para o clique não ficar alto demais quando a guitarra está baixa.
     this.monitor = ctx.createGain();
@@ -123,6 +129,7 @@ export class Engine {
     this.ready = false;
     this.swap = null;
     this.wired = [];
+    this.guitarLeft = false;
   }
 
   // Canal da interface onde está a guitarra (0 ou 1); null mistura os dois.
@@ -191,6 +198,21 @@ export class Engine {
     swap.clock = mute;
     swap.timer = setTimeout(run, 250); // reserva, se o onended não vier
     return swap.promise;
+  }
+
+  setGuitarLeft(on) {
+    if (!this.ctx || !!on === !!this.guitarLeft) return;
+    this.guitarLeft = !!on;
+    // (Só a ligação para a saída muda: o limitador também alimenta o medidor e a gravação.)
+    if (on) {
+      this.limiter.disconnect(this.ctx.destination);
+      this.limiter.connect(this.monoL);
+      this.monoMerge.connect(this.ctx.destination);
+    } else {
+      this.limiter.disconnect(this.monoL);
+      this.monoMerge.disconnect();
+      this.limiter.connect(this.ctx.destination);
+    }
   }
 
   setTunerMute(on) {

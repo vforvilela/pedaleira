@@ -59,6 +59,18 @@ test('mensagens MIDI', () => {
   assert.equal(parseMidi([0xF8]), null); // clock
 });
 
+test('MIDI Clock: 24 pulsos por semínima viram BPM; avisa só quando muda', () => {
+  let t = 0;
+  const got = [];
+  const midi = new Midi([], { onAction() {}, onLearned() {}, onChange() {}, onClock: b => got.push(Math.round(b)), now: () => t });
+  const tick = bpm => { t += 60000 / bpm / 24; midi.handle([0xF8]); };
+  for (let i = 0; i < 200; i++) tick(100);
+  assert.deepEqual(got, [100]);
+  for (let i = 0; i < 200; i++) tick(140);
+  assert.equal(got[got.length - 1], 140);
+  assert.ok(got.length <= 4, `poucos avisos (${got.length})`);
+});
+
 test('footswitch momentâneo dispara uma vez por pisada; de trava dispara em toda pisada', () => {
   let t = 0, fired = 0;
   const midi = new Midi([], { onAction: () => fired++, onLearned() {}, onChange() {}, now: () => t });

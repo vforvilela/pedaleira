@@ -1,7 +1,7 @@
 // Controle pelo pé: MIDI e teclado (inclusive footswitch Bluetooth de virar página).
 import { undoRemove } from './board.js';
 import { t } from './i18n.js';
-import { $, blockByUid, closest, save, SCENE_NAMES, setParam, state, status, tapGlobal, tapTempo, toggleBlock } from './core.js';
+import { $, blockByUid, closest, save, SCENE_NAMES, setParam, state, status, tapGlobal, tapTempo, toggleBlock, setTempo } from './core.js';
 import { Midi, midiSupported } from './midi.js';
 import { hasNativeMidi, nativeMidi, pairBluetoothMidi, platform } from './platform.js';
 import { byType } from './pedals/index.js';
@@ -65,6 +65,8 @@ export const midi = new Midi(state.midi, {
   native: nativeMidi,
   onAction: runAction,
   onChange: save,
+  // MIDI Clock de um sequenciador, da bateria eletrônica ou do playback: o andamento global segue.
+  onClock: bpm => setTempo(bpm),
   onLearned(target, msg) { status(t('control.learned', { msg: t(`control.midi.${msg.kind}`, { n: msg.n, ch: msg.ch }), target: describeTarget(target) })); },
 });
 

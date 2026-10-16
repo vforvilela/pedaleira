@@ -401,6 +401,8 @@ async function applyPresetNow(name) {
 // (assim a troca é rápida, o delay não corta e as capturas NAM não recarregam à toa).
 // Quanto tempo a cauda de cada tipo continua depois da troca de preset.
 const SPILL_SECONDS = { time: 8 };
+// Pedais cujo áudio passa de um preset para o outro quando os dois têm um do mesmo tipo.
+const CARRY = new Set(['laco', 'pulso']);
 
 // Trocas de preset entram numa fila: loadChain espera capturas (await) e duas execuções entrelaçadas sobre
 // state.chain e live (pé rápido no footswitch, PC MIDI, setas) estourariam uma na outra.
@@ -447,6 +449,19 @@ async function loadChainNow(chain, presetName, meta = null) {
   if (presetName && own(state.drafts, presetName) && sameChain(next, presetByName(presetName).chain)) { delete state.drafts[presetName]; delete state.draftMeta[presetName]; }
   for (const b of next) ensureView(b);
   if (engine.running) {
+    // Looper e metrônomo atravessam a troca: se o preset novo tem um pedal do mesmo tipo, ele herda o áudio do
+    // que sai (o loop continua tocando, o clique não perde o compasso), com os botões do preset novo.
+    for (const b of next) {
+      const l = live.get(b.uid);
+      if (l.audio || !CARRY.has(b.type)) continue;
+      const k = gone.findIndex(([g, gl]) => g.type === b.type && gl.audio);
+      if (k < 0) continue;
+      const [[, gl]] = gone.splice(k, 1);
+      l.audio = gl.audio;
+      for (const [id, v] of Object.entries(b.params)) l.audio.set(id, v);
+      l.audio.setOn(b.on);
+      l.audio.onState?.(s => { l.view?.setState(s, l.def.stateLabels?.[s]); for (const f of changeListeners) f(); });
+    }
     for (const b of next) {
       const l = live.get(b.uid);
       if (!l.audio) { createAudio(b); b.reload = Object.keys(b.files); }

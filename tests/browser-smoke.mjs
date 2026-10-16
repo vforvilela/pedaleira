@@ -1069,6 +1069,30 @@ try {
   check(gtuner.on.gain < 0.01 && gtuner.on.box && gtuner.on.cls && gtuner.offGain > 0.99 && !gtuner.offCls,
     `afinador geral cala e devolve o som (${JSON.stringify(gtuner)})`);
 
+  // Looper e metrônomo atravessam a troca de preset quando os dois presets têm o mesmo tipo; clique no R põe a
+  // guitarra em mono no L.
+  const carry = await evaluate(`(async () => {
+    const p = __pedaleira;
+    await p.idle();
+    const { newBlock } = await import('./js/core.js');
+    const mk = (name, out) => { const l = newBlock('laco'), m = newBlock('pulso'); m.on = true; m.params.out = out; return { name, chain: [newBlock('amp'), l, m] }; };
+    const A = mk('Carry A', 1), B = mk('Carry B', 1);
+    p.state.presets.push(A, B);
+    await p.loadChain(A.chain, A.name);
+    const la = p.live.get(p.state.chain.find(b => b.type === 'laco').uid).audio;
+    const pa = p.live.get(p.state.chain.find(b => b.type === 'pulso').uid).audio;
+    const left = !!p.engine.guitarLeft;
+    await p.loadChain(B.chain, B.name);
+    const lb = p.live.get(p.state.chain.find(b => b.type === 'laco').uid).audio;
+    const pb = p.live.get(p.state.chain.find(b => b.type === 'pulso').uid).audio;
+    const res = { looper: la === lb, metro: pa === pb, left, stillLeft: !!p.engine.guitarLeft };
+    await p.loadChain(p.state.presets[0].chain, p.state.presets[0].name);
+    res.leftAfter = !!p.engine.guitarLeft;
+    return res;
+  })()`);
+  check(carry.looper && carry.metro && carry.left && carry.stillLeft && !carry.leftAfter,
+    `looper e metrônomo atravessam a troca; clique no R põe a guitarra no L (${JSON.stringify(carry)})`);
+
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
   console.log(`screenshots em ${out}`);
   ws.close();

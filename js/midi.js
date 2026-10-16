@@ -25,7 +25,8 @@ export function parseMidi([status, d1, d2 = 0]) {
 export class Midi {
   // mappings: [{ key, target, momentary? }] (persistido pelo app). onAction(target, msg).
   // native(onMessage) → nomes das entradas: fonte MIDI do app nativo, usada quando não há navigator.requestMIDIAccess.
-  constructor(mappings, { onAction, onLearned, onChange, native = null, now = () => Date.now() }) {
+  constructor(mappings, { onAction, onLearned, onChange, onClock = null, native = null, now = () => Date.now() }) {
+    this.onClock = onClock;
     this.now = now;
     this.native = native;
     this.lastPress = {};
@@ -72,7 +73,24 @@ export class Midi {
     return !this.isMomentary(key) && since > LATCH_MS;
   }
 
+  // MIDI Clock (0xF8, 24 por semínima): a média das últimas 48 batidas dá o BPM; avisa onClock só quando mudou
+  // pelo menos 1 BPM e no máximo duas vezes por segundo (o relógio treme um pouco). Start/Stop zeram a medida.
+  clockTick(now) {
+    const ticks = (this.ticks ??= []);
+    if (ticks.length && now - ticks[ticks.length - 1] > 500) ticks.length = 0; // parou e voltou
+    ticks.push(now);
+    if (ticks.length > 49) ticks.shift();
+    if (ticks.length < 25) return;
+    const bpm = 60000 / (((ticks[ticks.length - 1] - ticks[0]) / (ticks.length - 1)) * 24);
+    if (Math.abs(bpm - (this.clockBpm ?? 0)) < 1 || now - (this.clockAt ?? -1e9) < 500) return;
+    this.clockBpm = bpm;
+    this.clockAt = now;
+    this.onClock?.(bpm);
+  }
+
   handle(data) {
+    if (data[0] === 0xf8) { this.clockTick(this.now()); return; }
+    if (data[0] === 0xfa || data[0] === 0xfc) { this.ticks = []; return; }
     const msg = parseMidi(data);
     if (!msg) return;
     const now = this.now();
