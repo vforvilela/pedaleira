@@ -1,6 +1,6 @@
 // Modo palco: tela cheia com o preset em letras grandes, as cenas A–D, um botão grande por pedal
 // e a nota do afinador. Pensado para o celular no chão ou no pedestal, no escuro.
-import { $, changeListeners, live, SCENE_NAMES, setParam, state, toggleBlock } from './core.js';
+import { $, changeListeners, live, SCENE_NAMES, setParam, setTrim, state, tapGlobal, toggleBlock } from './core.js';
 import { byType } from './pedals/index.js';
 import { stepPreset, isDirty } from './presets.js';
 import { recallScene, sceneActive, sceneUsed } from './scenes.js';
@@ -29,8 +29,13 @@ export function exitStage() {
 }
 
 changeListeners.push(() => { if (isOn()) renderStage(); });
+$('stageTempo').onclick = () => tapGlobal();
+$('stageTrim').oninput = () => setTrim(+$('stageTrim').value);
 export function renderStage() {
   $('stagePreset').textContent = state.preset ? `${state.preset}${isDirty() ? ' *' : ''}` : t('stage.noPreset');
+  $('stageTempoBpm').textContent = state.bpm;
+  if (document.activeElement !== $('stageTrim')) $('stageTrim').value = state.trim;
+  $('stageTrimV').textContent = `${state.trim > 0 ? '+' : ''}${state.trim} dB`;
   const idx = state.presets.findIndex(p => p.name === state.preset);
   $('stageCount').textContent = state.presets.length ? t('stage.count', { pos: idx + 1 || '–', n: state.presets.length }) : '';
   [...$('stageScenes').children].forEach((b, i) => {

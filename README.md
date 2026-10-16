@@ -58,7 +58,7 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
   Capturas `.nam` e IRs não cabem no link: para elas, use Exportar.
 - **Exportar / Importar:** um arquivo `.json` com os presets e as capturas `.nam` e IRs que eles usam.
   Serve de backup e para levar os presets do PC para o celular.
-- **Modo palco** (botão Palco): preset em letras grandes, cenas A–D enormes, um botão por pedal e a nota do
+- **Modo palco** (botão Palco): preset em letras grandes, tap tempo e nível do preset, cenas A–D enormes, um botão por pedal e a nota do
   afinador. A tela fica acesa enquanto o áudio estiver ligado.
 - **Cenas A–D** dentro do preset: cada uma liga e desliga vários pedais e muda a posição dos botões de uma vez
   (ex.: A = base, B = solo com mais volume e delay).

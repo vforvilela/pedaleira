@@ -96,6 +96,10 @@ export class Engine {
     const eqNode = (type, f, q) => { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; return b; };
     this.eq = { low: eqNode('lowshelf', 120, 0.7), mid: eqNode('peaking', 800, 0.8), high: eqNode('highshelf', 3200, 0.7) };
     this.master.connect(this.eq.low).connect(this.eq.mid).connect(this.eq.high).connect(this.limiter).connect(ctx.destination);
+    // Monitor: o que vai só para o fone (clique do metrônomo), fora da cadeia, do limitador e da gravação.
+    // Segue o Volume, para o clique não ficar alto demais quando a guitarra está baixa.
+    this.monitor = ctx.createGain();
+    this.monitor.connect(ctx.destination);
     this.outAnalyser = ctx.createAnalyser();
     this.outAnalyser.fftSize = 1024;
     this.limiter.connect(this.outAnalyser);
@@ -124,7 +128,9 @@ export class Engine {
   }
 
   setMaster(db) {
-    if (this.ctx) this.master.gain.setTargetAtTime(dbToGain(db), this.ctx.currentTime, 0.01);
+    if (!this.ctx) return;
+    this.master.gain.setTargetAtTime(dbToGain(db), this.ctx.currentTime, 0.01);
+    this.monitor.gain.setTargetAtTime(dbToGain(db), this.ctx.currentTime, 0.01);
   }
 
   // blocks: [{ audio: { input, output } }] na ordem do sinal.

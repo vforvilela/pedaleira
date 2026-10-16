@@ -3,7 +3,7 @@ import { setStageTuner } from './stage.js';
 import { noteOf } from './audio/pitch.js';
 import { pickChannel } from './audio/channel.js';
 import { t, fmtNum } from './i18n.js';
-import { $, applyStoredFiles, changeListeners, createAudio, engine, live, reconnect, save, setEq, setTrim, state, status } from './core.js';
+import { $, applyStoredFiles, changeListeners, createAudio, engine, live, prepareSetlist, reconnect, save, setEq, setTrim, state, status } from './core.js';
 import { backgroundAudio, hasAudioSession, keepAwake, saveFile } from './platform.js';
 import { preloadFiles } from './store.js';
 
@@ -78,6 +78,8 @@ export async function start() {
   const used = [...state.presets.flatMap(p => p.chain), ...Object.values(state.drafts).flat()]
     .flatMap(b => Object.values(b.files).map(f => f.key));
   preloadFiles(used).catch(() => {});
+  // E o que ainda não está no aparelho (presets de fábrica com captura, links recebidos) baixa agora.
+  setTimeout(() => prepareSetlist().catch(() => {}), 1500);
   runMeter();
   tunerTimer = setInterval(runTuners, 80);
   let warned = false;

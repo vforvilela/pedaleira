@@ -939,6 +939,29 @@ try {
   })()`);
   check(race.ok === true && race.preset === race.want && race.views, `trocas de preset concorrentes entram na fila (${JSON.stringify(race)})`);
 
+  // Pulso: OUT em R manda o clique só para o canal direito; em MIX, para os dois.
+  const click = await evaluate(`(async () => {
+    const { default: pulso } = await import('./js/pedals/pulso.js');
+    const { defaultParams } = await import('./js/pedals/index.js');
+    const energy = async out => {
+      const ctx = new OfflineAudioContext(2, 48000, 48000);
+      await ctx.audioWorklet.addModule('js/audio/dsp-worklet.js');
+      const a = pulso.create(ctx, { params: { ...defaultParams(pulso), out } });
+      a.setOn(true); a.output.connect(ctx.destination);
+      await new Promise(r => setTimeout(r, 100)); // as mensagens para o worklet chegam depois do render offline se não esperar
+      const buf = await ctx.startRendering();
+      const e = ch => { let s = 0; for (const x of buf.getChannelData(ch)) s += x * x; return s; };
+      return [e(0), e(1)];
+    };
+    const [mix, r] = [await energy(0), await energy(1)];
+    return { mixL: +mix[0].toFixed(3), mixR: +mix[1].toFixed(3), rL: +r[0].toFixed(4), rR: +r[1].toFixed(3) };
+  })()`);
+  check(click.mixL > 0.01 && Math.abs(click.mixL - click.mixR) < 0.01 * click.mixL && click.rL < 0.001 * click.rR && click.rR > 0.01,
+    `Pulso OUT: MIX nos dois lados, R só na direita (${JSON.stringify(click)})`);
+  // No app, o clique vai pelo monitor: fora da gravação (limiter) e da cadeia.
+  const mon = await evaluate(`(() => { const e = __pedaleira.engine; return { monitor: !!e.monitor, gain: +e.monitor.gain.value.toFixed(3), master: +e.master.gain.value.toFixed(3) }; })()`);
+  check(mon.monitor && mon.gain === mon.master, `monitor do motor segue o Volume (${JSON.stringify(mon)})`);
+
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
   console.log(`screenshots em ${out}`);
   ws.close();

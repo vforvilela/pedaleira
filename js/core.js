@@ -47,7 +47,7 @@ export const live = new Map(); // uid → { def, audio, view }
 
 export function createAudio(block) {
   const l = live.get(block.uid);
-  l.audio = l.def.create(engine.ctx, { params: { ...block.params }, wasmBytes: engine.wasmBytes, bpm: state.bpm });
+  l.audio = l.def.create(engine.ctx, { params: { ...block.params }, wasmBytes: engine.wasmBytes, bpm: state.bpm, monitor: engine.monitor });
   l.audio.setOn(block.on);
   l.audio.onState?.(s => { l.view?.setState(s, l.def.stateLabels?.[s]); for (const f of changeListeners) f(); });
 }
@@ -76,6 +76,23 @@ export async function fileData(block, kind) {
   // sem rede no palco), a referência fica e a próxima vez tenta de novo.
   if (data === undefined && !f.url) { delete block.files[kind]; save(); }
   return data;
+}
+
+// Ao ligar: capturas e IRs que os presets apontam por endereço e ainda não estão no aparelho são baixados
+// agora, em segundo plano, para a troca de preset no palco não depender da rede.
+export async function prepareSetlist() {
+  const refs = [...state.presets.flatMap(p => p.chain), ...Object.values(state.drafts).flat()]
+    .flatMap(b => Object.entries(b.files).map(([kind, f]) => ({ kind, f })));
+  const missing = [];
+  for (const r of refs) if (r.f.url && (await getFile(r.f.key)) === undefined) missing.push(r);
+  if (!missing.length) return 0;
+  let done = 0, failed = 0;
+  status(t('core.preparing', { n: missing.length }));
+  for (const { kind, f } of missing) {
+    try { await putFile(f.key, await fetchFile(kind, f.url)); done++; } catch { failed++; }
+  }
+  status(t(failed ? 'core.preparedPartly' : 'core.prepared', { n: done, failed }), failed > 0);
+  return done;
 }
 
 export async function applyStoredFiles(block) {

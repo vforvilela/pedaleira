@@ -192,6 +192,10 @@
     <button id="stageNext" class="stage-nav" aria-label="Próximo preset" data-i18n-attr="aria-label:html.next">▶</button>
     <button id="stageExit" class="stage-exit" aria-label="Sair do modo palco" data-i18n-attr="aria-label:html.stageExit">✕</button>
   </div>
+  <div class="stage-tools">
+    <button id="stageTempo" class="stage-tool" title="Tap tempo: toque no ritmo da música" data-i18n-attr="title:html.tempoTitle;aria-label:html.tempoLabel" aria-label="Tap tempo">♩ <b id="stageTempoBpm">120</b> <small>TAP</small></button>
+    <label id="stageTrimRow" class="stage-tool stage-trim" title="Nível deste preset" data-i18n-attr="title:html.trimTitle"><span data-i18n="html.trim">Preset</span><input id="stageTrim" type="range" min="-12" max="12" step="0.5"><output id="stageTrimV"></output></label>
+  </div>
   <div id="stageTuner" class="stage-tuner" hidden><div class="bar"><i></i></div><b></b><small></small></div>
   <div id="stageScenes" class="stage-scenes" role="group" aria-label="Cenas" data-i18n-attr="aria-label:html.scenes"></div>
   <div class="stage-bottom">
