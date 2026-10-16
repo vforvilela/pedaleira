@@ -985,6 +985,28 @@ try {
   check(sceneMeta.trim === -3 && sceneMeta.bpm === 100 && sceneMeta.name === 'Solo' && sceneMeta.btn === 'Solo',
     `cena guarda nível e BPM e aceita nome (${JSON.stringify(sceneMeta)})`);
 
+  // Setlists: ordem própria para ◀ ▶ e Program Change; PC fixo vence a posição; preset fora do setlist continua existindo.
+  const setlists = await evaluate(`(async () => {
+    const p = __pedaleira, wait = ms => new Promise(r => setTimeout(r, ms));
+    const { stepPreset, presetForProgram, activeOrder } = await import('./js/presets.js');
+    const { parseMidi } = await import('./js/midi.js');
+    const names = p.state.presets.map(x => x.name);
+    window.prompt = () => 'Sexta';
+    document.getElementById('setlistNew').click();
+    const sl = p.state.setlists[p.state.setlist];
+    sl.order = [names[2], names[0]]; // só dois, nesta ordem
+    p.state.presets[1].pc = 9; // PC fixo
+    await p.loadChain(p.state.presets[2].chain, names[2]);
+    stepPreset(1); await wait(400);
+    const after = p.state.preset;
+    return { name: sl.name, order: activeOrder().map(x => x.name), after, want: names[0], pc9: presetForProgram(9)?.name, pc1: presetForProgram(1)?.name, pcNone: presetForProgram(50), total: p.state.presets.length, n: names.length,
+      count: document.getElementById('nowCount').textContent };
+  })()`);
+  check(setlists.name === 'Sexta' && setlists.order.length === 2 && setlists.after === setlists.want && !!setlists.pc9 && setlists.pc1 === setlists.want
+    && setlists.pcNone === null && setlists.total === setlists.n && /Sexta/.test(setlists.count),
+    `setlists: ordem própria, PC fixo vence, presets continuam (${JSON.stringify(setlists)})`);
+  await evaluate(`(() => { document.getElementById('setlistPick').value = ''; document.getElementById('setlistPick').dispatchEvent(new Event('change')); delete __pedaleira.state.presets[1].pc; })()`);
+
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
   console.log(`screenshots em ${out}`);
   ws.close();

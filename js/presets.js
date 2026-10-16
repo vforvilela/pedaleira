@@ -12,15 +12,25 @@ import { getFile, putFile } from './store.js';
 
 export { sameChain, withScene };
 export const presetByName = name => state.presets.find(p => p.name === name);
+// A ordem que vale para ◀ ▶, footswitch, palco e Program Change por posição: o setlist ativo, ou todos os presets.
+export const activeSetlist = () => (state.setlist === null ? null : state.setlists[state.setlist] || null);
+export const activeOrder = () => {
+  const sl = activeSetlist();
+  return sl ? sl.order.map(presetByName).filter(Boolean) : state.presets;
+};
+// Preset de um Program Change: pc fixo vence; senão, a posição na ordem ativa.
+export const presetForProgram = n => state.presets.find(p => p.pc === n) || activeOrder()[n] || null;
 export const isDirty = () => chainDirty(state.chain, presetByName(state.preset)?.chain);
 export const hasDraft = name => !!state.drafts[name] || (name === state.preset && isDirty());
 
 export function renderPresets() {
   const sel = $('preset');
-  sel.replaceChildren(
-    new Option(t('presets.noPreset'), ''),
-    ...state.presets.map(p => new Option(hasDraft(p.name) ? `${p.name} *` : p.name, p.name)),
-  );
+  const order = activeOrder(), rest = state.presets.filter(p => !order.includes(p));
+  const opt = p => new Option(hasDraft(p.name) ? `${p.name} *` : p.name, p.name);
+  const outside = document.createElement('optgroup');
+  outside.label = t('presets.outsideSetlist');
+  outside.append(...rest.map(opt));
+  sel.replaceChildren(new Option(t('presets.noPreset'), ''), ...order.map(opt), ...(rest.length ? [outside] : []));
   sel.value = state.preset ?? '';
   if (document.activeElement !== $('presetName')) $('presetName').value = state.preset ?? '';
   const dirty = isDirty();
@@ -32,8 +42,9 @@ export function renderPresets() {
 
 // Nome do preset em letras grandes acima da pedaleira (o que está tocando, legível de longe).
 function renderNow(dirty) {
-  const c = $('nowCount'), idx = state.presets.findIndex(p => p.name === state.preset);
-  c.textContent = idx >= 0 ? t('presets.countOf', { i: idx + 1, total: state.presets.length }) : t('presets.countNone');
+  const order = activeOrder(), c = $('nowCount'), idx = order.findIndex(p => p.name === state.preset);
+  const sl = activeSetlist();
+  c.textContent = (idx >= 0 ? t('presets.countOf', { i: idx + 1, total: order.length }) : t('presets.countNone')) + (sl ? ` · ${sl.name}` : '');
   if (dirty) {
     const tag = document.createElement('span');
     tag.className = 'dirty';
@@ -78,6 +89,7 @@ export function deletePresetAt(i) {
   if (i < 0 || i >= state.presets.length) return;
   finishDelete();
   const [p] = state.presets.splice(i, 1);
+  for (const l of state.setlists) l.order = l.order.filter(n => n !== p.name); // (desfazer não devolve ao setlist)
   const wasCurrent = state.preset === p.name;
   deleted = { p, i, draft: state.drafts[p.name], wasCurrent, timer: setTimeout(finishDelete, 10000) };
   delete state.drafts[p.name];
@@ -119,34 +131,96 @@ function undoDelete() {
 export function renderSetlist() {
   const list = $('setlistItems');
   if (!list) return;
-  list.replaceChildren(...state.presets.map((p, i) => {
+  const sl = activeSetlist();
+  // Seletor de setlist: todos os presets, cada setlist, e os botões de criar/renomear/apagar.
+  const pick = $('setlistPick');
+  pick.replaceChildren(new Option(t('presets.setlistAll'), ''), ...state.setlists.map((l, i) => new Option(l.name, String(i))));
+  pick.value = state.setlist === null ? '' : String(state.setlist);
+  $('setlistRename').hidden = $('setlistDelete').hidden = !sl;
+  $('setlistHintAll').hidden = !!sl;
+  $('setlistHintOne').hidden = !sl;
+  const row = (p, i, opts) => {
     const li = document.createElement('li');
     li.innerHTML = `<span class="pc"></span><input type="text" maxlength="40">
-      <button class="up">▲</button><button class="down">▼</button><button class="del">✕</button>`;
+      <input type="number" class="pcfix" min="0" max="127" placeholder="PC"><button class="up">▲</button><button class="down">▼</button><button class="del">✕</button>`;
     li.querySelector('input').setAttribute('aria-label', t('presets.nameLabel'));
+    li.querySelector('.pcfix').setAttribute('aria-label', t('presets.pcFixed'));
+    li.querySelector('.pcfix').title = t('presets.pcFixedTitle');
     li.querySelector('.up').setAttribute('aria-label', t('presets.moveUp'));
     li.querySelector('.down').setAttribute('aria-label', t('presets.moveDown'));
-    li.querySelector('.del').setAttribute('aria-label', t('presets.delete'));
+    li.querySelector('.del').setAttribute('aria-label', opts.remove ? t('presets.removeFromSetlist') : t('presets.delete'));
+    li.querySelector('.del').title = opts.remove ? t('presets.removeFromSetlist') : t('presets.delete');
     li.querySelector('.pc').textContent = String(i + 1);
-    li.querySelector('.pc').title = `Program Change ${i}`;
+    li.querySelector('.pc').title = p.pc !== undefined ? t('presets.pcIs', { n: p.pc }) : `Program Change ${i}`;
     const input = li.querySelector('input');
     input.value = p.name;
     input.onchange = () => renamePreset(p, input.value.trim()) || (input.value = p.name);
+    const pcfix = li.querySelector('.pcfix');
+    pcfix.value = p.pc ?? '';
+    pcfix.onchange = () => { const v = pcfix.value === '' ? undefined : Math.max(0, Math.min(127, Math.round(+pcfix.value))); if (v === undefined) delete p.pc; else p.pc = v; save(); renderSetlist(); };
     li.querySelector('.up').disabled = i === 0;
-    li.querySelector('.down').disabled = i === state.presets.length - 1;
-    li.querySelector('.up').onclick = () => movePreset(i, -1);
-    li.querySelector('.down').onclick = () => movePreset(i, 1);
-    li.querySelector('.del').onclick = () => deletePresetAt(i);
+    li.querySelector('.down').disabled = i === opts.n - 1;
+    li.querySelector('.up').onclick = () => opts.move(i, -1);
+    li.querySelector('.down').onclick = () => opts.move(i, 1);
+    li.querySelector('.del').onclick = () => (opts.remove ? opts.remove(i) : deletePresetAt(i));
     return li;
-  }));
+  };
+  if (!sl) {
+    list.replaceChildren(...state.presets.map((p, i) => row(p, i, { n: state.presets.length, move: movePreset })));
+    $('setlistOutside').hidden = true;
+  } else {
+    const order = activeOrder();
+    const move = (i, dir) => { const j = i + dir; if (j < 0 || j >= sl.order.length) return; [sl.order[i], sl.order[j]] = [sl.order[j], sl.order[i]]; save(); renderPresets(); renderSetlist(); };
+    const remove = i => { sl.order.splice(i, 1); save(); renderPresets(); renderSetlist(); };
+    list.replaceChildren(...order.map((p, i) => row(p, i, { n: order.length, move, remove })));
+    // Fora do setlist: um + por preset.
+    const rest = state.presets.filter(p => !order.includes(p));
+    $('setlistOutside').hidden = !rest.length;
+    $('setlistOutsideList').replaceChildren(...rest.map(p => {
+      const li = document.createElement('li');
+      li.innerHTML = '<span class="pc"></span><span class="name"></span><button class="add-to">+</button>';
+      li.querySelector('.name').textContent = p.name;
+      li.querySelector('.add-to').setAttribute('aria-label', t('presets.addToSetlist', { name: p.name }));
+      li.querySelector('.add-to').onclick = () => { sl.order.push(p.name); save(); renderPresets(); renderSetlist(); };
+      return li;
+    }));
+  }
   $('setlistEmpty').hidden = state.presets.length > 0;
 }
+
+function pickSetlist(v) {
+  state.setlist = v === '' ? null : +v;
+  save();
+  renderPresets();
+  renderSetlist();
+}
+$('setlistPick').onchange = () => pickSetlist($('setlistPick').value);
+$('setlistNew').onclick = () => {
+  const name = prompt(t('presets.setlistNamePrompt'), '')?.trim().slice(0, 30);
+  if (!name) return;
+  state.setlists.push({ name, order: activeOrder().map(p => p.name) }); // começa com a ordem atual
+  pickSetlist(String(state.setlists.length - 1));
+};
+$('setlistRename').onclick = () => {
+  const sl = activeSetlist();
+  if (!sl) return;
+  const name = prompt(t('presets.setlistNamePrompt'), sl.name)?.trim().slice(0, 30);
+  if (!name) return;
+  sl.name = name;
+  save(); renderPresets(); renderSetlist();
+};
+$('setlistDelete').onclick = () => {
+  if (state.setlist === null) return;
+  state.setlists.splice(state.setlist, 1);
+  pickSetlist('');
+};
 
 function renamePreset(p, name) {
   if (!name || name === p.name) return false;
   if (presetByName(name)) { status(t('presets.nameExists', { name }), true); return false; }
   if (state.drafts[p.name]) { state.drafts[name] = state.drafts[p.name]; delete state.drafts[p.name]; }
   if (state.preset === p.name) state.preset = name;
+  for (const l of state.setlists) l.order = l.order.map(n => (n === p.name ? name : n));
   p.name = name;
   save();
   renderPresets();
@@ -359,10 +433,11 @@ async function loadChainNow(chain, presetName) {
 }
 
 export function stepPreset(dir) {
-  if (!state.presets.length) { status(t('presets.noPresetsYet')); return; }
-  const i = state.presets.findIndex(p => p.name === state.preset);
-  const n = state.presets.length;
-  applyPreset(state.presets[(i < 0 ? (dir > 0 ? 0 : n - 1) : (i + dir + n) % n)].name);
+  const order = activeOrder();
+  if (!order.length) { status(t('presets.noPresetsYet')); return; }
+  const i = order.findIndex(p => p.name === state.preset);
+  const n = order.length;
+  applyPreset(order[(i < 0 ? (dir > 0 ? 0 : n - 1) : (i + dir + n) % n)].name);
 }
 
 $('preset').onchange = () => applyPreset($('preset').value);

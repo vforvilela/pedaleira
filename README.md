@@ -47,8 +47,9 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
 - **Presets por música:** escreva o nome, clique em Salvar. ◀ ▶ (ou `[` `]`) trocam de preset.
   Mudou algo e não salvou? O preset ganha `*` e a mudança fica guardada como rascunho: trocar de preset e voltar
   não perde nada. **Reverter** volta para a versão salva.
-- **Setlist** (botão Organizar): ordem dos presets para ◀ ▶, footswitch e Program Change; renomear e apagar
-  (com Desfazer).
+- **Setlists** (botão Organizar): ordem dos presets para ◀ ▶, footswitch e Program Change; renomear e apagar
+  (com Desfazer). Vários setlists ("Sexta", "Casamento") com os mesmos presets em ordens diferentes; um Program
+  Change fixo por preset vence a posição, para reordenar sem reprogramar o controlador.
 - **Link**: copia um link com a pedaleira atual (pedais, botões, cenas). Quem abre recebe como preset novo.
   Capturas e IRs carregados por link direto (GitHub, Dropbox) vão junto e são baixados por quem abre.
 - **Capturas e IRs grátis no Amp**: o botão NAM sugere três capturas de rig completo (JCM800 limpo, JCM800 + OD-1, 5150),

@@ -205,8 +205,19 @@
 </div>
 <dialog id="setlist" class="setlist" aria-labelledby="setlistTitle">
   <h2 id="setlistTitle">Setlist</h2>
-  <p class="hint" data-i18n="html.setlistHint">A ordem vale para ◀ ▶, para o footswitch e para o Program Change MIDI (1 = PC 0).</p>
+  <div class="setlist-pick">
+    <select id="setlistPick" aria-label="Setlist" data-i18n-attr="aria-label:html.setlistPick"></select>
+    <button id="setlistNew" data-i18n="html.setlistNew" title="Novo setlist com a ordem atual" data-i18n-attr="title:html.setlistNewTitle">Novo</button>
+    <button id="setlistRename" data-i18n="html.setlistRename" hidden>Renomear</button>
+    <button id="setlistDelete" data-i18n="html.setlistDelete" hidden>Apagar</button>
+  </div>
+  <p class="hint" id="setlistHintAll" data-i18n="html.setlistHint">A ordem vale para ◀ ▶, para o footswitch e para o Program Change MIDI (1 = PC 0). PC: número fixo, que vence a posição.</p>
+  <p class="hint" id="setlistHintOne" data-i18n="html.setlistHintOne" hidden>Só estes presets, nesta ordem, para ◀ ▶, footswitch e Program Change. ✕ tira do setlist (o preset continua existindo).</p>
   <ol id="setlistItems"></ol>
+  <section id="setlistOutside" hidden>
+    <h3 data-i18n="html.setlistOutside">Fora do setlist</h3>
+    <ol id="setlistOutsideList" class="outside"></ol>
+  </section>
   <p id="setlistEmpty" class="hint" data-i18n="html.setlistEmpty" hidden>Nenhum preset salvo ainda.</p>
   <button id="setlistClose" class="primary" data-i18n="html.close">Fechar</button>
 </dialog>

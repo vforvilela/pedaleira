@@ -2,7 +2,7 @@
 // e a nota do afinador. Pensado para o celular no chão ou no pedestal, no escuro.
 import { $, changeListeners, live, SCENE_NAMES, setParam, setTrim, state, tapGlobal, toggleBlock } from './core.js';
 import { byType } from './pedals/index.js';
-import { stepPreset, isDirty } from './presets.js';
+import { stepPreset, isDirty, activeOrder, activeSetlist } from './presets.js';
 import { recallScene, sceneActive, sceneUsed } from './scenes.js';
 import { t } from './i18n.js';
 
@@ -36,8 +36,8 @@ export function renderStage() {
   $('stageTempoBpm').textContent = state.bpm;
   if (document.activeElement !== $('stageTrim')) $('stageTrim').value = state.trim;
   $('stageTrimV').textContent = `${state.trim > 0 ? '+' : ''}${state.trim} dB`;
-  const idx = state.presets.findIndex(p => p.name === state.preset);
-  $('stageCount').textContent = state.presets.length ? t('stage.count', { pos: idx + 1 || '–', n: state.presets.length }) : '';
+  const order = activeOrder(), idx = order.findIndex(p => p.name === state.preset), sl = activeSetlist();
+  $('stageCount').textContent = (order.length ? t('stage.count', { pos: idx + 1 || '–', n: order.length }) : '') + (sl ? ` · ${sl.name}` : '');
   [...$('stageScenes').children].forEach((b, i) => {
     b.classList.toggle('used', sceneUsed(i));
     b.setAttribute('aria-pressed', sceneActive(i));

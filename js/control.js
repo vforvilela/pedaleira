@@ -5,7 +5,7 @@ import { $, blockByUid, closest, save, SCENE_NAMES, setParam, state, status, tap
 import { Midi, midiSupported } from './midi.js';
 import { hasNativeMidi, nativeMidi, pairBluetoothMidi, platform } from './platform.js';
 import { byType } from './pedals/index.js';
-import { applyPreset, stepPreset } from './presets.js';
+import { applyPreset, stepPreset, presetForProgram } from './presets.js';
 import { recallScene, sceneButtons } from './scenes.js';
 
 // ---------- Controle: MIDI e teclado ----------
@@ -13,7 +13,7 @@ import { recallScene, sceneButtons } from './scenes.js';
 
 export function runAction(target, msg) {
   if (target.kind === 'program') {
-    const p = state.presets[msg.program];
+    const p = presetForProgram(msg.program);
     if (p) applyPreset(p.name);
     return;
   }

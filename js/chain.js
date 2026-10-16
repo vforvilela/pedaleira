@@ -119,7 +119,14 @@ export function migrateState(saved, { factory = [], factoryVersion = 0 } = {}) {
         ...(typeof p.bpm === 'number' ? { bpm: num(p.bpm, 120, 40, 240) } : {}),
         ...(typeof p.trim === 'number' ? { trim: num(p.trim, 0, -12, 12) } : {}),
         ...(Array.isArray(p.sceneMeta) ? { sceneMeta: normalizeSceneMeta(p.sceneMeta) } : {}),
+        // Program Change fixo (0–127): vence a posição no setlist, para reordenar não reprogramar o controlador.
+        ...(Number.isInteger(p.pc) && p.pc >= 0 && p.pc <= 127 ? { pc: p.pc } : {}),
       })),
+    // Setlists: ordens diferentes dos mesmos presets ("Sexta", "Casamento"); null = todos os presets, na ordem salva.
+    setlists: (Array.isArray(saved?.setlists) ? saved.setlists : [])
+      .filter(l => l && typeof l.name === 'string' && l.name)
+      .map(l => ({ name: l.name.slice(0, 30), order: (Array.isArray(l.order) ? l.order : []).filter(n => typeof n === 'string') })),
+    setlist: Number.isInteger(saved?.setlist) ? saved.setlist : null,
     preset: typeof saved?.preset === 'string' ? saved.preset : null,
     factory: num(saved?.factory, 0, 0, 1e6),
     // Rascunhos: mudanças não salvas por preset ('' = sem preset).
@@ -127,6 +134,8 @@ export function migrateState(saved, { factory = [], factoryVersion = 0 } = {}) {
     midi: Array.isArray(saved?.midi) ? saved.midi.filter(m => m && typeof m.key === 'string' && m.target) : [],
   };
   if (!state.chain.length) state.chain = DEFAULT_CHAIN.map(newBlock);
+  if (state.setlist !== null && !state.setlists[state.setlist]) state.setlist = null;
+  for (const l of state.setlists) l.order = l.order.filter(n => state.presets.some(p => p.name === n));
   if (state.preset && !state.presets.some(p => p.name === state.preset)) state.preset = null;
   // Presets de fábrica que a pessoa ainda não tem (pelo nome: um preset dela com o mesmo nome fica).
   // Pelos nomes nos três idiomas: quem trocou de idioma não ganha cópias.

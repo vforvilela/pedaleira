@@ -105,3 +105,14 @@ test('migrateState: sceneMeta por cena (nome, nível, andamento), no estado e no
   assert.equal('bpm' in s.presets[0].sceneMeta[1], false);
   assert.deepEqual(migrateState(null).sceneMeta, [null, null, null, null]);
 });
+
+test('migrateState: setlists guardam só presets que existem; setlist ativo inválido volta a todos; pc fixo na faixa', () => {
+  const s = migrateState({
+    presets: [{ name: 'a', chain: [], pc: 5 }, { name: 'b', chain: [], pc: 300 }],
+    setlists: [{ name: 'Sexta', order: ['b', 'sumiu', 'a'] }, { order: [] }], setlist: 7,
+  });
+  assert.deepEqual(s.setlists, [{ name: 'Sexta', order: ['b', 'a'] }]);
+  assert.equal(s.setlist, null);
+  assert.equal(s.presets[0].pc, 5);
+  assert.equal('pc' in s.presets[1], false);
+});
