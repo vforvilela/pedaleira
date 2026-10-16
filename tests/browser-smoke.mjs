@@ -1031,6 +1031,7 @@ try {
     p.state.setlists.push({ name: 'Turnê', order: [src.name] });
     const doc = await p.buildExport();
     doc.presets.forEach(x => x.name += ' (b)');
+    doc.setlists.forEach(l => { l.order = l.order.map(n => n + ' (b)'); }); // o arquivo é coerente: setlist e presets com os mesmos nomes
     await p.importPresets(new File([JSON.stringify(doc)], 'c.json'));
     const got = p.state.presets.find(x => x.name === src.name + ' (b)');
     const sl = p.state.setlists.find(l => l.name.startsWith('Turnê') && l.order.includes(src.name + ' (b)'));
