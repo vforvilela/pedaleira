@@ -22,7 +22,11 @@ export function runAction(target, msg) {
   if (target.kind === 'tempo') { if (fires) tapGlobal(); return; }
   if (target.kind === 'preset') { if (fires) stepPreset(target.dir); return; }
   if (target.kind === 'scene') { if (fires) recallScene(target.index); return; }
-  const block = blockByUid(target.uid);
+  // O mapeamento lembra o pedal onde foi aprendido; em outro preset (outro uid), vale o primeiro pedal do mesmo
+  // tipo: o pedal de expressão no wah funciona em todas as músicas, como nas pedaleiras digitais.
+  let block = blockByUid(target.uid);
+  if (block && !target.type) { target.type = block.type; save(); } // mapeamentos antigos aprendem o tipo
+  if (!block && target.type) block = state.chain.find(b => b.type === target.type);
   if (!block) return;
   if (target.kind === 'knob') {
     const c = byType[block.type].controls.find(c => c.id === target.param);
@@ -30,10 +34,19 @@ export function runAction(target, msg) {
     const max = c.type === 'select' ? c.options.length - 1 : 10;
     const v = c.type === 'select' ? Math.round((msg.value / 127) * max) : Math.round((msg.value / 127) * 100) / 10;
     setParam(block, c.id, v);
+    if (block.type === 'ua' && c.id === 'pedal') autoEngage(block, v);
   } else if (fires) {
     if (target.kind === 'toggle') toggleBlock(block);
     else if (target.kind === 'tap') tapTempo(block);
   }
+}
+
+// Auto-engage do Uá pelo pedal de expressão: sair do calcanhar liga; parado no calcanhar por meio segundo, desliga.
+let heelTimer = 0;
+function autoEngage(block, v) {
+  clearTimeout(heelTimer);
+  if (v > 0.6) { if (!block.on) toggleBlock(block); return; }
+  if (block.on) heelTimer = setTimeout(() => { if (block.on && block.params.pedal <= 0.6) toggleBlock(block); }, 500);
 }
 
 export function describeTarget(tg) {
@@ -103,9 +116,10 @@ document.addEventListener('pointerdown', e => {
   else {
     const id = el.closest('.pedal')?.dataset.uid;
     if (!id) return;
-    if (el.classList.contains('footswitch')) target = { kind: 'toggle', uid: id };
-    else if (el.classList.contains('tap-btn')) target = { kind: 'tap', uid: id };
-    else target = { kind: 'knob', uid: id, param: el.dataset.param };
+    const type = state.chain.find(b => b.uid === id)?.type;
+    if (el.classList.contains('footswitch')) target = { kind: 'toggle', uid: id, type };
+    else if (el.classList.contains('tap-btn')) target = { kind: 'tap', uid: id, type };
+    else target = { kind: 'knob', uid: id, type, param: el.dataset.param };
   }
   document.querySelectorAll('.learn-target').forEach(x => x.classList.remove('learn-target'));
   el.classList.add('learn-target');

@@ -1040,6 +1040,23 @@ try {
   check(backup.exported && backup.scene === 'Solo' && backup.pc === 42 && !!backup.setlist,
     `backup leva cenas com nome, PC fixo e setlists (${JSON.stringify(backup)})`);
 
+  // MIDI por tipo: um mapeamento aprendido num pedal vale no pedal do mesmo tipo de outro preset; o Uá liga sozinho.
+  const midiType = await evaluate(`(async () => {
+    const p = __pedaleira, wait = ms => new Promise(r => setTimeout(r, ms));
+    await p.idle();
+    const { runAction } = await import('./js/control.js');
+    const { addBlock } = await import('./js/board.js');
+    if (!p.state.chain.some(b => b.type === 'ua')) addBlock('ua');
+    const ua = p.state.chain.find(b => b.type === 'ua');
+    if (ua.on) { const { toggleBlock } = await import('./js/core.js'); toggleBlock(ua); }
+    const target = { kind: 'knob', uid: 'outro-preset', type: 'ua', param: 'pedal' };
+    runAction(target, { value: 127 });
+    const on = ua.on, pedal = ua.params.pedal;
+    runAction(target, { value: 0 }); await wait(700);
+    return { on, pedal, offAtHeel: !ua.on };
+  })()`);
+  check(midiType.on && midiType.pedal === 10 && midiType.offAtHeel, `MIDI por tipo de pedal e auto-engage do Uá (${JSON.stringify(midiType)})`);
+
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
   console.log(`screenshots em ${out}`);
   ws.close();

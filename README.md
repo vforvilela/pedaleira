@@ -80,7 +80,9 @@ Funciona no PC, no Android e no iPhone (é um PWA: pode ser instalado pela opç�
 - **Footswitch Bluetooth de virar página** (funciona no iPhone): setas e PageUp/PageDown trocam de preset.
 - **Controlador MIDI** (Chrome/Edge, não no iPhone): botão MIDI → toque no alvo (pedal, TAP, botão, ◀ ▶) →
   pise no controlador. Program Change N escolhe o preset N+1 sem configurar nada. Funciona com footswitch
-  momentâneo e com o de trava (latching), sem configurar.
+  momentâneo e com o de trava (latching), sem configurar. Um mapeamento de pedal vale em todos os presets: se o
+  preset não tem aquele pedal, vale o primeiro do mesmo tipo. O pedal de expressão no Uá liga o wah ao sair do
+  calcanhar e desliga parado no calcanhar.
 
 ## Rodar
 
