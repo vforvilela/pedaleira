@@ -17,6 +17,7 @@ export default {
     'core.tempoSet': 'Andamento: {bpm} BPM.',
     'core.saveFailed': 'Não consegui guardar a pedaleira neste navegador (armazenamento bloqueado ou cheio). Exporte seus presets por segurança.',
     'core.turnOnFirst': '{name}: clique em Ligar primeiro.',
+    'core.tunerMute': 'Afinador ligado: o som fica mudo enquanto afina (MODE em THRU deixa passar).',
   },
   en: {
     'core.rateMismatch': '{name}: captured at {rate} Hz, audio is running at {ctxRate} Hz. The sound may change.',
@@ -35,6 +36,7 @@ export default {
     'core.tempoSet': 'Tempo: {bpm} BPM.',
     'core.saveFailed': 'Couldn’t save the board in this browser (storage blocked or full). Export your presets to be safe.',
     'core.turnOnFirst': '{name}: click Turn on first.',
+    'core.tunerMute': 'Tuner on: the sound is muted while you tune (MODE on THRU lets it through).',
   },
   es: {
     'core.rateMismatch': '{name}: captura hecha a {rate} Hz, el audio está a {ctxRate} Hz. El sonido puede cambiar.',
@@ -53,5 +55,6 @@ export default {
     'core.tempoSet': 'Tempo: {bpm} BPM.',
     'core.saveFailed': 'No pude guardar la pedalera en este navegador (almacenamiento bloqueado o lleno). Exporta tus presets por seguridad.',
     'core.turnOnFirst': '{name}: haz clic en Encender primero.',
+    'core.tunerMute': 'Afinador encendido: el sonido queda mudo mientras afinas (MODE en THRU lo deja pasar).',
   },
 };

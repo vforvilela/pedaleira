@@ -105,10 +105,12 @@ export async function loadIntoAudio(block, kind, data, name) {
   }
 }
 
-export function status(msg, err = false) {
+// err: vermelho e inteiro (quebra linha). warn: inteiro, sem vermelho (aviso que precisa ser lido, como o do fone).
+export function status(msg, err = false, warn = false) {
   const s = $('status');
   s.textContent = s.title = msg; // no tablet a linha é uma só: a mensagem inteira fica no title e num toque
   s.classList.toggle('err', err);
+  s.classList.toggle('warn', warn);
 }
 
 // ---------- Tap tempo ----------
@@ -210,6 +212,8 @@ export function toggleBlock(block) {
   block.on = !block.on;
   l?.audio?.setOn(block.on);
   l?.view?.update();
+  // Afinador em MUTE cala a guitarra: quem não sabe acha que quebrou.
+  if (block.type === 'afinador' && block.on && block.params.mode === 0) status(t('core.tunerMute'));
   save();
 }
 

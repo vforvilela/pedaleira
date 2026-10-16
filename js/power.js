@@ -102,7 +102,7 @@ export async function start() {
     // avisa do engano mais comum: o monitor direto dobrando o som limpo.
     const mic = isBuiltInMic(track);
     const key = mic ? 'power.playingMic' : state.monitorHintDone ? 'power.playing' : 'power.playingFirst';
-    status(t(key, { device: track.label }));
+    status(t(key, { device: track.label }), false, mic);
     if (!mic && !state.monitorHintDone) { state.monitorHintDone = true; save(); }
   }
   $('measure').hidden = false;
@@ -142,6 +142,7 @@ $('power').onclick = async () => {
     await stop();
     const msg = e.name === 'NotAllowedError' ? t('power.errNoPermission')
       : e.name === 'NotFoundError' ? t('power.errNoInput')
+      : e.name === 'NotReadableError' || e.name === 'AbortError' ? t('power.errBusy')
       : `${e.name}: ${e.message}`;
     status(t('power.error', { msg }), true);
   } finally {

@@ -260,9 +260,11 @@ export function pedalView(block, cb) {
   caption.className = 'caption';
   caption.innerHTML = `<span class="pname"></span><span class="inspired"></span><span class="files"></span>`;
   caption.querySelector('.pname').textContent = def.name;
-  caption.querySelector('.inspired').textContent = caption.querySelector('.inspired').title = def.inspiredBy ? t('pedal.inspiredBy', { name: def.inspiredBy }) : '';
-  // O que o pedal faz, ao passar o mouse no nome (no toque, o painel de controles mostra a mesma linha).
-  caption.querySelector('.pname').title = help(`help.about.${def.type}`);
+  // Embaixo do pedal: o que ele faz (o original, "inspirado no…", fica no title). É o que o iniciante lê.
+  const about = help(`help.about.${def.type}`), inspired = def.inspiredBy ? t('pedal.inspiredBy', { name: def.inspiredBy }) : '';
+  caption.querySelector('.inspired').textContent = about || inspired;
+  caption.querySelector('.inspired').title = about ? `${about} ${inspired}`.trim() : inspired;
+  caption.querySelector('.pname').title = about;
   root.append(caption);
 
   const tools = document.createElement('div');

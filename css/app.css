@@ -253,7 +253,7 @@ body:not(:has(#power[aria-pressed="true"])) .lat { display: none; }
   background: transparent; color: var(--lcd-ink); border: 1px solid var(--lcd-dim); border-radius: 4px; box-shadow: none;
 }
 .status { margin: 0; min-height: 18px; font-size: 12.5px; line-height: 18px; color: var(--lcd-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
-.status.full { white-space: normal; }
+.status.full, .status.err, .status.warn { white-space: normal; }
 .status.err { color: var(--lcd-err); }
 
 /* Cenas: teclas de pisar, cada uma com o LED em cima; a cena ativa acende inteira. */
@@ -291,7 +291,7 @@ body.midi-learn .scene-btn { outline: 2px dashed color-mix(in oklch, var(--accen
 /* Modo simples: só o que um iniciante usa no primeiro mês. O resto volta com "Mostrar tudo". */
 body.simple #scenes, body.simple #stageScenes, body.simple #presetOrganize, body.simple #presetShare, body.simple #presetExport,
 body.simple #presetImport, body.simple #floorView, body.simple #record, body.simple #measure, body.simple #midi,
-body.simple #midiClear, body.simple #trimRow, body.simple #eqRow { display: none !important; }
+body.simple #midiClear, body.simple #trimRow, body.simple #eqRow, body.simple #libHint2 { display: none !important; }
 .more-row.show-more, .more-row:has(#record[aria-pressed="true"]) { padding-bottom: 12px; }
 .presets:not(.show-more) .more-item:not(#record[aria-pressed="true"]) { display: none; }
 .more-row button, .more-row select { padding: 6px 12px; font-size: 14px; }
@@ -683,6 +683,8 @@ h2 { font-size: 26px; font-weight: 850; font-stretch: 118%; letter-spacing: -.02
   body { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; --dock: calc(118px + env(safe-area-inset-bottom)); }
   /* Sem camada própria no topo: a gaveta (que mora nele) precisa ficar acima do fundo escurecido. */
   .top { flex: none; z-index: auto; }
+  /* Modo simples: sem a fileira das cenas, o rodapé é só a barra de ações. */
+  body.simple { --dock: calc(62px + env(safe-area-inset-bottom)); }
   main { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 0 var(--dock); overflow-y: auto; }
   .intro { flex: none; margin: 10px 12px; }
 
@@ -744,9 +746,9 @@ h2 { font-size: 26px; font-weight: 850; font-stretch: 118%; letter-spacing: -.02
   .cable { width: 22px; }
   .jack { min-width: 52px; }
   .toast { bottom: calc(var(--dock) + 10px); }
-  .lib-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .lib-grid { grid-template-columns: 1fr; gap: 8px; }
   .add { padding: 8px 10px; gap: 8px; }
-  .add small { display: none; }
+  .add small { font-size: 11px; line-height: 1.25; }
 }
 /* Telefone deitado (pouca altura): visor só com o nome, sem o mapa da cadeia, e cenas + ações numa faixa só no
    rodapé (metade cada), para sobrar altura para os pedais. */
