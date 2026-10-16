@@ -3,6 +3,9 @@ export default {
   pt: {
     'scenes.turnsOn': 'liga {names}',
     'scenes.allOff': 'tudo desligado',
+    'scenes.title': 'Cena {letter} (atalho: {letter}). Duplo clique ou toque longo: dar nome',
+    'scenes.titleNamed': 'Cena {letter}: {name} (atalho: {letter})',
+    'scenes.namePrompt': 'Nome da cena {letter} (ex.: Solo). Vazio volta à letra.',
     'scenes.empty': 'Cena {name} vazia: ligue os pedais, toque em Gravar e em {name}.',
     'scenes.recalled': 'Cena {name}: {summary}.',
     'scenes.stored': 'Cena {name} gravada: {summary}. Salve o preset para guardá-la.',
@@ -11,6 +14,9 @@ export default {
   en: {
     'scenes.turnsOn': 'turns on {names}',
     'scenes.allOff': 'everything off',
+    'scenes.title': 'Scene {letter} (shortcut: {letter}). Double-click or long-press: name it',
+    'scenes.titleNamed': 'Scene {letter}: {name} (shortcut: {letter})',
+    'scenes.namePrompt': 'Name for scene {letter} (e.g. Solo). Empty goes back to the letter.',
     'scenes.empty': 'Scene {name} is empty: turn on the pedals, tap Store and then {name}.',
     'scenes.recalled': 'Scene {name}: {summary}.',
     'scenes.stored': 'Scene {name} stored: {summary}. Save the preset to keep it.',
@@ -19,6 +25,9 @@ export default {
   es: {
     'scenes.turnsOn': 'enciende {names}',
     'scenes.allOff': 'todo apagado',
+    'scenes.title': 'Escena {letter} (atajo: {letter}). Doble clic o toque largo: ponerle nombre',
+    'scenes.titleNamed': 'Escena {letter}: {name} (atajo: {letter})',
+    'scenes.namePrompt': 'Nombre de la escena {letter} (p. ej. Solo). Vacío vuelve a la letra.',
     'scenes.empty': 'Escena {name} vacía: enciende los pedales, toca Grabar y luego {name}.',
     'scenes.recalled': 'Escena {name}: {summary}.',
     'scenes.stored': 'Escena {name} grabada: {summary}. Guarda el preset para conservarla.',

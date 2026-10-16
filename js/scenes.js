@@ -1,5 +1,5 @@
 // Cenas dentro do preset.
-import { $, changeListeners, live, save, SCENE_NAMES, sceneMatches, state, status, syncTempoFromChain } from './core.js';
+import { $, changeListeners, live, save, SCENE_NAMES, sceneMatches, setTrim, state, status, syncTempoFromChain } from './core.js';
 import { byType } from './pedals/index.js';
 import { t } from './i18n.js';
 
@@ -15,10 +15,16 @@ export const sceneUsed = i => state.chain.some(b => b.scenes[i] !== null);
 export const sceneActive = i => sceneUsed(i) && state.chain.every(b => sceneMatches(b, i));
 
 changeListeners.push(() => renderScenes());
+// Nome da cena ("Solo") ou a letra.
+export const sceneLabel = i => state.sceneMeta[i]?.name || SCENE_NAMES[i];
 export function renderScenes() {
   sceneButtons.forEach((btn, i) => {
     btn.classList.toggle('used', sceneUsed(i));
     btn.setAttribute('aria-pressed', sceneActive(i));
+    const name = state.sceneMeta[i]?.name;
+    btn.textContent = name || SCENE_NAMES[i];
+    btn.classList.toggle('named', !!name);
+    btn.title = t(name ? 'scenes.titleNamed' : 'scenes.title', { letter: SCENE_NAMES[i], name });
   });
   $('sceneRec').setAttribute('aria-pressed', recordingScene);
   $('scenes').classList.toggle('recording', recordingScene);
@@ -43,19 +49,38 @@ export function recallScene(i) {
     if (b.on !== s.on) { b.on = s.on; l?.audio?.setOn(s.on); }
     l?.view?.update();
   }
-  syncTempoFromChain();
+  // Nível e andamento da cena (gravados com ela); sem eles, o andamento vem do Pulso.
+  const meta = state.sceneMeta[i];
+  if (typeof meta?.trim === 'number') setTrim(meta.trim);
+  syncTempoFromChain(meta?.bpm ?? null);
   save();
-  status(t('scenes.recalled', { name: SCENE_NAMES[i], summary: sceneSummary(i) }));
+  status(t('scenes.recalled', { name: sceneLabel(i), summary: sceneSummary(i) }));
 }
 
 export function storeScene(i) {
   for (const b of state.chain) b.scenes[i] = { on: b.on, params: { ...b.params } };
+  state.sceneMeta[i] = { name: state.sceneMeta[i]?.name || '', trim: state.trim, bpm: state.bpm };
   recordingScene = false;
   save();
-  status(t('scenes.stored', { name: SCENE_NAMES[i], summary: sceneSummary(i) }));
+  status(t('scenes.stored', { name: sceneLabel(i), summary: sceneSummary(i) }));
 }
 
-sceneButtons.forEach((btn, i) => { btn.onclick = () => (recordingScene ? storeScene(i) : recallScene(i)); });
+// Nome da cena: duplo clique (ou toque longo) no botão. Vazio volta à letra.
+export function renameScene(i) {
+  const cur = state.sceneMeta[i]?.name || '';
+  const name = prompt(t('scenes.namePrompt', { letter: SCENE_NAMES[i] }), cur);
+  if (name === null) return;
+  state.sceneMeta[i] = { ...(state.sceneMeta[i] || {}), name: name.trim().slice(0, 16) };
+  save();
+}
+
+sceneButtons.forEach((btn, i) => {
+  btn.onclick = () => (recordingScene ? storeScene(i) : recallScene(i));
+  btn.ondblclick = () => renameScene(i);
+  let hold = 0;
+  btn.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') hold = setTimeout(() => renameScene(i), 600); });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) btn.addEventListener(ev, () => clearTimeout(hold));
+});
 $('sceneRec').onclick = () => {
   recordingScene = !recordingScene;
   renderScenes();

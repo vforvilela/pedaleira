@@ -41,6 +41,9 @@ export function renderStage() {
   [...$('stageScenes').children].forEach((b, i) => {
     b.classList.toggle('used', sceneUsed(i));
     b.setAttribute('aria-pressed', sceneActive(i));
+    const name = state.sceneMeta[i]?.name;
+    b.textContent = name || SCENE_NAMES[i];
+    b.classList.toggle('named', !!name);
   });
   renderExpression();
   const pedals = $('stagePedals');

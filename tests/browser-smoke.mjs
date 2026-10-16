@@ -254,12 +254,18 @@ try {
     await p.importPresets(new File([JSON.stringify(doc)], 'a.json'));
     const same = p.state.presets.length;
     doc.presets.forEach(x => x.name += ' (celular)');
+    // Um arquivo do .json só entra se um preset o usa, e com chave nova (a do arquivo não vale no aparelho).
     doc.files['teste:ir:1'] = { type: 'base64', data: 'AAEC' };
+    doc.files['solto:1'] = { type: 'base64', data: 'AAEC' };
+    const withAmp = doc.presets.find(x => x.chain.some(b => b.type === 'amp'));
+    withAmp.chain.find(b => b.type === 'amp').files.ir = { name: 'teste', key: 'teste:ir:1' };
     await p.importPresets(new File([JSON.stringify(doc)], 'b.json'));
-    const ir = await p.getFile('teste:ir:1');
-    return { before, same, after: p.state.presets.length, irBytes: ir?.byteLength };
+    const got = p.state.presets.find(x => x.name === withAmp.name).chain.find(b => b.type === 'amp').files.ir;
+    const ir = got ? await p.getFile(got.key) : null;
+    return { before, same, after: p.state.presets.length, irBytes: ir?.byteLength, key: got?.key, orphan: await p.getFile('solto:1'), raw: await p.getFile('teste:ir:1') };
   })()`);
-  check(imp.same === imp.before && imp.after === imp.before * 2 && imp.irBytes === 3, `exportar/importar presets e arquivos (${JSON.stringify(imp)})`);
+  check(imp.same === imp.before && imp.after === imp.before * 2 && imp.irBytes === 3 && /^import:/.test(imp.key) && imp.orphan === undefined && imp.raw === undefined,
+    `exportar/importar presets e arquivos: chave nova, só o que os presets usam (${JSON.stringify(imp)})`);
 
   // Afinador: o microfone falso não tem nota (é quase DC com cliques), então troca a entrada
   // do afinador por um oscilador de 110 Hz (Lá 2) e espera o visor mostrar A2; MUTE corta a saída.
@@ -961,6 +967,23 @@ try {
   // No app, o clique vai pelo monitor: fora da gravação (limiter) e da cadeia.
   const mon = await evaluate(`(() => { const e = __pedaleira.engine; return { monitor: !!e.monitor, gain: +e.monitor.gain.value.toFixed(3), master: +e.master.gain.value.toFixed(3) }; })()`);
   check(mon.monitor && mon.gain === mon.master, `monitor do motor segue o Volume (${JSON.stringify(mon)})`);
+
+  // Cenas com nome, nível e andamento: gravar A guarda o nível e o BPM; mudar e chamar A traz de volta; nome no botão.
+  const sceneMeta = await evaluate(`(async () => {
+    const p = __pedaleira, wait = ms => new Promise(r => setTimeout(r, ms));
+    const { setTrim, setTempo } = await import('./js/core.js');
+    const { storeScene, recallScene } = await import('./js/scenes.js');
+    setTrim(-3); setTempo(100); storeScene(0);
+    setTrim(0); setTempo(120); await wait(50);
+    recallScene(0); await wait(50);
+    const got = { trim: p.state.trim, bpm: p.state.bpm };
+    window.prompt = () => 'Solo';
+    const btn = document.querySelector('.scene-btn'); btn.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    await wait(50);
+    return { ...got, name: p.state.sceneMeta[0]?.name, btn: btn.textContent, stage: document.querySelector('#stageScenes .stage-scene')?.textContent };
+  })()`);
+  check(sceneMeta.trim === -3 && sceneMeta.bpm === 100 && sceneMeta.name === 'Solo' && sceneMeta.btn === 'Solo',
+    `cena guarda nível e BPM e aceita nome (${JSON.stringify(sceneMeta)})`);
 
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
   console.log(`screenshots em ${out}`);

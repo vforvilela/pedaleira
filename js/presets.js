@@ -1,6 +1,6 @@
 // Presets, rascunhos, exportar e importar.
 import { ensureView, fetchFile, fileInput, renderBoard } from './board.js';
-import { $, changeListeners, hideToast, toast, createAudio, engine, fileData, live, loadIntoAudio, setTrim, syncTempoFromChain, tapGlobal, normalizeBlock, normalizeChain, reconnect, releaseFile, save, snapshot, state, status, uid } from './core.js';
+import { $, changeListeners, hideToast, toast, createAudio, engine, fileData, live, loadIntoAudio, setTrim, syncTempoFromChain, tapGlobal, normalizeBlock, normalizeChain, normalizeSceneMeta, reconnect, releaseFile, save, snapshot, state, status, uid } from './core.js';
 import { chainDirty, sameChain, withScene } from './chain.js';
 import { t } from './i18n.js';
 import { saveFile } from './platform.js';
@@ -57,8 +57,9 @@ export function savePreset() {
   if (!name) { status(t('presets.nameRequired'), true); $('presetName').focus(); return; }
   const existing = presetByName(name);
   const old = existing?.chain;
-  if (existing) { existing.chain = snapshot(state.chain); existing.bpm = state.bpm; existing.trim = state.trim; }
-  else state.presets.push({ name, chain: snapshot(state.chain), bpm: state.bpm, trim: state.trim });
+  const meta = snapshot(state.sceneMeta);
+  if (existing) { existing.chain = snapshot(state.chain); existing.bpm = state.bpm; existing.trim = state.trim; existing.sceneMeta = meta; }
+  else state.presets.push({ name, chain: snapshot(state.chain), bpm: state.bpm, trim: state.trim, sceneMeta: meta });
   // Salvar a partir de outro preset deixa aquele como estava salvo.
   if (state.preset !== name) delete state.drafts[state.preset ?? ''];
   delete state.drafts[name];
@@ -281,6 +282,7 @@ export async function applyPreset(name) {
   const target = name === '' ? state.drafts[''] : state.drafts[name] || presetByName(name)?.chain;
   if (!target) { state.preset = name || null; save(); renderPresets(); return; }
   setTrim(presetByName(name)?.trim ?? 0); // o nível vem com o preset (não conta como rascunho); o andamento, no loadChain
+  state.sceneMeta = normalizeSceneMeta(presetByName(name)?.sceneMeta);
   await loadChain(target, name || null);
   status('');
 }
@@ -395,7 +397,7 @@ export async function buildExport() {
     for (const b of p.chain)
       for (const f of Object.values(b.files)) {
         if (files[f.key]) continue;
-        const data = await getFile(f.key);
+        const data = await getFile(f.key, { cache: false });
         if (data === undefined) continue;
         files[f.key] = data instanceof ArrayBuffer ? { type: 'base64', data: toBase64(data) } : { type: 'json', data };
       }
@@ -420,19 +422,37 @@ export async function importPresets(file) {
     status(t('presets.notPresetFile', { file: file.name }), true);
     return;
   }
-  for (const [key, f] of Object.entries(doc.files || {})) {
-    if (typeof key !== 'string' || key.length > 80 || !f || typeof f.data !== 'string' && typeof f.data !== 'object') continue;
-    await putFile(key, f.type === 'base64' ? fromBase64(f.data) : f.data);
-  }
+  // As chaves do arquivo viram chaves novas: um .json forjado não troca um arquivo que já está no aparelho,
+  // e só entra o que um preset novo usa. Preset igual a um que já existe (mesmo nome, mesmos botões, mesmos
+  // nomes de arquivo) não entra de novo, nem os arquivos dele.
+  const files = doc.files || {};
+  const byName = ch => snapshot(ch).map(b => ({ ...b, files: Object.fromEntries(Object.entries(b.files).map(([k, f]) => [k, { key: f.name }])) }));
+  const keyMap = new Map();
+  const remap = b => ({
+    ...b,
+    files: Object.fromEntries(Object.entries(b?.files || {}).filter(([, f]) => f?.key in files).map(([k, f]) => [k, { ...f, key: `import:${f.key}` }])),
+  });
   let added = 0, same = 0;
   for (const p of doc.presets) {
-    const chain = normalizeChain(p.chain || []);
+    const chain = normalizeChain((Array.isArray(p?.chain) ? p.chain : []).map(remap));
     if (!chain.length) continue;
     const existing = presetByName(p.name);
-    if (existing && sameChain(existing.chain, chain)) { same++; continue; }
+    if (existing && sameChain(byName(existing.chain), byName(chain))) { same++; continue; }
+    for (const b of chain)
+      for (const f of Object.values(b.files)) {
+        const src = f.key.slice('import:'.length), entry = files[src];
+        if (!keyMap.has(src)) {
+          const data = entry?.type === 'base64' ? fromBase64(entry.data) : entry?.data;
+          const ok = data !== undefined && (data instanceof ArrayBuffer ? data.byteLength <= 64 << 20 : JSON.stringify(data).length <= 64 << 20);
+          keyMap.set(src, ok ? `import:${uid()}` : null);
+          if (ok) await putFile(keyMap.get(src), data);
+        }
+        f.key = keyMap.get(src);
+      }
+    for (const b of chain) for (const k of Object.keys(b.files)) if (!b.files[k].key) delete b.files[k];
     let name = String(p.name || t('presets.defaultName')).slice(0, 40);
     for (let i = 2; presetByName(name); i++) name = `${String(p.name).slice(0, 34)} (${i})`;
-    state.presets.push({ name, chain });
+    state.presets.push({ name, chain, ...(typeof p.bpm === 'number' ? { bpm: p.bpm } : {}), ...(typeof p.trim === 'number' ? { trim: p.trim } : {}) });
     added++;
   }
   save();

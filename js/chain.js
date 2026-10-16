@@ -110,12 +110,15 @@ export function migrateState(saved, { factory = [], factoryVersion = 0 } = {}) {
     // EQ geral da saída (dB): acerta a pedaleira à sala ou ao fone, fora dos presets.
     eq: { low: num(saved?.eq?.low, 0, -6, 6), mid: num(saved?.eq?.mid, 0, -6, 6), high: num(saved?.eq?.high, 0, -6, 6) },
     chain: normalizeChain(saved?.chain || DEFAULT_CHAIN.map(newBlock)),
+    // Por cena: nome, nível e andamento (os pedais guardam o resto em b.scenes[i]).
+    sceneMeta: normalizeSceneMeta(saved?.sceneMeta),
     presets: (Array.isArray(saved?.presets) ? saved.presets : [])
       .filter(p => p && typeof p.name === 'string' && p.name)
       .map(p => ({
         name: p.name.slice(0, 40), chain: normalizeChain(p.chain),
         ...(typeof p.bpm === 'number' ? { bpm: num(p.bpm, 120, 40, 240) } : {}),
         ...(typeof p.trim === 'number' ? { trim: num(p.trim, 0, -12, 12) } : {}),
+        ...(Array.isArray(p.sceneMeta) ? { sceneMeta: normalizeSceneMeta(p.sceneMeta) } : {}),
       })),
     preset: typeof saved?.preset === 'string' ? saved.preset : null,
     factory: num(saved?.factory, 0, 0, 1e6),
@@ -133,6 +136,19 @@ export function migrateState(saved, { factory = [], factoryVersion = 0 } = {}) {
     state.factory = factoryVersion;
   }
   return state;
+}
+
+// sceneMeta[i]: null ou { name, trim, bpm } (trim e bpm podem faltar: cena gravada antes de existirem).
+export function normalizeSceneMeta(a) {
+  return Array.from({ length: SCENES }, (_, i) => {
+    const m = Array.isArray(a) ? a[i] : null;
+    if (!m || typeof m !== 'object') return null;
+    return {
+      name: str(m.name, 16),
+      ...(typeof m.trim === 'number' ? { trim: num(m.trim, 0, -12, 12) } : {}),
+      ...(typeof m.bpm === 'number' ? { bpm: num(m.bpm, 120, 40, 240) } : {}),
+    };
+  });
 }
 
 const num = (v, d, lo, hi) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d);

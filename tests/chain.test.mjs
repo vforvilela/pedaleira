@@ -96,3 +96,12 @@ test('migrateState: EQ geral por faixa, na faixa de ±6 dB', () => {
   assert.deepEqual(migrateState(null).eq, { low: 0, mid: 0, high: 0 });
   assert.deepEqual(migrateState({ eq: { low: -20, mid: 'x', high: 3 } }).eq, { low: -6, mid: 0, high: 3 });
 });
+
+test('migrateState: sceneMeta por cena (nome, nível, andamento), no estado e nos presets', () => {
+  const s = migrateState({ sceneMeta: [{ name: 'Solo', trim: 3, bpm: 90 }, 'x', null], presets: [{ name: 'p', chain: [], sceneMeta: [null, { name: 'Um nome comprido demais para caber', trim: -40 }] }] });
+  assert.deepEqual(s.sceneMeta, [{ name: 'Solo', trim: 3, bpm: 90 }, null, null, null]);
+  assert.equal(s.presets[0].sceneMeta[1].name, 'Um nome comprido');
+  assert.equal(s.presets[0].sceneMeta[1].trim, -12);
+  assert.equal('bpm' in s.presets[0].sceneMeta[1], false);
+  assert.deepEqual(migrateState(null).sceneMeta, [null, null, null, null]);
+});

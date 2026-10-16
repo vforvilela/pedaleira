@@ -2,7 +2,7 @@
 import { Engine } from './audio/engine.js';
 import { byType } from './pedals/index.js';
 import { bpmOf, knobOfBpm } from './pedals/pulso.js';
-import { uid, SCENES, SCENE_NAMES, newBlock, normalizeBlock, normalizeChain, sceneMatches, sameScene, sameChain, withScene, chainDirty, safeUrl, SCHEMA_VERSION, migrateState } from './chain.js';
+import { uid, SCENES, SCENE_NAMES, newBlock, normalizeBlock, normalizeChain, normalizeSceneMeta, sceneMatches, sameScene, sameChain, withScene, chainDirty, safeUrl, SCHEMA_VERSION, migrateState } from './chain.js';
 import { deleteFile, getFile, loadState, putFile, saveState } from './store.js';
 import { fetchFile } from './files.js';
 import { FACTORY_VERSION, factoryPresets } from './factory.js';
@@ -10,7 +10,7 @@ import { DICTS, t } from './i18n.js';
 
 export const $ = id => document.getElementById(id);
 export const engine = new Engine();
-export { uid, SCENES, SCENE_NAMES, newBlock, normalizeBlock, normalizeChain, sceneMatches, sameScene, sameChain, withScene, chainDirty, safeUrl, SCHEMA_VERSION };
+export { uid, SCENES, SCENE_NAMES, newBlock, normalizeBlock, normalizeChain, normalizeSceneMeta, sceneMatches, sameScene, sameChain, withScene, chainDirty, safeUrl, SCHEMA_VERSION };
 
 // ---------- Estado ----------
 

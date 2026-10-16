@@ -18,7 +18,7 @@ const browser = {
   performance: 'readonly', console: 'readonly', WebAssembly: 'readonly', structuredClone: 'readonly', queueMicrotask: 'readonly',
   crypto: 'readonly', Intl: 'readonly', globalThis: 'readonly', ResizeObserver: 'readonly', visualViewport: 'readonly',
   Capacitor: 'readonly', devicePixelRatio: 'readonly', confirm: 'readonly', alert: 'readonly',
-  scrollX: 'readonly', scrollY: 'readonly', btoa: 'readonly', atob: 'readonly',
+  scrollX: 'readonly', scrollY: 'readonly', btoa: 'readonly', atob: 'readonly', prompt: 'readonly',
 };
 const worklet = { AudioWorkletProcessor: 'readonly', registerProcessor: 'readonly', sampleRate: 'readonly', currentTime: 'readonly', WebAssembly: 'readonly', console: 'readonly' };
 const node = { process: 'readonly', Buffer: 'readonly', console: 'readonly', performance: 'readonly', setTimeout: 'readonly', clearTimeout: 'readonly', URL: 'readonly', fetch: 'readonly', WebAssembly: 'readonly', WebSocket: 'readonly', TextDecoder: 'readonly', TextEncoder: 'readonly', globalThis: 'readonly' };

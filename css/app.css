@@ -498,6 +498,8 @@ body.stage { overflow: hidden; }
 .stage-trim output { min-width: 4.5em; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: 0; }
 body.simple #stageTrimRow { display: none; }
 .stage-scenes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; flex: 1; min-height: 90px; }
+.stage-scene.named { font-size: clamp(16px, 4vw, 28px); }
+.scene-btn.named { font-size: 12px; letter-spacing: 0; text-transform: none; }
 .stage-scene { font-size: clamp(36px, 9vw, 80px); font-weight: 800; color: var(--muted); border-width: 2px; border-radius: 14px; }
 .stage-scene.used { color: var(--text); }
 .stage-scene[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
