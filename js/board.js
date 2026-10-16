@@ -267,9 +267,9 @@ export function removeBlock(id) {
   const i = state.chain.findIndex(b => b.uid === id);
   if (i < 0) return;
   const [block] = state.chain.splice(i, 1);
-  reconnect();
-  live.get(id)?.audio?.dispose();
+  const audio = live.get(id)?.audio;
   live.delete(id);
+  reconnect().then(() => audio?.dispose()); // depois da troca: descartar antes estalaria
   renderBoard();
   save();
   // Dá 10 s para desfazer (no palco, um toque errado no ✕ não pode custar o pedal e a captura dele).

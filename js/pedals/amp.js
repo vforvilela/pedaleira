@@ -135,6 +135,7 @@ export default {
       async loadFile(kind, data) {
         if (kind === 'nam') {
           const info = await nam.load(data);
+          if (info?.superseded) return info;
           namMakeup = namMakeupDb(data);
           apply();
           useNam(true);

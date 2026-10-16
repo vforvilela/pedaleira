@@ -114,6 +114,8 @@ export class Engine {
     await this.ctx?.close();
     this.ctx = this.stream = null;
     this.ready = false;
+    this.swap = null;
+    this.wired = [];
   }
 
   // Canal da interface onde está a guitarra (0 ou 1); null mistura os dois.
@@ -130,37 +132,57 @@ export class Engine {
   setMaster(db) {
     if (!this.ctx) return;
     this.master.gain.setTargetAtTime(dbToGain(db), this.ctx.currentTime, 0.01);
-    this.monitor.gain.setTargetAtTime(dbToGain(db), this.ctx.currentTime, 0.01);
+    // O monitor não passa pelo limitador: acima de 0 dB o clique estouraria o fone.
+    this.monitor.gain.setTargetAtTime(dbToGain(Math.min(db, 0)), this.ctx.currentTime, 0.01);
   }
 
-  // blocks: [{ audio: { input, output } }] na ordem do sinal.
-  // A troca de ligações é seca e estalaria: o nível do preset mergulha a zero em 5 ms, a troca acontece no
-  // vale, e sobe de novo em 8 ms já no nível do preset novo (setTrim durante o vale só guarda o valor).
+  // blocks: [{ audio: { input, output } }] na ordem do sinal. Devolve uma promessa que resolve depois da troca:
+  // quem tira pedais da cadeia só os descarta (dispose) ou manda para o spill depois dela, senão o corte estala.
+  // A troca de ligações é seca: o nível do preset mergulha a zero em 5 ms, a troca acontece no vale (marcado pelo
+  // relógio do áudio, não por setTimeout, que o navegador estrangula com a tela apagada) e sobe em 8 ms já no
+  // nível do preset novo. Uma segunda chamada durante o mergulho só troca o destino: uma troca, a última cadeia.
   connectChain(blocks) {
-    if (!this.ctx) return;
-    const ctx = this.ctx, g = this.trim.gain, t = ctx.currentTime;
-    g.cancelScheduledValues(t);
-    g.setValueAtTime(g.value, t);
-    g.linearRampToValueAtTime(0, t + 0.005);
-    this.dipUntil = performance.now() + 14;
-    const old = this.blocks;
+    if (!this.ctx) return Promise.resolve();
     this.blocks = blocks;
-    setTimeout(() => {
+    if (this.swap) return this.swap.promise;
+    const ctx = this.ctx, g = this.trim.gain;
+    let resolve;
+    const swap = this.swap = { promise: new Promise(r => { resolve = r; }) };
+    const run = () => {
+      if (this.swap !== swap) return;
+      this.swap = null;
+      swap.clock?.disconnect();
+      clearTimeout(swap.timer);
       this.input.disconnect();
       this.input.connect(this.analyser);
-      for (const b of old) if (!b.audio?.spilled) b.audio?.output.disconnect();
+      // Desliga o que está ligado de fato (não o que alguém pediu), menos as caudas em spill.
+      for (const a of this.wired || []) if (!a.spilled) { try { a.output.disconnect(); } catch { /* já desligado */ } }
       let prev = this.input;
-      for (const b of blocks) {
-        prev.connect(b.audio.input);
-        prev = b.audio.output;
-      }
+      const wired = [];
+      for (const b of this.blocks) { prev.connect(b.audio.input); prev = b.audio.output; wired.push(b.audio); }
       prev.connect(this.trim);
+      this.wired = wired;
       const t2 = ctx.currentTime;
       g.cancelScheduledValues(t2);
       g.setValueAtTime(0, t2);
       g.linearRampToValueAtTime(dbToGain(this.trimDb ?? 0), t2 + 0.008);
-      this.dipUntil = 0;
-    }, 6);
+      resolve();
+    };
+    if (ctx.state !== 'running') { run(); return swap.promise; } // sem som andando, sem estalo: troca já
+    const t = ctx.currentTime;
+    g.cancelScheduledValues(t);
+    g.setValueAtTime(g.value, t);
+    g.linearRampToValueAtTime(0, t + 0.005);
+    // Relógio: uma fonte que termina no vale; o onended chega na thread principal mesmo com timers estrangulados.
+    const clock = ctx.createConstantSource(), mute = ctx.createGain();
+    mute.gain.value = 0;
+    clock.connect(mute).connect(ctx.destination);
+    clock.onended = run;
+    clock.start(t);
+    clock.stop(t + 0.006);
+    swap.clock = mute;
+    swap.timer = setTimeout(run, 250); // reserva, se o onended não vier
+    return swap.promise;
   }
 
   setEq({ low, mid, high }) {
@@ -173,13 +195,13 @@ export class Engine {
 
   setTrim(db) {
     this.trimDb = db;
-    if (!this.ctx || performance.now() < (this.dipUntil || 0)) return; // no vale da troca: o fim da troca aplica
+    if (!this.ctx || this.swap) return; // durante o mergulho da troca: o fim da troca aplica
     this.trim.gain.setTargetAtTime(dbToGain(db), this.ctx.currentTime, 0.01);
   }
 
   // Spillover: um delay ou reverb que sai da pedaleira (troca de preset) não recebe mais sinal, mas a cauda
   // continua soando por `seconds` e some aos poucos no último 1,5 s, como numa pedaleira digital boa.
-  // Chamar depois de connectChain, que desliga as saídas da cadeia antiga.
+  // Chamar depois que a promessa do connectChain resolver (a cadeia nova já está ligada).
   // (A cauda sai pelo nível do preset novo: o spill liga no trim, como a cadeia.)
   spill(audio, seconds) {
     const ctx = this.ctx, fade = ctx.createGain(), t = ctx.currentTime;

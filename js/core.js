@@ -3,7 +3,7 @@ import { Engine } from './audio/engine.js';
 import { byType } from './pedals/index.js';
 import { bpmOf, knobOfBpm } from './pedals/pulso.js';
 import { uid, SCENES, SCENE_NAMES, newBlock, normalizeBlock, normalizeChain, normalizeSceneMeta, sceneMatches, sameScene, sameChain, withScene, chainDirty, safeUrl, SCHEMA_VERSION, migrateState } from './chain.js';
-import { deleteFile, getFile, loadState, putFile, saveState } from './store.js';
+import { deleteFile, getFile, loadState, onWriteError, putFile, saveState } from './store.js';
 import { fetchFile } from './files.js';
 import { FACTORY_VERSION, factoryPresets } from './factory.js';
 import { DICTS, t } from './i18n.js';
@@ -20,6 +20,7 @@ export const state = migrateState(saved, { factory: factoryPresets(), factoryVer
 // Quem precisa reagir a qualquer mudança (asterisco do preset, botões de cena) se inscreve aqui.
 export const changeListeners = [];
 let saveTimer = 0, storageWarned = false;
+onWriteError(() => { if (!storageWarned) { storageWarned = true; status(t('core.saveFailed'), true); } });
 export const save = () => {
   clearTimeout(saveTimer); saveTimer = 0;
   if (!saveState(state) && !storageWarned) { storageWarned = true; status(t('core.saveFailed'), true); }
@@ -52,9 +53,10 @@ export function createAudio(block) {
   l.audio.onState?.(s => { l.view?.setState(s, l.def.stateLabels?.[s]); for (const f of changeListeners) f(); });
 }
 
+// Religa a cadeia; a promessa resolve depois da troca (ver engine.connectChain).
 export function reconnect() {
-  if (!engine.running) return;
-  engine.connectChain(state.chain.map(b => live.get(b.uid)));
+  if (!engine.running) return Promise.resolve();
+  return engine.connectChain(state.chain.map(b => live.get(b.uid)));
 }
 
 // Os dados do arquivo de um bloco: da memória ou do IndexedDB; se não estiver no aparelho mas tiver endereço
@@ -100,7 +102,7 @@ export async function applyStoredFiles(block) {
     const data = await fileData(block, kind);
     if (data !== undefined) await loadIntoAudio(block, kind, data, block.files[kind].name);
   }
-  live.get(block.uid).view.update();
+  live.get(block.uid)?.view?.update(); // (o bloco pode ter saído da pedaleira enquanto carregava)
 }
 
 export async function loadIntoAudio(block, kind, data, name) {
@@ -108,6 +110,7 @@ export async function loadIntoAudio(block, kind, data, name) {
   if (!audio) return;
   try {
     const info = await audio.loadFile(kind, data);
+    if (info?.superseded) return; // outra captura entrou no meio: ela dá o próprio aviso
     const heavy = info?.engine === 'js';
     if (info?.sampleRate && info.sampleRate !== engine.ctx.sampleRate)
       status(t('core.rateMismatch', { name, rate: info.sampleRate, ctxRate: engine.ctx.sampleRate }), true);

@@ -86,6 +86,7 @@ export default {
       setOn: on => bp.set(on),
       async loadFile(kind, data) {
         const info = await nam.load(data);
+        if (info?.superseded) return info;
         namMakeup = namMakeupDb(data);
         apply();
         useNam(true);

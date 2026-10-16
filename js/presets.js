@@ -2,6 +2,7 @@
 import { ensureView, fetchFile, fileInput, renderBoard } from './board.js';
 import { $, changeListeners, hideToast, toast, createAudio, engine, fileData, live, loadIntoAudio, setTrim, syncTempoFromChain, tapGlobal, normalizeBlock, normalizeChain, normalizeSceneMeta, reconnect, releaseFile, save, snapshot, state, status, uid } from './core.js';
 import { chainDirty, sameChain, withScene } from './chain.js';
+import { sceneActive } from './scenes.js';
 import { t } from './i18n.js';
 import { saveFile } from './platform.js';
 import { getFile, putFile } from './store.js';
@@ -20,8 +21,23 @@ export const activeOrder = () => {
 };
 // Preset de um Program Change: pc fixo vence; senão, a posição na ordem ativa.
 export const presetForProgram = n => state.presets.find(p => p.pc === n) || activeOrder()[n] || null;
-export const isDirty = () => chainDirty(state.chain, presetByName(state.preset)?.chain);
-export const hasDraft = name => !!state.drafts[name] || (name === state.preset && isDirty());
+// Dicionários por nome de preset: só as chaves próprias (um preset chamado "constructor" não pega Object.prototype).
+export const own = (o, k) => (Object.hasOwn(o, k) ? o[k] : undefined);
+// O que um preset guarda além da cadeia.
+export const presetMeta = p => ({ trim: p.trim ?? 0, sceneMeta: p.sceneMeta ?? null, bpm: p.bpm ?? null });
+const currentMeta = () => ({ trim: state.trim, sceneMeta: snapshot(state.sceneMeta), bpm: state.bpm });
+// Sujo: a cadeia mudou (fora uma troca de cena), o nível mudou (fora o nível de uma cena) ou as cenas mudaram
+// (nome, nível, andamento). O andamento sozinho não suja: o tap vive mudando no palco.
+export const isDirty = () => {
+  const p = presetByName(state.preset);
+  if (!p) return false;
+  if (chainDirty(state.chain, p.chain)) return true;
+  const saved = normalizeSceneMeta(p.sceneMeta);
+  if (JSON.stringify(saved) !== JSON.stringify(state.sceneMeta)) return true;
+  const trims = [p.trim ?? 0, ...saved.filter(m => typeof m?.trim === 'number').map(m => m.trim)];
+  return !trims.includes(state.trim);
+};
+export const hasDraft = name => !!own(state.drafts, name) || (name === state.preset && isDirty());
 
 export function renderPresets() {
   const sel = $('preset');
@@ -69,11 +85,16 @@ export function savePreset() {
   const existing = presetByName(name);
   const old = existing?.chain;
   const meta = snapshot(state.sceneMeta);
-  if (existing) { existing.chain = snapshot(state.chain); existing.bpm = state.bpm; existing.trim = state.trim; existing.sceneMeta = meta; }
-  else state.presets.push({ name, chain: snapshot(state.chain), bpm: state.bpm, trim: state.trim, sceneMeta: meta });
+  // Nível base: com uma cena ativa no nível dela, o nível base do preset continua o que era (o da cena já está
+  // guardado na cena); senão, o nível de agora.
+  const active = state.sceneMeta.findIndex((m, i) => typeof m?.trim === 'number' && m.trim === state.trim && sceneActive(i));
+  const trim = active >= 0 && existing ? existing.trim ?? 0 : state.trim;
+  if (existing) { existing.chain = snapshot(state.chain); existing.bpm = state.bpm; existing.trim = trim; existing.sceneMeta = meta; }
+  else state.presets.push({ name, chain: snapshot(state.chain), bpm: state.bpm, trim, sceneMeta: meta });
   // Salvar a partir de outro preset deixa aquele como estava salvo.
-  if (state.preset !== name) delete state.drafts[state.preset ?? ''];
+  if (state.preset !== name) { delete state.drafts[state.preset ?? '']; delete state.draftMeta[state.preset ?? '']; }
   delete state.drafts[name];
+  delete state.draftMeta[name];
   state.preset = name;
   // Arquivos que só a versão antiga usava podem ser liberados.
   for (const b of old || []) for (const f of Object.values(b.files)) releaseFile(f.key);
@@ -89,9 +110,12 @@ export function deletePresetAt(i) {
   if (i < 0 || i >= state.presets.length) return;
   finishDelete();
   const [p] = state.presets.splice(i, 1);
-  for (const l of state.setlists) l.order = l.order.filter(n => n !== p.name); // (desfazer não devolve ao setlist)
+  // Lugar do preset em cada setlist, para o Desfazer devolver (senão o PC por posição muda no meio do show).
+  const spots = state.setlists.map(l => l.order.indexOf(p.name));
+  for (const l of state.setlists) l.order = l.order.filter(n => n !== p.name);
   const wasCurrent = state.preset === p.name;
-  deleted = { p, i, draft: state.drafts[p.name], wasCurrent, timer: setTimeout(finishDelete, 10000) };
+  deleted = { p, i, spots, draft: own(state.drafts, p.name), draftMeta: own(state.draftMeta, p.name), wasCurrent, timer: setTimeout(finishDelete, 10000) };
+  delete state.draftMeta[p.name];
   delete state.drafts[p.name];
   if (wasCurrent) state.preset = null;
   save();
@@ -110,7 +134,7 @@ function finishDelete() {
 
 function undoDelete() {
   if (!deleted) return;
-  const { p, i, draft, wasCurrent, timer } = deleted;
+  const { p, i, spots, draft, draftMeta, wasCurrent, timer } = deleted;
   clearTimeout(timer);
   deleted = null;
   hideToast();
@@ -118,6 +142,8 @@ function undoDelete() {
   for (let n = 2; presetByName(name); n++) name = `${p.name} (${n})`;
   state.presets.splice(Math.min(i, state.presets.length), 0, { ...p, name });
   if (draft) state.drafts[name] = draft;
+  if (draftMeta) state.draftMeta[name] = draftMeta;
+  state.setlists.forEach((l, k) => { if (spots[k] >= 0) l.order.splice(Math.min(spots[k], l.order.length), 0, name); });
   if (wasCurrent && state.preset === null) state.preset = name;
   save();
   renderPresets();
@@ -339,24 +365,35 @@ export async function openSharedLink() {
 $('presetShare').onclick = () => shareLink().catch(e => status(t('presets.linkCreateFailed', { error: e.message }), true));
 
 // Volta o preset atual para a versão salva, descartando o rascunho.
-export async function revertPreset() {
-  const name = state.preset;
-  if (!presetByName(name)) return;
-  delete state.drafts[name];
-  await loadChain(presetByName(name).chain, name);
-  status(t('presets.reverted', { name }));
+export function revertPreset() {
+  return enqueue(async () => {
+    const name = state.preset;
+    const p = presetByName(name);
+    if (!p) return;
+    delete state.drafts[name];
+    delete state.draftMeta[name];
+    await loadChainNow(p.chain, name, presetMeta(p));
+    status(t('presets.reverted', { name }));
+  });
 }
 
 // Troca de preset. O ajuste não salvo do preset atual vira rascunho dele.
-export async function applyPreset(name) {
+export function applyPreset(name) {
+  pendingPreset = name;
+  return enqueue(() => applyPresetNow(name)).finally(() => { if (pendingPreset === name) pendingPreset = undefined; });
+}
+
+async function applyPresetNow(name) {
   const from = state.preset ?? '';
   if (name === from) return;
-  if (from === '' || isDirty()) state.drafts[from] = snapshot(state.chain);
-  else delete state.drafts[from];
-  const target = name === '' ? state.drafts[''] : state.drafts[name] || presetByName(name)?.chain;
+  // O que não foi salvo no preset que sai (cadeia, nível, cenas) vira rascunho dele.
+  if (from === '' || isDirty()) { state.drafts[from] = snapshot(state.chain); state.draftMeta[from] = currentMeta(); }
+  else { delete state.drafts[from]; delete state.draftMeta[from]; }
+  const p = presetByName(name);
+  const target = name === '' ? own(state.drafts, '') : own(state.drafts, name) || p?.chain;
   if (!target) { state.preset = name || null; save(); renderPresets(); return; }
-  state.sceneMeta = normalizeSceneMeta(presetByName(name)?.sceneMeta); // nível e andamento entram no loadChain, junto com a cadeia
-  await loadChain(target, name || null);
+  const meta = own(state.draftMeta, name) || (p ? presetMeta(p) : { trim: 0, sceneMeta: null, bpm: null });
+  await loadChainNow(target, name || null, meta);
   status('');
 }
 
@@ -367,14 +404,22 @@ const SPILL_SECONDS = { time: 8 };
 
 // Trocas de preset entram numa fila: loadChain espera capturas (await) e duas execuções entrelaçadas sobre
 // state.chain e live (pé rápido no footswitch, PC MIDI, setas) estourariam uma na outra.
+// Tudo o que troca a cadeia (preset, reverter, link) passa por aqui, inteiro: o rascunho do preset que sai é
+// tirado do estado que está de fato tocando, não do de um pedido que ainda espera a vez.
 let loading = Promise.resolve();
-export function loadChain(chain, presetName) {
-  const run = loading.then(() => loadChainNow(chain, presetName));
+function enqueue(fn) {
+  const run = loading.then(fn);
   loading = run.catch(() => {}); // a fila segue mesmo se uma troca falhar; o erro vai para quem chamou
   return run;
 }
+export const loadChain = (chain, presetName, meta) => enqueue(() => loadChainNow(chain, presetName, meta));
+// Resolve quando não há troca na fila (testes e quem precisa da pedaleira parada).
+export const presetsIdle = () => loading;
+// Destino do último pedido de troca ainda na fila: ◀ ▶ em rajada contam a partir dele, não do que está tocando.
+let pendingPreset;
 
-async function loadChainNow(chain, presetName) {
+async function loadChainNow(chain, presetName, meta = null) {
+  meta ??= presetName && presetByName(presetName) ? presetMeta(presetByName(presetName)) : { trim: 0, sceneMeta: null, bpm: null };
   const current = new Map(state.chain.map(b => [b.uid, b]));
   const next = snapshot(chain).map(snap => {
     const ex = current.get(snap.uid);
@@ -399,7 +444,7 @@ async function loadChainNow(chain, presetName) {
   for (const g of current.values()) live.delete(g.uid);
   state.chain = next;
   state.preset = presetName;
-  if (presetName && state.drafts[presetName] && sameChain(next, presetByName(presetName).chain)) delete state.drafts[presetName];
+  if (presetName && own(state.drafts, presetName) && sameChain(next, presetByName(presetName).chain)) { delete state.drafts[presetName]; delete state.draftMeta[presetName]; }
   for (const b of next) ensureView(b);
   if (engine.running) {
     for (const b of next) {
@@ -414,18 +459,20 @@ async function loadChainNow(chain, presetName) {
         if (data !== undefined) await loadIntoAudio(b, kind, data, b.files[kind].name);
       }
     }));
-    reconnect();
+    // Nível do preset novo entra com a troca (o mergulho sobe já nele); quem sai, só depois da troca.
+    setTrim(meta.trim ?? 0);
+    await reconnect();
     for (const [g, l] of gone) {
       if (l.audio && g.on && SPILL_SECONDS[l.def.category]) engine.spill(l.audio, SPILL_SECONDS[l.def.category]);
       else l.audio?.dispose();
     }
   } else {
     for (const [, l] of gone) l.audio?.dispose();
+    setTrim(meta.trim ?? 0);
   }
   for (const b of next) { delete b.reload; live.get(b.uid).view.update(); }
-  // Nível e andamento do preset entram com a cadeia (não antes: a cadeia antiga tocaria no nível do novo).
-  setTrim((presetName && presetByName(presetName)?.trim) ?? 0);
-  syncTempoFromChain(presetName ? presetByName(presetName)?.bpm : null);
+  state.sceneMeta = normalizeSceneMeta(meta.sceneMeta);
+  syncTempoFromChain(meta.bpm ?? null);
   renderBoard();
   lastDirty = null;
   save();
@@ -435,7 +482,8 @@ async function loadChainNow(chain, presetName) {
 export function stepPreset(dir) {
   const order = activeOrder();
   if (!order.length) { status(t('presets.noPresetsYet')); return; }
-  const i = order.findIndex(p => p.name === state.preset);
+  const at = pendingPreset !== undefined ? pendingPreset : state.preset;
+  const i = order.findIndex(p => p.name === at);
   const n = order.length;
   applyPreset(order[(i < 0 ? (dir > 0 ? 0 : n - 1) : (i + dir + n) % n)].name);
 }

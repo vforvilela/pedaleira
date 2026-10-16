@@ -415,6 +415,7 @@ try {
   // Remover um pedal por engano e desfazer: volta no mesmo lugar, com as cenas.
   const undo = await evaluate(`(async () => {
     const p = __pedaleira, c = () => p.state.chain.map(b => b.type).join(',');
+    await p.idle(); // nenhuma troca de preset de um passo anterior no meio
     const before = c(), n = p.state.chain.length;
     document.querySelectorAll('.pedal')[2].querySelector('.remove').click();
     const removed = p.state.chain.length === n - 1 && !document.getElementById('toast').hidden;
@@ -691,8 +692,10 @@ try {
       document.querySelector('.pedal[data-uid="' + amp.uid + '"] .file-btn[data-kind="nam"]').click();
       const items = [...document.querySelectorAll('#fileSuggest:not([hidden]) .suggest')];
       items[2].click();
-      for (let i = 0; i < 150 && !amp.files.nam?.url?.includes('5150'); i++) await wait(100);
-      const cab = p.live.get(amp.uid).def.controls.find(c => c.id === 'cab').options[amp.params.cab];
+      // Espera o fim inteiro (arquivo, caixa em OFF, painel fechado), não só a referência do arquivo aparecer.
+      const cabOf = () => p.live.get(amp.uid).def.controls.find(c => c.id === 'cab').options[amp.params.cab];
+      for (let i = 0; i < 150 && !(amp.files.nam?.url?.includes('5150') && cabOf() === 'OFF' && !document.getElementById('fileSheet').open); i++) await wait(100);
+      const cab = cabOf();
       return { n: items.length, url: !!amp.files.nam?.url?.includes('nam-profiles-colab'), name: amp.files.nam?.name, cab,
         closed: !document.getElementById('fileSheet').open };
     } finally { window.fetch = realFetch; }
@@ -1006,6 +1009,17 @@ try {
     && setlists.pcNone === null && setlists.total === setlists.n && /Sexta/.test(setlists.count),
     `setlists: ordem própria, PC fixo vence, presets continuam (${JSON.stringify(setlists)})`);
   await evaluate(`(() => { document.getElementById('setlistPick').value = ''; document.getElementById('setlistPick').dispatchEvent(new Event('change')); delete __pedaleira.state.presets[1].pc; })()`);
+
+  // Troca de cadeia: duas trocas seguidas viram uma só; o que fica ligado é exatamente a cadeia atual.
+  const wired = await evaluate(`(async () => {
+    const p = __pedaleira, [a, b] = p.state.presets;
+    p.loadChain(a.chain, a.name); await p.loadChain(b.chain, b.name);
+    await new Promise(r => setTimeout(r, 100));
+    const want = p.state.chain.map(x => p.live.get(x.uid)?.audio);
+    const w = p.engine.wired || [];
+    return { n: w.length, chain: want.length, same: w.every((x, i) => x === want[i]), swapping: !!p.engine.swap, trim: +p.engine.trim.gain.value.toFixed(3) };
+  })()`);
+  check(wired.n === wired.chain && wired.same && !wired.swapping && wired.trim > 0, `troca de cadeia liga exatamente a cadeia atual (${JSON.stringify(wired)})`);
 
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
   console.log(`screenshots em ${out}`);

@@ -131,6 +131,9 @@ export function migrateState(saved, { factory = [], factoryVersion = 0 } = {}) {
     factory: num(saved?.factory, 0, 0, 1e6),
     // Rascunhos: mudanças não salvas por preset ('' = sem preset).
     drafts: Object.fromEntries(Object.entries(saved?.drafts || {}).map(([k, c]) => [k, normalizeChain(c)])),
+    // Junto do rascunho da cadeia: nível, cenas (nome, nível, andamento) e andamento que não foram salvos.
+    draftMeta: Object.fromEntries(Object.entries(saved?.draftMeta || {}).filter(([, m]) => m && typeof m === 'object')
+      .map(([k, m]) => [k, { trim: num(m.trim, 0, -12, 12), sceneMeta: normalizeSceneMeta(m.sceneMeta), bpm: typeof m.bpm === 'number' ? num(m.bpm, 120, 40, 240) : null }])),
     midi: Array.isArray(saved?.midi) ? saved.midi.filter(m => m && typeof m.key === 'string' && m.target) : [],
   };
   if (!state.chain.length) state.chain = DEFAULT_CHAIN.map(newBlock);

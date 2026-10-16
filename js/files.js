@@ -22,7 +22,10 @@ const MAX_FILE_BYTES = 64 << 20; // capturas têm dezenas de KB a poucos MB; IRs
 export async function fetchFile(kind, url) {
   if (!safeUrl(url)) throw new Error(t('board.errBlocked'));
   let res;
-  try { res = await fetch(url); } catch {
+  // Sinal fraco: a conexão abre e nunca responde. 30 s e desiste, para nada ficar esperando para sempre.
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 30000);
+  try { res = await fetch(url, { signal: ctl.signal }); } catch {
+    clearTimeout(timer);
     throw new Error(t('board.errBlocked'));
   }
   if (!res.ok) throw new Error(t('board.errStatus', { code: res.status }));
@@ -31,7 +34,7 @@ export async function fetchFile(kind, url) {
     && (await res.clone().text()).startsWith('version https://git-lfs');
   // Arquivo no Git LFS: o raw só tem um ponteiro; o conteúdo está no media.githubusercontent.com.
   if (lfs) return fetchFile(kind, url.replace('https://raw.githubusercontent.com/', 'https://media.githubusercontent.com/media/'));
-  const data = await res.arrayBuffer().catch(() => null);
+  const data = await res.arrayBuffer().catch(() => null).finally(() => clearTimeout(timer));
   if (!data) throw new Error(t('board.errBlocked'));
   if (data.byteLength > MAX_FILE_BYTES) throw new Error(t('board.errTooBig'));
   try { return await parseFile(kind, new Response(data)); } catch {

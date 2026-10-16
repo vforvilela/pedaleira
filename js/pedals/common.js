@@ -61,13 +61,18 @@ export class NamSlot {
 
   // Cada load tem um id: o 'loaded' (ou o timeout) de um load anterior, que ficou para trás porque outra
   // captura entrou no meio do aquecimento, não resolve nem rejeita o atual (rejeitar apagaria a captura certa).
+  // Uma carga substituída por outra antes de terminar resolve { superseded: true }: quem esperava por ela
+  // (troca de preset, Ligar) segue em frente sem apagar nada.
   load(nam) {
+    this.pendingDone?.({ superseded: true });
     const id = (this.loadId = (this.loadId || 0) + 1);
     return new Promise((resolve, reject) => {
+      this.pendingDone = arg => { clearTimeout(timer); this.pendingDone = null; resolve(arg); };
       const timer = setTimeout(() => { if (id === this.loadId) reject(new Error(t('pedals.engineTimeout'))); }, 15000);
       const done = fn => arg => { clearTimeout(timer); fn(arg); };
       this.node.port.onmessage = ({ data }) => {
         if (data.id !== id) return;
+        this.pendingDone = null;
         if (data.type === 'loaded') { this.loaded = true; done(resolve)(data); }
         else { this.loaded = false; done(reject)(Object.assign(new Error(data.message), { code: data.code, detail: data.detail })); }
       };

@@ -29,6 +29,8 @@ async function tx(mode, fn) {
     const req = fn(t.objectStore('files'));
     t.oncomplete = () => resolve(req?.result);
     t.onerror = () => reject(t.error);
+    // Cota estourada aborta a transação sem passar por onerror: sem isto a promessa nunca termina.
+    t.onabort = () => reject(t.error || new Error('abort'));
   });
 }
 
@@ -55,7 +57,15 @@ function recall(key) {
   return v;
 }
 
-export const putFile = (key, value) => { remember(key, value); persist(); return tx('readwrite', s => s.put(value, key)).catch(() => {}); };
+// putFile resolve true (gravou) ou false (não gravou: armazenamento cheio ou bloqueado). O arquivo continua na
+// memória desta sessão; onWriteError avisa a interface uma vez.
+let writeErrorHandler = null;
+export const onWriteError = fn => { writeErrorHandler = fn; };
+export const putFile = (key, value) => {
+  remember(key, value);
+  persist();
+  return tx('readwrite', s => s.put(value, key)).then(() => true, err => { writeErrorHandler?.(err); return false; });
+};
 
 export async function preloadFiles(keys) {
   let bytes = 0, n = 0;
