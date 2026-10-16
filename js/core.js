@@ -57,9 +57,9 @@ export function createAudio(block) {
 }
 
 // Religa a cadeia; a promessa resolve depois da troca (ver engine.connectChain).
-export function reconnect() {
-  if (!engine.running) return Promise.resolve();
-  return engine.connectChain(state.chain.map(b => live.get(b.uid)));
+export function reconnect(inValley = null) {
+  if (!engine.running) { inValley?.(); return Promise.resolve(); }
+  return engine.connectChain(state.chain.map(b => live.get(b.uid)), inValley);
 }
 
 // Os dados do arquivo de um bloco: da memória ou do IndexedDB; se não estiver no aparelho mas tiver endereço

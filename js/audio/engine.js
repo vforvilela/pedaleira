@@ -155,18 +155,20 @@ export class Engine {
   // A troca de ligações é seca: o nível do preset mergulha a zero em 5 ms, a troca acontece no vale (marcado pelo
   // relógio do áudio, não por setTimeout, que o navegador estrangula com a tela apagada) e sobe em 8 ms já no
   // nível do preset novo. Uma segunda chamada durante o mergulho só troca o destino: uma troca, a última cadeia.
-  connectChain(blocks) {
-    if (!this.ctx) return Promise.resolve();
+  // inValley: ajustes que devem cair no vale também (botões dos pedais reaproveitados, ligar/desligar).
+  connectChain(blocks, inValley = null) {
+    if (!this.ctx) { inValley?.(); return Promise.resolve(); }
     this.blocks = blocks;
-    if (this.swap) return this.swap.promise;
+    if (this.swap) { if (inValley) this.swap.fns.push(inValley); return this.swap.promise; }
     const ctx = this.ctx, g = this.trim.gain;
     let resolve;
-    const swap = this.swap = { promise: new Promise(r => { resolve = r; }) };
+    const swap = this.swap = { promise: new Promise(r => { resolve = r; }), fns: inValley ? [inValley] : [] };
     const run = () => {
       if (this.swap !== swap) return;
       this.swap = null;
       swap.clock?.disconnect();
       clearTimeout(swap.timer);
+      for (const fn of swap.fns) fn();
       this.input.disconnect();
       this.input.connect(this.analyser);
       this.input.connect(this.tunerAnalyser);

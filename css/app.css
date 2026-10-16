@@ -539,6 +539,7 @@ body.simple .stage-tools { grid-template-columns: auto; }
 .setlist li { display: grid; grid-template-columns: 28px 1fr 56px auto auto auto; gap: 6px; align-items: center; }
 .setlist .outside li { grid-template-columns: 28px 1fr auto; }
 .setlist .pcfix { padding: 8px 6px; font-size: 12px; }
+.setlist li.pc-dup .pcfix { border-color: var(--bad); color: var(--bad); }
 .setlist-pick { display: flex; gap: 6px; align-items: center; margin: 8px 0 4px; }
 .setlist-pick select { flex: 1; min-width: 0; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
 .setlist-pick button { padding: 6px 10px; }

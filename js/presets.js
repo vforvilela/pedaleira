@@ -177,7 +177,13 @@ export function renderSetlist() {
     li.querySelector('.del').setAttribute('aria-label', opts.remove ? t('presets.removeFromSetlist') : t('presets.delete'));
     li.querySelector('.del').title = opts.remove ? t('presets.removeFromSetlist') : t('presets.delete');
     li.querySelector('.pc').textContent = String(i + 1);
-    li.querySelector('.pc').title = p.pc !== undefined ? t('presets.pcIs', { n: p.pc }) : `Program Change ${i}`;
+    // Program Change que de fato chama este preset: o fixo, ou a posição (se nenhum PC fixo a ocupa).
+    const taken = state.presets.find(x => x !== p && x.pc === i);
+    li.querySelector('.pc').title = p.pc !== undefined ? t('presets.pcIs', { n: p.pc })
+      : taken ? t('presets.pcTaken', { n: i, name: taken.name }) : `Program Change ${i}`;
+    const dup = p.pc !== undefined && state.presets.some(x => x !== p && x.pc === p.pc);
+    li.classList.toggle('pc-dup', dup);
+    if (dup) li.querySelector('.pcfix').title = t('presets.pcDup', { n: p.pc });
     const input = li.querySelector('input');
     input.value = p.name;
     input.onchange = () => renamePreset(p, input.value.trim()) || (input.value = p.name);
@@ -423,13 +429,16 @@ let pendingPreset;
 async function loadChainNow(chain, presetName, meta = null) {
   meta ??= presetName && presetByName(presetName) ? presetMeta(presetByName(presetName)) : { trim: 0, sceneMeta: null, bpm: null };
   const current = new Map(state.chain.map(b => [b.uid, b]));
+  // Pedais que continuam: os botões e o liga/desliga novos entram no vale da troca (junto com a cadeia), não
+  // antes de as capturas dos pedais novos carregarem.
+  const valley = [];
   const next = snapshot(chain).map(snap => {
     const ex = current.get(snap.uid);
     if (!ex || ex.type !== snap.type) return normalizeBlock(snap);
     current.delete(snap.uid);
     const l = live.get(ex.uid);
-    for (const [id, v] of Object.entries(snap.params)) if (ex.params[id] !== v) { ex.params[id] = v; l?.audio?.set(id, v); }
-    if (ex.on !== snap.on) { ex.on = snap.on; l?.audio?.setOn(ex.on); }
+    for (const [id, v] of Object.entries(snap.params)) if (ex.params[id] !== v) { ex.params[id] = v; valley.push(() => l?.audio?.set(id, v)); }
+    if (ex.on !== snap.on) { ex.on = snap.on; valley.push(() => l?.audio?.setOn(snap.on)); }
     ex.scenes = snap.scenes;
     const reload = [];
     for (const kind of new Set([...Object.keys(ex.files), ...Object.keys(snap.files)])) {
@@ -476,12 +485,13 @@ async function loadChainNow(chain, presetName, meta = null) {
     }));
     // Nível do preset novo entra com a troca (o mergulho sobe já nele); quem sai, só depois da troca.
     setTrim(meta.trim ?? 0);
-    await reconnect();
+    await reconnect(() => { for (const fn of valley) fn(); });
     for (const [g, l] of gone) {
       if (l.audio && g.on && SPILL_SECONDS[l.def.category]) engine.spill(l.audio, SPILL_SECONDS[l.def.category]);
       else l.audio?.dispose();
     }
   } else {
+    for (const fn of valley) fn();
     for (const [, l] of gone) l.audio?.dispose();
     setTrim(meta.trim ?? 0);
   }
