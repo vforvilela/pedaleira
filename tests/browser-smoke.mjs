@@ -1057,6 +1057,18 @@ try {
   })()`);
   check(midiType.on && midiType.pedal === 10 && midiType.offAtHeel, `MIDI por tipo de pedal e auto-engage do Uá (${JSON.stringify(midiType)})`);
 
+  // Afinador geral: U cala a saída e mostra o afinador do palco em qualquer preset; U de novo devolve o som.
+  const gtuner = await evaluate(`(async () => {
+    const p = __pedaleira, wait = ms => new Promise(r => setTimeout(r, ms));
+    const key = () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'u', bubbles: true }));
+    key(); await wait(300);
+    const on = { gain: +p.engine.tunerMute.gain.value.toFixed(3), box: !document.getElementById('stageTuner').hidden, cls: document.body.classList.contains('global-tuner') };
+    key(); await wait(300);
+    return { on, offGain: +p.engine.tunerMute.gain.value.toFixed(3), offCls: document.body.classList.contains('global-tuner') };
+  })()`);
+  check(gtuner.on.gain < 0.01 && gtuner.on.box && gtuner.on.cls && gtuner.offGain > 0.99 && !gtuner.offCls,
+    `afinador geral cala e devolve o som (${JSON.stringify(gtuner)})`);
+
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
   console.log(`screenshots em ${out}`);
   ws.close();

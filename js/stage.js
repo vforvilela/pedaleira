@@ -30,6 +30,7 @@ export function exitStage() {
 
 changeListeners.push(() => { if (isOn()) renderStage(); });
 $('stageTempo').onclick = () => tapGlobal();
+$('stageTune').onclick = async () => { const { toggleGlobalTuner } = await import('./power.js'); toggleGlobalTuner(); $('stageTune').setAttribute('aria-pressed', document.body.classList.contains('global-tuner')); };
 $('stageTrim').oninput = () => setTrim(+$('stageTrim').value);
 export function renderStage() {
   $('stagePreset').textContent = state.preset ? `${state.preset}${isDirty() ? ' *' : ''}` : t('stage.noPreset');

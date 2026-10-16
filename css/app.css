@@ -491,14 +491,15 @@ body.stage { overflow: hidden; }
 .stage-tuner.ok b { color: var(--ok); }
 .stage-tuner small { color: var(--muted); font-size: 18px; }
 /* Ferramentas de palco: tap tempo e nível do preset, do tamanho de um dedo. */
-.stage-tools { display: grid; grid-template-columns: auto 1fr; gap: 10px; }
+.stage-tools { display: grid; grid-template-columns: auto auto 1fr; gap: 10px; }
+body.global-tuner #stageTune { background: var(--accent); color: var(--bg); }
 .stage-tool { min-height: 56px; font-size: 18px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; padding: 0 18px; }
 .stage-tool small { font-size: 12px; letter-spacing: .12em; color: var(--muted); }
 .stage-trim { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); gap: 12px; }
 .stage-trim input { flex: 1; min-width: 0; height: 44px; accent-color: var(--accent); }
 .stage-trim output { min-width: 4.5em; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: 0; }
 body.simple #stageTrimRow, body.simple #stageTempo { display: none; }
-body.simple .stage-tools { display: none; }
+body.simple .stage-tools { grid-template-columns: auto; }
 .stage-scenes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; flex: 1; min-height: 90px; }
 .stage-scene.named { font-size: clamp(16px, 4vw, 28px); }
 .scene-btn.named { font-size: 12px; letter-spacing: 0; text-transform: none; }

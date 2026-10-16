@@ -83,11 +83,18 @@ export class Engine {
     this.analyser = ctx.createAnalyser();
     this.analyser.fftSize = 1024;
     this.input.connect(this.analyser);
+    // Leitura do afinador geral: a entrada crua, com janela longa (graves da guitarra).
+    this.tunerAnalyser = ctx.createAnalyser();
+    this.tunerAnalyser.fftSize = 4096;
+    this.input.connect(this.tunerAnalyser);
 
     // Nível do preset: um ganho entre a cadeia e o Volume, para igualar presets entre si.
     this.trim = ctx.createGain();
     this.master = ctx.createGain();
-    this.trim.connect(this.master);
+    // Afinador geral: cala a saída (depois da cadeia, antes do Volume) sem depender de pedal na cadeia.
+    this.tunerMute = ctx.createGain();
+    this.trim.connect(this.tunerMute).connect(this.master);
+
     // Limitador de segurança antes do fone (sem o atraso de ~6 ms do DynamicsCompressorNode).
     this.limiter = new AudioWorkletNode(ctx, 'limiter', {
       numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2], channelCount: 2, channelCountMode: 'explicit',
@@ -155,6 +162,7 @@ export class Engine {
       clearTimeout(swap.timer);
       this.input.disconnect();
       this.input.connect(this.analyser);
+      this.input.connect(this.tunerAnalyser);
       // Desliga o que está ligado de fato (não o que alguém pediu), menos as caudas em spill.
       for (const a of this.wired || []) if (!a.spilled) { try { a.output.disconnect(); } catch { /* já desligado */ } }
       let prev = this.input;
@@ -183,6 +191,10 @@ export class Engine {
     swap.clock = mute;
     swap.timer = setTimeout(run, 250); // reserva, se o onended não vier
     return swap.promise;
+  }
+
+  setTunerMute(on) {
+    if (this.ctx) this.tunerMute.gain.setTargetAtTime(on ? 0 : 1, this.ctx.currentTime, 0.008);
   }
 
   setEq({ low, mid, high }) {

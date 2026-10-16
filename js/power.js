@@ -1,6 +1,6 @@
 // Ligar e desligar o áudio, escolher a entrada, medidor, volume, latência e afinadores.
 import { setStageTuner } from './stage.js';
-import { noteOf } from './audio/pitch.js';
+import { detectPitch, noteOf } from './audio/pitch.js';
 import { pickChannel } from './audio/channel.js';
 import { t, fmtNum } from './i18n.js';
 import { $, applyStoredFiles, changeListeners, createAudio, engine, live, prepareSetlist, reconnect, save, setEq, setTrim, state, status } from './core.js';
@@ -27,7 +27,26 @@ export function isBuiltInMic(track) {
 }
 
 // Lê os afinadores ligados ~12 vezes por segundo; desligados, o visor apaga.
+// Afinador geral (tecla U, alvo MIDI, toque longo no palco): cala a saída e lê a entrada, em qualquer preset.
+let globalTuner = false;
+const tunerBuf = new Float32Array(4096);
+export function toggleGlobalTuner(on = !globalTuner) {
+  if (!engine.running) { status(t('power.tunerNeedsSound')); return; }
+  globalTuner = on;
+  engine.setTunerMute(on);
+  document.body.classList.toggle('global-tuner', on);
+  status(t(on ? 'power.tunerOn' : 'power.tunerOff'), false, on);
+  runTuners();
+}
+export const globalTunerOn = () => globalTuner;
+
 export function runTuners() {
+  if (globalTuner && engine.running) {
+    engine.tunerAnalyser.getFloatTimeDomainData(tunerBuf);
+    const hz = detectPitch(tunerBuf, engine.ctx.sampleRate);
+    setStageTuner(hz ? noteOf(hz, 440) : null, true);
+    return;
+  }
   let tuner = null, tunerOn = false;
   for (const b of state.chain) {
     const l = live.get(b.uid);
@@ -122,6 +141,7 @@ export async function start() {
 }
 
 export async function stop() {
+  if (globalTuner) { globalTuner = false; document.body.classList.remove('global-tuner'); }
   await stopRecording();
   wakeLock?.release().catch(() => {});
   wakeLock = null;
