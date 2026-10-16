@@ -2,7 +2,7 @@
 import { Engine } from './audio/engine.js';
 import { byType } from './pedals/index.js';
 import { bpmOf, knobOfBpm } from './pedals/pulso.js';
-import { uid, SCENES, SCENE_NAMES, newBlock, normalizeBlock, normalizeChain, normalizeSceneMeta, sceneMatches, sameScene, sameChain, withScene, chainDirty, safeUrl, SCHEMA_VERSION, migrateState } from './chain.js';
+import { uid, SCENES, SCENE_NAMES, newBlock, normalizeBlock, normalizeChain, normalizePreset, normalizeSceneMeta, sceneMatches, sameScene, sameChain, withScene, chainDirty, safeUrl, SCHEMA_VERSION, migrateState } from './chain.js';
 import { deleteFile, getFile, loadState, onWriteError, putFile, saveState } from './store.js';
 import { fetchFile } from './files.js';
 import { FACTORY_VERSION, factoryPresets } from './factory.js';
@@ -10,7 +10,7 @@ import { DICTS, t } from './i18n.js';
 
 export const $ = id => document.getElementById(id);
 export const engine = new Engine();
-export { uid, SCENES, SCENE_NAMES, newBlock, normalizeBlock, normalizeChain, normalizeSceneMeta, sceneMatches, sameScene, sameChain, withScene, chainDirty, safeUrl, SCHEMA_VERSION };
+export { uid, SCENES, SCENE_NAMES, newBlock, normalizeBlock, normalizeChain, normalizePreset, normalizeSceneMeta, sceneMatches, sameScene, sameChain, withScene, chainDirty, safeUrl, SCHEMA_VERSION };
 
 // ---------- Estado ----------
 
@@ -65,35 +65,49 @@ export async function fileData(block, kind) {
   const f = block.files[kind];
   if (!f) return undefined;
   let data = await getFile(f.key);
-  if (data === undefined && f.url) {
-    status(t('core.downloading', { name: f.name }));
-    try {
-      data = await fetchFile(kind, f.url);
-      await putFile(f.key, data);
-    } catch (err) {
-      status(t('core.downloadFailed', { name: f.name, msg: err.message }), true);
-    }
-  }
+  if (data === undefined && f.url) data = await ensureFile(kind, f, true);
   // Sem dados e sem endereço não há de onde tirar: o bloco perde o arquivo. Com endereço (download falhou:
   // sem rede no palco), a referência fica e a próxima vez tenta de novo.
   if (data === undefined && !f.url) { delete block.files[kind]; save(); }
   return data;
 }
 
+// Baixa e guarda o arquivo de um endereço uma vez só: quem pedir a mesma chave enquanto baixa espera o mesmo
+// download (prepareSetlist e uma troca de preset ao mesmo tempo). undefined se falhar.
+const inflight = new Map();
+export function ensureFile(kind, f, loud = false) {
+  if (!inflight.has(f.key)) {
+    const job = (async () => {
+      if (loud) status(t('core.downloading', { name: f.name }));
+      try {
+        const data = await fetchFile(kind, f.url);
+        await putFile(f.key, data);
+        return data;
+      } catch (err) {
+        if (loud) status(t('core.downloadFailed', { name: f.name, msg: err.message }), true);
+        return undefined;
+      }
+    })().finally(() => inflight.delete(f.key));
+    inflight.set(f.key, job);
+  }
+  return inflight.get(f.key);
+}
+
 // Ao ligar: capturas e IRs que os presets apontam por endereço e ainda não estão no aparelho são baixados
 // agora, em segundo plano, para a troca de preset no palco não depender da rede.
 export async function prepareSetlist() {
-  const refs = [...state.presets.flatMap(p => p.chain), ...Object.values(state.drafts).flat()]
-    .flatMap(b => Object.entries(b.files).map(([kind, f]) => ({ kind, f })));
+  const refs = new Map(); // uma vez por chave (preset e rascunho costumam dividir o arquivo)
+  for (const b of [...state.presets.flatMap(p => p.chain), ...Object.values(state.drafts).flat()])
+    for (const [kind, f] of Object.entries(b.files)) if (f.url && !refs.has(f.key)) refs.set(f.key, { kind, f });
   const missing = [];
-  for (const r of refs) if (r.f.url && (await getFile(r.f.key)) === undefined) missing.push(r);
+  for (const r of refs.values()) if ((await getFile(r.f.key)) === undefined) missing.push(r);
   if (!missing.length) return 0;
+  // Não cobre um aviso que a pessoa precisa ler (o do fone, um erro): aí baixa calado.
+  const quiet = () => $('status').classList.contains('warn') || $('status').classList.contains('err');
+  if (!quiet()) status(t('core.preparing', { n: missing.length }));
   let done = 0, failed = 0;
-  status(t('core.preparing', { n: missing.length }));
-  for (const { kind, f } of missing) {
-    try { await putFile(f.key, await fetchFile(kind, f.url)); done++; } catch { failed++; }
-  }
-  status(t(failed ? 'core.preparedPartly' : 'core.prepared', { n: done, failed }), failed > 0);
+  for (const { kind, f } of missing) ((await ensureFile(kind, f)) === undefined ? failed++ : done++);
+  if (!quiet() || failed) status(t(failed ? 'core.preparedPartly' : 'core.prepared', { n: done, failed }), failed > 0);
   return done;
 }
 
@@ -196,7 +210,7 @@ export function setEq(band, db) {
 export function setTrim(db) {
   state.trim = Math.round(Math.max(-12, Math.min(12, db)) * 2) / 2;
   engine.setTrim(state.trim);
-  save();
+  saveSoon(); // slider no palco: salva quando a mão para
 }
 
 // Depois de uma troca de cadeia ou cena: o andamento vem do preset (bpm salvo) ou, sem ele, do BPM do Pulso
@@ -233,7 +247,7 @@ export function toggleBlock(block) {
   l?.audio?.setOn(block.on);
   l?.view?.update();
   // Afinador em MUTE cala a guitarra: quem não sabe acha que quebrou.
-  if (block.type === 'afinador' && block.on && block.params.mode === 0) status(t('core.tunerMute'));
+  if (block.type === 'afinador' && block.on && block.params.mode === 0) status(t('core.tunerMute'), false, true);
   save();
 }
 

@@ -75,10 +75,11 @@ export function renameScene(i) {
 }
 
 sceneButtons.forEach((btn, i) => {
-  btn.onclick = () => (recordingScene ? storeScene(i) : recallScene(i));
+  let hold = 0, held = false;
+  // O click que vem depois de um toque longo (que abriu o nome) não chama nem grava a cena.
+  btn.onclick = () => { if (held) { held = false; return; } recordingScene ? storeScene(i) : recallScene(i); };
   btn.ondblclick = () => renameScene(i);
-  let hold = 0;
-  btn.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') hold = setTimeout(() => renameScene(i), 600); });
+  btn.addEventListener('pointerdown', e => { held = false; if (e.pointerType === 'touch') hold = setTimeout(() => { held = true; renameScene(i); }, 600); });
   for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) btn.addEventListener(ev, () => clearTimeout(hold));
 });
 $('sceneRec').onclick = () => {

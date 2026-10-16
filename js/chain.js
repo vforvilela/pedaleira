@@ -97,6 +97,8 @@ export function migrateState(saved, { factory = [], factoryVersion = 0 } = {}) {
     simple: saved ? saved.simple ?? false : true,
     // Aviso do monitor direto da interface, mostrado só na primeira vez que o som liga.
     monitorHintDone: saved?.monitorHintDone ?? false,
+    // Primeira vez pelo microfone do aparelho: o Volume já desceu uma vez (não desce de novo se a pessoa subir).
+    micGuard: saved?.micGuard ?? false,
     // Visão do chão: o sinal corre da direita para a esquerda, como a pedaleira vista por quem pisa nela.
     floorView: saved?.floorView ?? false,
     deviceId: str(saved?.deviceId, 200),
@@ -112,16 +114,7 @@ export function migrateState(saved, { factory = [], factoryVersion = 0 } = {}) {
     chain: normalizeChain(saved?.chain || DEFAULT_CHAIN.map(newBlock)),
     // Por cena: nome, nível e andamento (os pedais guardam o resto em b.scenes[i]).
     sceneMeta: normalizeSceneMeta(saved?.sceneMeta),
-    presets: (Array.isArray(saved?.presets) ? saved.presets : [])
-      .filter(p => p && typeof p.name === 'string' && p.name)
-      .map(p => ({
-        name: p.name.slice(0, 40), chain: normalizeChain(p.chain),
-        ...(typeof p.bpm === 'number' ? { bpm: num(p.bpm, 120, 40, 240) } : {}),
-        ...(typeof p.trim === 'number' ? { trim: num(p.trim, 0, -12, 12) } : {}),
-        ...(Array.isArray(p.sceneMeta) ? { sceneMeta: normalizeSceneMeta(p.sceneMeta) } : {}),
-        // Program Change fixo (0–127): vence a posição no setlist, para reordenar não reprogramar o controlador.
-        ...(Number.isInteger(p.pc) && p.pc >= 0 && p.pc <= 127 ? { pc: p.pc } : {}),
-      })),
+    presets: (Array.isArray(saved?.presets) ? saved.presets : []).filter(p => p && typeof p.name === 'string' && p.name).map(normalizePreset),
     // Setlists: ordens diferentes dos mesmos presets ("Sexta", "Casamento"); null = todos os presets, na ordem salva.
     setlists: (Array.isArray(saved?.setlists) ? saved.setlists : [])
       .filter(l => l && typeof l.name === 'string' && l.name)
@@ -148,6 +141,18 @@ export function migrateState(saved, { factory = [], factoryVersion = 0 } = {}) {
     state.factory = factoryVersion;
   }
   return state;
+}
+
+// Um preset salvo, vindo do armazenamento, de um arquivo importado ou de um link: cadeia e o que vai junto.
+export function normalizePreset(p) {
+  return {
+    name: String(p.name).slice(0, 40), chain: normalizeChain(p.chain),
+    ...(typeof p.bpm === 'number' ? { bpm: num(p.bpm, 120, 40, 240) } : {}),
+    ...(typeof p.trim === 'number' ? { trim: num(p.trim, 0, -12, 12) } : {}),
+    ...(Array.isArray(p.sceneMeta) ? { sceneMeta: normalizeSceneMeta(p.sceneMeta) } : {}),
+    // Program Change fixo (0–127): vence a posição no setlist, para reordenar não reprogramar o controlador.
+    ...(Number.isInteger(p.pc) && p.pc >= 0 && p.pc <= 127 ? { pc: p.pc } : {}),
+  };
 }
 
 // sceneMeta[i]: null ou { name, trim, bpm } (trim e bpm podem faltar: cena gravada antes de existirem).

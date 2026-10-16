@@ -1021,6 +1021,24 @@ try {
   })()`);
   check(wired.n === wired.chain && wired.same && !wired.swapping && wired.trim > 0, `troca de cadeia liga exatamente a cadeia atual (${JSON.stringify(wired)})`);
 
+  // Backup completo: cenas com nome, PC fixo e setlists vão e voltam pelo arquivo.
+  const backup = await evaluate(`(async () => {
+    const p = __pedaleira;
+    await p.idle();
+    const src = p.state.presets[0];
+    src.sceneMeta = [{ name: 'Solo', trim: 3, bpm: 90 }, null, null, null];
+    src.pc = 42;
+    p.state.setlists.push({ name: 'Turnê', order: [src.name] });
+    const doc = await p.buildExport();
+    doc.presets.forEach(x => x.name += ' (b)');
+    await p.importPresets(new File([JSON.stringify(doc)], 'c.json'));
+    const got = p.state.presets.find(x => x.name === src.name + ' (b)');
+    const sl = p.state.setlists.find(l => l.name.startsWith('Turnê') && l.order.includes(src.name + ' (b)'));
+    return { exported: Array.isArray(doc.setlists) && Array.isArray(doc.midi), scene: got?.sceneMeta?.[0]?.name, pc: got?.pc, setlist: sl?.name };
+  })()`);
+  check(backup.exported && backup.scene === 'Solo' && backup.pc === 42 && !!backup.setlist,
+    `backup leva cenas com nome, PC fixo e setlists (${JSON.stringify(backup)})`);
+
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
   console.log(`screenshots em ${out}`);
   ws.close();

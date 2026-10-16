@@ -1,6 +1,6 @@
 // Presets, rascunhos, exportar e importar.
 import { ensureView, fetchFile, fileInput, renderBoard } from './board.js';
-import { $, changeListeners, hideToast, toast, createAudio, engine, fileData, live, loadIntoAudio, setTrim, syncTempoFromChain, tapGlobal, normalizeBlock, normalizeChain, normalizeSceneMeta, reconnect, releaseFile, save, snapshot, state, status, uid } from './core.js';
+import { $, changeListeners, hideToast, toast, createAudio, engine, fileData, live, loadIntoAudio, setTrim, syncTempoFromChain, tapGlobal, normalizeBlock, normalizeChain, normalizePreset, normalizeSceneMeta, reconnect, releaseFile, save, snapshot, state, status, uid } from './core.js';
 import { chainDirty, sameChain, withScene } from './chain.js';
 import { sceneActive } from './scenes.js';
 import { t } from './i18n.js';
@@ -525,7 +525,9 @@ export async function buildExport() {
         if (data === undefined) continue;
         files[f.key] = data instanceof ArrayBuffer ? { type: 'base64', data: toBase64(data) } : { type: 'json', data };
       }
-  return { app: 'pedaleira', version: 1, exportedAt: new Date().toISOString(), presets: snapshot(presets), files };
+  // Setlists e mapeamentos MIDI vão junto: levar o show do PC para o celular não pode perder a noite.
+  return { app: 'pedaleira', version: 2, exportedAt: new Date().toISOString(), presets: snapshot(presets), files,
+    setlists: snapshot(state.setlists), midi: snapshot(state.midi) };
 }
 
 export async function exportPresets() {
@@ -554,14 +556,16 @@ export async function importPresets(file) {
   const keyMap = new Map();
   const remap = b => ({
     ...b,
-    files: Object.fromEntries(Object.entries(b?.files || {}).filter(([, f]) => f?.key in files).map(([k, f]) => [k, { ...f, key: `import:${f.key}` }])),
+    files: Object.fromEntries(Object.entries(b?.files || {}).filter(([, f]) => typeof f?.key === 'string' && Object.hasOwn(files, f.key)).map(([k, f]) => [k, { ...f, key: `import:${f.key}` }])),
   });
   let added = 0, same = 0;
+  const names = new Map(); // nome no arquivo → nome final aqui (para os setlists importados)
   for (const p of doc.presets) {
-    const chain = normalizeChain((Array.isArray(p?.chain) ? p.chain : []).map(remap));
+    if (!p || typeof p !== 'object') continue;
+    const chain = normalizeChain((Array.isArray(p.chain) ? p.chain : []).map(remap));
     if (!chain.length) continue;
     const existing = presetByName(p.name);
-    if (existing && sameChain(byName(existing.chain), byName(chain))) { same++; continue; }
+    if (existing && sameChain(byName(existing.chain), byName(chain))) { same++; names.set(p.name, existing.name); continue; }
     for (const b of chain)
       for (const f of Object.values(b.files)) {
         const src = f.key.slice('import:'.length), entry = files[src];
@@ -574,11 +578,26 @@ export async function importPresets(file) {
         f.key = keyMap.get(src);
       }
     for (const b of chain) for (const k of Object.keys(b.files)) if (!b.files[k].key) delete b.files[k];
+    const base = String(p.name || t('presets.defaultName')).slice(0, 34);
     let name = String(p.name || t('presets.defaultName')).slice(0, 40);
-    for (let i = 2; presetByName(name); i++) name = `${String(p.name).slice(0, 34)} (${i})`;
-    state.presets.push({ name, chain, ...(typeof p.bpm === 'number' ? { bpm: p.bpm } : {}), ...(typeof p.trim === 'number' ? { trim: p.trim } : {}) });
+    for (let i = 2; presetByName(name); i++) name = `${base} (${i})`;
+    // Mesmo normalizador do armazenamento: cenas (nome, nível, andamento), nível, andamento e PC fixo vêm junto.
+    state.presets.push({ ...normalizePreset({ ...p, chain: [] }), name, chain });
+    names.set(p.name, name);
     added++;
   }
+  // Setlists do arquivo, com os nomes finais; nome de setlist repetido ganha (2).
+  for (const l of Array.isArray(doc.setlists) ? doc.setlists : []) {
+    if (!l || typeof l.name !== 'string' || !Array.isArray(l.order)) continue;
+    const order = l.order.map(n => names.get(n)).filter(Boolean);
+    if (!order.length) continue;
+    let name = l.name.slice(0, 30);
+    for (let i = 2; state.setlists.some(x => x.name === name); i++) name = `${l.name.slice(0, 26)} (${i})`;
+    state.setlists.push({ name, order });
+  }
+  // Mapeamentos MIDI: entram os de botões que ainda não fazem nada aqui.
+  for (const m of Array.isArray(doc.midi) ? doc.midi : [])
+    if (m && typeof m.key === 'string' && m.target && !state.midi.some(x => x.key === m.key)) state.midi.push(m);
   save();
   renderPresets();
   status(t('presets.imported', { n: added }) + (same ? t('presets.importedSame', { n: same }) : '') + '.');

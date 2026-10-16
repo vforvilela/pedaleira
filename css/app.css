@@ -255,6 +255,7 @@ body:not(:has(#power[aria-pressed="true"])) .lat { display: none; }
 .status { margin: 0; min-height: 18px; font-size: 12.5px; line-height: 18px; color: var(--lcd-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
 .status.full, .status.err, .status.warn { white-space: normal; }
 .status.err { color: var(--lcd-err); }
+.status.warn { color: var(--lcd-ink); font-weight: 600; }
 
 /* Cenas: teclas de pisar, cada uma com o LED em cima; a cena ativa acende inteira. */
 .scenes { display: flex; gap: 6px; align-items: stretch; flex: 1 0 auto; }
@@ -291,7 +292,7 @@ body.midi-learn .scene-btn { outline: 2px dashed color-mix(in oklch, var(--accen
 /* Modo simples: só o que um iniciante usa no primeiro mês. O resto volta com "Mostrar tudo". */
 body.simple #scenes, body.simple #stageScenes, body.simple #presetOrganize, body.simple #presetShare, body.simple #presetExport,
 body.simple #presetImport, body.simple #floorView, body.simple #record, body.simple #measure, body.simple #midi,
-body.simple #midiClear, body.simple #trimRow, body.simple #eqRow, body.simple #libHint2 { display: none !important; }
+body.simple #midiClear, body.simple #trimRow, body.simple #eqRow, body.simple #libHint2, body.simple #tempo { display: none !important; }
 .more-row.show-more, .more-row:has(#record[aria-pressed="true"]) { padding-bottom: 12px; }
 .presets:not(.show-more) .more-item:not(#record[aria-pressed="true"]) { display: none; }
 .more-row button, .more-row select { padding: 6px 12px; font-size: 14px; }
@@ -496,7 +497,8 @@ body.stage { overflow: hidden; }
 .stage-trim { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); gap: 12px; }
 .stage-trim input { flex: 1; min-width: 0; height: 44px; accent-color: var(--accent); }
 .stage-trim output { min-width: 4.5em; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: 0; }
-body.simple #stageTrimRow { display: none; }
+body.simple #stageTrimRow, body.simple #stageTempo { display: none; }
+body.simple .stage-tools { display: none; }
 .stage-scenes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; flex: 1; min-height: 90px; }
 .stage-scene.named { font-size: clamp(16px, 4vw, 28px); }
 .scene-btn.named { font-size: 12px; letter-spacing: 0; text-transform: none; }
@@ -628,13 +630,13 @@ h2 { font-size: 26px; font-weight: 850; font-stretch: 118%; letter-spacing: -.02
   /* flex: none: a pedaleira nunca é espremida pela área; senão a medida de altura mente e o encaixe erra. */
   .board { flex: none; margin-block: auto; background: none; box-shadow: none; border-radius: 0; }
   /* Cada fileira o mais baixa possível, para caberem duas com pedais grandes: o nome já está pintado no pedal,
-     e o "inspirado no" fica numa linha (inteiro na dica e na biblioteca). */
+     e o "o que faz" fica em até duas linhas (inteiro na dica e na biblioteca). */
   .board { padding: 22px calc(16px + var(--squeeze, 0px)) 14px; row-gap: 10px; }
   .caption { min-height: 0; }
   .caption .pname { display: none; }
   /* A legenda não alarga o pedal: ocupa a largura dele e corta o resto. */
   .caption { justify-self: stretch; width: 0; min-width: 100%; max-width: none; }
-  .caption .inspired { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .caption .inspired { max-width: 100%; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; line-height: 1.25; }
   .tools { margin-top: 2px; }
 }
 /* Os botões embaixo dos pedais continuam com 44 px na tela mesmo com a pedaleira reduzida (o PC também pode ter toque). */
@@ -770,7 +772,9 @@ h2 { font-size: 26px; font-weight: 850; font-stretch: 118%; letter-spacing: -.02
    rodapé (metade cada), para sobrar altura para os pedais. */
 @media (max-height: 500px) {
   body { --dock: calc(56px + env(safe-area-inset-bottom)); }
-  .screen-top, .status, .chain-map { display: none; }
+  .screen-top, .status:not(.err):not(.warn), .chain-map { display: none; }
+  /* Celular deitado: só o que precisa ser lido (erro, aviso do fone, afinador mudo), em até duas linhas. */
+  .status.err, .status.warn { font-size: 11px; line-height: 14px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
   .face { padding: 6px 10px; }
   .scenes { bottom: 0; right: 50%; height: calc(56px + env(safe-area-inset-bottom)); padding: 6px 5px calc(6px + env(safe-area-inset-bottom)) 10px; }
   .actions { left: 50%; padding-left: 5px; }

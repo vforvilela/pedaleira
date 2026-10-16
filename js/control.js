@@ -129,7 +129,7 @@ document.addEventListener('keydown', e => {
   // Setas só trocam de preset sem nada em foco (ou no modo palco): com foco num botão, elas são do botão.
   if (ARROWS.has(e.key) && !stageOn() && document.activeElement && document.activeElement !== document.body) return;
   const scene = 'abcd'.indexOf(e.key.toLowerCase());
-  if (e.key.length === 1 && scene >= 0) recallScene(scene);
+  if (e.key.length === 1 && scene >= 0) { if (state.simple) return; recallScene(scene); }
   else if (/^[1-9]$/.test(e.key)) {
     const b = state.chain[+e.key - 1];
     if (b) { toggleBlock(b); if (!byType[b.type].press) status(t(b.on ? 'control.pedalOn' : 'control.pedalOff', { name: byType[b.type].name })); }

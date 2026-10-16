@@ -103,8 +103,15 @@ export async function start() {
     // microfonar; o aviso de fone fica até a pessoa trocar para uma interface. Com interface, a primeira vez
     // avisa do engano mais comum: o monitor direto dobrando o som limpo.
     const mic = isBuiltInMic(track);
+    // Primeira vez pelo microfone do aparelho: o Volume desce para −20 dB, para não apitar antes de pôr o fone.
+    let lowered = '';
+    if (mic && !state.micGuard) {
+      state.micGuard = true;
+      if (state.master > -20) { state.master = -20; engine.setMaster(state.master); $('master').value = state.master; showMaster(); lowered = ` ${t('power.micLowered')}`; }
+      save();
+    }
     const key = mic ? 'power.playingMic' : state.monitorHintDone ? 'power.playing' : 'power.playingFirst';
-    status(t(key, { device: track.label }), false, mic);
+    status(t(key, { device: track.label }) + lowered, false, mic);
     if (!mic && !state.monitorHintDone) { state.monitorHintDone = true; save(); }
   }
   $('measure').hidden = false;
