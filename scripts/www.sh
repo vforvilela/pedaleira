@@ -4,6 +4,7 @@
 set -e
 cd "$(dirname "$0")/.."
 rm -rf www && mkdir www
-cp -r index.html manifest.webmanifest sw.js css js icons fonts www/
+cp -r manifest.webmanifest sw.js css js icons fonts www/
 # A ponte do Capacitor entra na página como script embutido: a CSP do site o bloquearia. O app nativo vive sem ela.
-sed -i '/Content-Security-Policy/d' www/index.html
+# (sed sem -i: o -i do macOS exige sufixo e quebraria o job iOS.)
+sed '/Content-Security-Policy/d' index.html > www/index.html

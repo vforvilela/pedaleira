@@ -1,6 +1,6 @@
 // Presets, rascunhos, exportar e importar.
 import { ensureView, fetchFile, fileInput, renderBoard } from './board.js';
-import { $, changeListeners, hideToast, toast, createAudio, engine, fileData, live, loadIntoAudio, setTempo, setTrim, tapGlobal, normalizeBlock, normalizeChain, reconnect, releaseFile, save, snapshot, state, status, uid } from './core.js';
+import { $, changeListeners, hideToast, toast, createAudio, engine, fileData, live, loadIntoAudio, setTrim, syncTempoFromChain, tapGlobal, normalizeBlock, normalizeChain, reconnect, releaseFile, save, snapshot, state, status, uid } from './core.js';
 import { chainDirty, sameChain, withScene } from './chain.js';
 import { t } from './i18n.js';
 import { saveFile } from './platform.js';
@@ -280,9 +280,7 @@ export async function applyPreset(name) {
   else delete state.drafts[from];
   const target = name === '' ? state.drafts[''] : state.drafts[name] || presetByName(name)?.chain;
   if (!target) { state.preset = name || null; save(); renderPresets(); return; }
-  const bpm = presetByName(name)?.bpm;
-  if (bpm) setTempo(bpm); // o andamento da música vem com o preset (não conta como rascunho)
-  setTrim(presetByName(name)?.trim ?? 0); // idem o nível
+  setTrim(presetByName(name)?.trim ?? 0); // o nível vem com o preset (não conta como rascunho); o andamento, no loadChain
   await loadChain(target, name || null);
   status('');
 }
@@ -292,7 +290,16 @@ export async function applyPreset(name) {
 // Quanto tempo a cauda de cada tipo continua depois da troca de preset.
 const SPILL_SECONDS = { time: 8 };
 
-export async function loadChain(chain, presetName) {
+// Trocas de preset entram numa fila: loadChain espera capturas (await) e duas execuções entrelaçadas sobre
+// state.chain e live (pé rápido no footswitch, PC MIDI, setas) estourariam uma na outra.
+let loading = Promise.resolve();
+export function loadChain(chain, presetName) {
+  const run = loading.then(() => loadChainNow(chain, presetName));
+  loading = run.catch(() => {}); // a fila segue mesmo se uma troca falhar; o erro vai para quem chamou
+  return run;
+}
+
+async function loadChainNow(chain, presetName) {
   const current = new Map(state.chain.map(b => [b.uid, b]));
   const next = snapshot(chain).map(snap => {
     const ex = current.get(snap.uid);
@@ -341,6 +348,7 @@ export async function loadChain(chain, presetName) {
     for (const [, l] of gone) l.audio?.dispose();
   }
   for (const b of next) { delete b.reload; live.get(b.uid).view.update(); }
+  syncTempoFromChain(presetName ? presetByName(presetName)?.bpm : null);
   renderBoard();
   lastDirty = null;
   save();

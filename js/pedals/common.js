@@ -59,19 +59,23 @@ export class NamSlot {
     this.loaded = false;
   }
 
+  // Cada load tem um id: o 'loaded' (ou o timeout) de um load anterior, que ficou para trás porque outra
+  // captura entrou no meio do aquecimento, não resolve nem rejeita o atual (rejeitar apagaria a captura certa).
   load(nam) {
+    const id = (this.loadId = (this.loadId || 0) + 1);
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error(t('pedals.engineTimeout'))), 15000);
+      const timer = setTimeout(() => { if (id === this.loadId) reject(new Error(t('pedals.engineTimeout'))); }, 15000);
       const done = fn => arg => { clearTimeout(timer); fn(arg); };
       this.node.port.onmessage = ({ data }) => {
+        if (data.id !== id) return;
         if (data.type === 'loaded') { this.loaded = true; done(resolve)(data); }
         else { this.loaded = false; done(reject)(Object.assign(new Error(data.message), { code: data.code, detail: data.detail })); }
       };
       this.node.port.onmessageerror = done(reject);
       let enc = null;
       try { enc = this.wasm ? encodeForWasm(nam) : null; } catch (err) { done(reject)(err); return; }
-      if (enc) this.node.port.postMessage({ type: 'load', enc }, [enc.cfg.buffer, enc.weights.buffer]);
-      else this.node.port.postMessage({ type: 'load', nam });
+      if (enc) this.node.port.postMessage({ type: 'load', id, enc }, [enc.cfg.buffer, enc.weights.buffer]);
+      else this.node.port.postMessage({ type: 'load', id, nam });
     });
   }
 

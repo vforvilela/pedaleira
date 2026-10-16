@@ -35,7 +35,9 @@ test('ajuda: todo pedal tem uma linha "o que faz" e todo botão uma dica, nos tr
 test('www.sh e pages.yml copiam a mesma lista de pastas do app (o app nativo e o site não divergem)', async () => {
   const { readFileSync } = await import('node:fs');
   const root = new URL('..', import.meta.url).pathname;
-  const list = s => s.match(/cp -r (.+?) (?:www|_site)\//)[1].split(/\s+/).filter(f => f !== 'privacy.html').sort();
+  // (www.sh gera index.html pelo sed, sem a CSP; conta como copiado)
+  const list = s => [...s.match(/cp -r (.+?) (?:www|_site)\//)[1].split(/\s+/), ...(/> www\/index\.html/.test(s) ? ['index.html'] : [])]
+    .filter(f => f !== 'privacy.html').sort();
   const www = list(readFileSync(`${root}scripts/www.sh`, 'utf8'));
   const pages = list(readFileSync(`${root}.github/workflows/pages.yml`, 'utf8'));
   assert.deepEqual(www, pages);
@@ -74,7 +76,7 @@ test('CSP: os hashes do index.html batem com os scripts embutidos; o app nativo 
   assert.deepEqual(have, want, 'hash de script embutido desatualizado na CSP');
   assert.match(csp, /script-src 'self'/);
   assert.doesNotMatch(csp, /'unsafe-inline'|'unsafe-eval'/);
-  assert.match(readFileSync(`${root}scripts/www.sh`, 'utf8'), /sed -i '\/Content-Security-Policy\/d' www\/index\.html/);
+  assert.match(readFileSync(`${root}scripts/www.sh`, 'utf8'), /sed '\/Content-Security-Policy\/d' index\.html > www\/index\.html/);
 });
 
 test('service worker: a versão do cache acompanha os arquivos do app (rode `npm run sw` quando mudar js/, css/ ou index.html)', async () => {

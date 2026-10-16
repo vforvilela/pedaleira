@@ -928,6 +928,17 @@ try {
   })()`);
   check(geq.gain === -4 && geq.state === -4 && geq.shown === '-4', `EQ geral: graves em −4 dB no shelf e no estado (${JSON.stringify(geq)})`);
 
+  // Duas trocas de preset sem esperar (pé rápido): entram na fila, a segunda vence, nada estoura.
+  const race = await evaluate(`(async () => {
+    const p = __pedaleira, names = p.state.presets.map(x => x.name);
+    const [a, b] = [names[0], names[1]];
+    const pa = p.loadChain(p.state.presets[0].chain, a);
+    const pb = p.loadChain(p.state.presets[1].chain, b);
+    const ok = await Promise.all([pa, pb]).then(() => true, e => String(e));
+    return { ok, preset: p.state.preset, want: b, views: p.state.chain.every(x => p.live.get(x.uid)?.view) };
+  })()`);
+  check(race.ok === true && race.preset === race.want && race.views, `trocas de preset concorrentes entram na fila (${JSON.stringify(race)})`);
+
   check(errors.length === 0, `sem erros no console${errors.length ? ':\n  ' + errors.join('\n  ') : ''}`);
   console.log(`screenshots em ${out}`);
   ws.close();

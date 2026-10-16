@@ -1,5 +1,5 @@
 // Cenas dentro do preset.
-import { $, changeListeners, live, save, SCENE_NAMES, sceneMatches, state, status } from './core.js';
+import { $, changeListeners, live, save, SCENE_NAMES, sceneMatches, state, status, syncTempoFromChain } from './core.js';
 import { byType } from './pedals/index.js';
 import { t } from './i18n.js';
 
@@ -43,6 +43,7 @@ export function recallScene(i) {
     if (b.on !== s.on) { b.on = s.on; l?.audio?.setOn(s.on); }
     l?.view?.update();
   }
+  syncTempoFromChain();
   save();
   status(t('scenes.recalled', { name: SCENE_NAMES[i], summary: sceneSummary(i) }));
 }

@@ -27,7 +27,7 @@ export const save = () => {
 };
 // Para o arraste de um botão: salva e avisa quem escuta só quando a mão para (ou a página sai),
 // em vez de serializar o estado e refazer a tela a cada pixel.
-export const saveSoon = () => { if (!saveTimer) saveTimer = setTimeout(save, 150); };
+export const saveSoon = () => { clearTimeout(saveTimer); saveTimer = setTimeout(save, 150); };
 export const flushSave = () => { if (saveTimer) save(); };
 globalThis.addEventListener?.('pagehide', flushSave);
 globalThis.document?.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible') flushSave(); });
@@ -72,7 +72,9 @@ export async function fileData(block, kind) {
       status(t('core.downloadFailed', { name: f.name, msg: err.message }), true);
     }
   }
-  if (data === undefined) { delete block.files[kind]; save(); }
+  // Sem dados e sem endereço não há de onde tirar: o bloco perde o arquivo. Com endereço (download falhou:
+  // sem rede no palco), a referência fica e a próxima vez tenta de novo.
+  if (data === undefined && !f.url) { delete block.files[kind]; save(); }
   return data;
 }
 
@@ -140,6 +142,7 @@ export function tapGlobal() {
   const sec = tapInterval('global');
   if (sec === null) { status(t('core.tapAgainGlobal')); return; }
   setTempo(60 / sec);
+  flushSave();
   status(t('core.tempoSet', { bpm: state.bpm }));
 }
 
@@ -157,7 +160,7 @@ export function setTempo(bpm, from = null) {
       if (b.params.bpm !== v) { b.params.bpm = v; l?.audio?.set('bpm', v); l?.view?.update(); }
     } else if (l?.def.syncsTempo) l.audio?.setTempo?.(bpm);
   }
-  save();
+  saveSoon();
 }
 
 // EQ geral da saída (dB por faixa), fora dos presets.
@@ -172,6 +175,14 @@ export function setTrim(db) {
   state.trim = Math.round(Math.max(-12, Math.min(12, db)) * 2) / 2;
   engine.setTrim(state.trim);
   save();
+}
+
+// Depois de uma troca de cadeia ou cena: o andamento vem do preset (bpm salvo) ou, sem ele, do BPM do Pulso
+// que está na pedaleira, para o Pulso, o Eco 8 e o Laço nunca seguirem números diferentes.
+export function syncTempoFromChain(presetBpm = null) {
+  if (presetBpm) { setTempo(presetBpm); return; }
+  const pulso = state.chain.find(b => b.type === 'pulso');
+  if (pulso) setTempo(bpmOf(pulso.params.bpm), pulso);
 }
 
 // Botão BPM do Pulso girado: o andamento global acompanha.

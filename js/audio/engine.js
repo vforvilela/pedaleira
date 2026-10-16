@@ -27,7 +27,7 @@ export class Engine {
     this.blocks = [];
   }
 
-  get running() { return !!this.ctx; }
+  get running() { return !!this.ctx && this.ready; }
 
   async start(deviceId, bufferMs = 5) {
     const ask = id => navigator.mediaDevices.getUserMedia({
@@ -54,6 +54,7 @@ export class Engine {
     await Promise.all(['../nam/nam-worklet.js', './dsp-worklet.js']
       .map(f => ctx.audioWorklet.addModule(new URL(f, import.meta.url))));
     this.wasmBytes = await loadWasmBytes();
+    this.ready = true;
 
     this.source = ctx.createMediaStreamSource(this.stream);
     // A guitarra é um sinal só. Sem canal escolhido, a mistura do navegador: mono passa inteiro, estéreo vira
@@ -108,6 +109,7 @@ export class Engine {
     this.stream?.getTracks().forEach(t => t.stop());
     await this.ctx?.close();
     this.ctx = this.stream = null;
+    this.ready = false;
   }
 
   // Canal da interface onde está a guitarra (0 ou 1); null mistura os dois.

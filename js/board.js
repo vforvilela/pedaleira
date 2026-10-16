@@ -1,5 +1,5 @@
 // Pedaleira na tela: desenha a cadeia, adiciona, remove, arrasta e carrega arquivos nos pedais.
-import { $, applyStoredFiles, changeListeners, createAudio, paramChanged, setParam, engine, live, loadIntoAudio, newBlock, reconnect, releaseFile, save, saveSoon, flushSave, state, status, tapTempo, toast, hideToast, toggleBlock } from './core.js';
+import { $, applyStoredFiles, changeListeners, createAudio, paramChanged, setParam, syncTempoFromChain, engine, live, loadIntoAudio, newBlock, reconnect, releaseFile, save, saveSoon, flushSave, state, status, tapTempo, toast, hideToast, toggleBlock } from './core.js';
 import { ORDER, byType } from './pedals/index.js';
 import { putFile } from './store.js';
 import { pedalView } from './ui/pedal-view.js';
@@ -299,6 +299,7 @@ export async function undoRemove() {
   if (engine.running) createAudio(block);
   renderBoard();
   reconnect();
+  syncTempoFromChain();
   save();
   status(t('board.restored', { name: byType[block.type].name }));
   if (engine.running) await applyStoredFiles(block);

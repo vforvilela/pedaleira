@@ -24,9 +24,10 @@ class NamProcessor extends AudioWorkletProcessor {
       if (data.type === 'clear') { this.model = this.pending = null; return; }
       try {
         this.pending = createEngine(data.enc ?? data.nam, wasmModule, { deferWarm: true });
+        this.pendingId = data.id;
       } catch (err) {
         this.pending = null;
-        this.port.postMessage({ type: 'error', message: err.message, code: err.code, detail: err.detail });
+        this.port.postMessage({ type: 'error', id: data.id, message: err.message, code: err.code, detail: err.detail });
       }
     };
   }
@@ -37,7 +38,7 @@ class NamProcessor extends AudioWorkletProcessor {
     if (left > 0) return;
     this.model = this.pending;
     this.pending = null;
-    this.port.postMessage({ type: 'loaded', engine: this.model.engine, sampleRate: this.model.sampleRate });
+    this.port.postMessage({ type: 'loaded', id: this.pendingId, engine: this.model.engine, sampleRate: this.model.sampleRate });
   }
 
   process(inputs, outputs) {
